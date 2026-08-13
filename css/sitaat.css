@@ -1,0 +1,809 @@
+/* ══════════════════════════════════════════════
+   SITAAT - SISTEM INFORMASI TATA TERTIB
+   ══════════════════════════════════════════════ */
+
+/* Header SITAAT */
+.header {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    color: white;
+    padding: 24px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2);
+}
+
+.header h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+}
+
+.header p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.role-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.btn-dashboard {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.3);
+    font-size: 0.88rem;
+}
+
+.btn-dashboard:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Container */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Info Banner */
+.info-banner {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-left: 4px solid #f59e0b;
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+    color: #78350f;
+}
+
+.info-banner strong {
+    color: #92400e;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    color: #dc2626;
+}
+
+.tab.active {
+    color: #dc2626;
+    border-bottom-color: #dc2626;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 4px solid #dc2626;
+}
+
+.stat-card h3 {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.stat-card .value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+/* Card */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    color: #1e40af;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Form */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #991b1b;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-secondary {
+    background: #64748b;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 14px;
+    background: #f8fafc;
+    border-radius: 8px;
+    align-items: center;
+}
+
+.filter-bar input,
+.filter-bar select {
+    padding: 9px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    outline: none;
+}
+
+/* Siswa List */
+.siswa-item {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.siswa-item:hover {
+    background: #fef2f2;
+    border-color: #dc2626;
+    transform: translateX(4px);
+}
+
+.siswa-info h4 {
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.siswa-info p {
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.siswa-poin {
+    text-align: right;
+}
+
+.siswa-poin .total {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.siswa-poin .lbl {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* Level Badges */
+.level-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.level-aman {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.level-peringatan1 {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.level-peringatan2 {
+    background: #fed7aa;
+    color: #9a3412;
+}
+
+.level-peringatan3 {
+    background: #fecaca;
+    color: #991b1b;
+}
+
+.level-kritis {
+    background: #ef4444;
+    color: white;
+}
+
+/* Pelanggaran Item */
+.pelanggaran-item {
+    background: #f8fafc;
+    border-left: 4px solid #dc2626;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+}
+
+.pelanggaran-item .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    background: none;
+    padding: 0;
+    box-shadow: none;
+}
+
+.pelanggaran-item .siswa-nama {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.pelanggaran-item .tanggal {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.pelanggaran-item .jenis {
+    color: #475569;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.pelanggaran-item .poin {
+    font-weight: 700;
+    color: #dc2626;
+}
+
+/* Jenis Pelanggaran List */
+.kategori-section {
+    margin-bottom: 20px;
+}
+
+.kategori-title {
+    background: #1e40af;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.kategori-list {
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.jenis-item {
+    display: grid;
+    grid-template-columns: 40px 1fr 100px 80px;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+}
+
+.jenis-item:last-child {
+    border-bottom: none;
+}
+
+.jenis-item .no {
+    font-weight: 700;
+    color: #64748b;
+}
+
+.jenis-item .deskripsi {
+    color: #1e293b;
+    font-size: 0.9rem;
+}
+
+.jenis-item .poin {
+    font-weight: 700;
+    color: #dc2626;
+    text-align: right;
+}
+
+.jenis-item .aksi {
+    text-align: right;
+}
+
+/* Alert */
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    display: none;
+}
+
+.alert.show {
+    display: block;
+}
+
+.alert-success {
+    background: #dcfce7;
+    color: #166534;
+    border-left: 4px solid #10b981;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+
+.empty-state .icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+/* Spinner */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #dc2626;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-box {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-box h3 {
+    color: #1e40af;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.detail-label {
+    font-weight: 700;
+    color: #475569;
+}
+
+.detail-value {
+    color: #1e293b;
+}
+
+/* Table Laporan */
+.laporan-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.laporan-table th {
+    background: #dc2626;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #991b1b;
+}
+
+.laporan-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.laporan-table tr:hover td {
+    background: #fef2f2;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+        padding: 16px;
+    }
+    
+    .header h1 {
+        font-size: 1.2rem;
+    }
+    
+    .container {
+        padding: 12px;
+    }
+    
+    .card {
+        padding: 16px;
+    }
+    
+    .tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    
+    .tab {
+        white-space: nowrap;
+        font-size: 0.85rem;
+        padding: 10px 14px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .jenis-item {
+        grid-template-columns: 30px 1fr 80px;
+    }
+    
+    .jenis-item .aksi {
+        display: none;
+    }
+    
+    .detail-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .siswa-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .siswa-poin {
+        text-align: left;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   PRINT STYLES - Hanya Cetak Tab Laporan
+   ══════════════════════════════════════════════ */
+@media print {
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+    
+    body {
+        background: white !important;
+        font-size: 10pt;
+    }
+    
+    /* Sembunyikan SEMUA elemen yang tidak perlu */
+    .header,
+    .info-banner,
+    .tabs,
+    .filter-bar,
+    .btn,
+    .no-print,
+    .modal,
+    .spinner,
+    .empty-state {
+        display: none !important;
+    }
+    
+    /* Sembunyikan SEMUA tab-content secara default */
+    .tab-content {
+        display: none !important;
+    }
+    
+    /* KECUALI tab laporan - hanya ini yang ditampilkan */
+    #tab-laporan {
+        display: block !important;
+        padding: 0;
+        margin: 0;
+    }
+    
+    /* Sembunyikan h2 "Laporan Pelanggaran" */
+    #tab-laporan .card > h2 {
+        display: none !important;
+    }
+    
+    /* Styling card untuk print */
+    .card {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Header Laporan untuk Print */
+    .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 3px double #1e40af;
+    }
+    
+    .print-header h1 {
+        font-size: 14pt;
+        color: #1e40af;
+        margin: 0 0 5px 0;
+    }
+    
+    .print-header p {
+        font-size: 9pt;
+        color: #64748b;
+        margin: 2px 0;
+    }
+    
+    /* Table Laporan */
+    .laporan-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+        margin-top: 20px;
+    }
+    
+    .laporan-table th {
+        background-color: #dc2626 !important;
+        color: white !important;
+        padding: 8px !important;
+        border: 1px solid #991b1b !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .laporan-table td {
+        padding: 6px 8px !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    
+    .laporan-table tr:hover td {
+        background: white !important;
+    }
+    
+    /* Level Badge saat print */
+    .level-badge {
+        padding: 2px 8px !important;
+        border: 1px solid #ccc !important;
+        border-radius: 12px !important;
+        font-size: 8pt !important;
+        font-weight: 700 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .level-aman { background: #dcfce7 !important; color: #166534 !important; }
+    .level-peringatan1 { background: #fef3c7 !important; color: #92400e !important; }
+    .level-peringatan2 { background: #fed7aa !important; color: #9a3412 !important; }
+    .level-peringatan3 { background: #fecaca !important; color: #991b1b !important; }
+    .level-kritis { background: #ef4444 !important; color: white !important; }
+}
+
+/* ══════════════════════════════════════════════
+   AUTOCOMPLETE DROPDOWN - SICAN Integration
+   ══════════════════════════════════════════════ */
+.form-group {
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    width: 100%;
+    margin-top: 4px;
+    top: 100%;
+    left: 0;
+}
+
+.autocomplete-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: #f0f9ff;
+}
+
+.autocomplete-item strong {
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.autocomplete-item span {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+/* Input readonly styling */
+input[readonly] {
+    background: #f1f5f9 !important;
+    cursor: not-allowed;
+}
