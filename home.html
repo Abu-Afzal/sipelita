@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  PWA META TAGS -->
+    <!-- ═════════════════════════════════════════════ -->
+    <meta name="theme-color" content="#10b981">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SIPELITA">
+    <meta name="application-name" content="SIPELITA">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./assets/images/sipelita-app.png">
+    <link rel="icon" type="image/png" href="./assets/images/sipelita-app.png">
+
+    <!-- ═════════════════════════════════════════════ -->
+    <!-- 📱 PWA INSTALL PROMPT SCRIPT -->
+    <!-- ══════════════════════════════════════════════ -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => { console.log('✅ Service Worker registered:', reg.scope); })
+          .catch(err => { console.log('❌ Service Worker registration failed:', err); });
+      });
+    }
+
+    let deferredPrompt;
+    const installButton = document.getElementById('btnInstallPWA');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      showInstallBanner();
+      if (installButton) {
+        installButton.style.display = 'block';
+        installButton.onclick = () => {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') { console.log('✅ User installed PWA'); }
+            deferredPrompt = null;
+            hideInstallBanner();
+          });
+        };
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('🎉 SIPELITA di-install!');
+      hideInstallBanner();
+      deferredPrompt = null;
+    });
+
+    function showInstallBanner() {
+      if (localStorage.getItem('sipelita_install_dismissed')) return;
+      const banner = document.createElement('div');
+      banner.id = 'pwaInstallBanner';
+      banner.style.cssText = `
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: white; padding: 16px 20px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        display: flex; align-items: center; gap: 14px;
+        z-index: 9999; border-radius: 16px 16px 0 0;
+        animation: slideUp 0.3s ease;
+      `;
+      banner.innerHTML = `
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <img src="./assets/images/sipelita-app.png" style="width:36px;height:36px;border-radius:8px;" onerror="this.outerHTML='📱'">
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">PWA TERSEDIA</div>
+          <div style="font-weight:700;color:#0f172a;font-size:1rem;margin:2px 0;">Install aplikasi ini</div>
+          <div style="font-size:0.82rem;color:#64748b;">Pasang SIPELITA ke layar utama agar lebih cepat dibuka seperti aplikasi Android.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button id="btnInstallNow" style="padding:10px 20px;background:#10b981;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">Install</button>
+          <button id="btnInstallLater" style="padding:10px 20px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">Nanti</button>
+        </div>
+      `;
+      if (!document.getElementById('pwaBannerStyle')) {
+        const style = document.createElement('style');
+        style.id = 'pwaBannerStyle';
+        style.textContent = `@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`;
+        document.head.appendChild(style);
+      }
+      document.body.appendChild(banner);
+      document.getElementById('btnInstallNow').onclick = () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') { console.log('✅ User installed PWA'); }
+            deferredPrompt = null;
+            hideInstallBanner();
+          });
+        }
+      };
+      document.getElementById('btnInstallLater').onclick = () => {
+        localStorage.setItem('sipelita_install_dismissed', 'true');
+        hideInstallBanner();
+      };
+    }
+
+    function hideInstallBanner() {
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner) {
+        banner.style.animation = 'slideUp 0.3s ease reverse';
+        setTimeout(() => banner.remove(), 300);
+      }
+    }
+    </script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIPELITA – MAN Bantaeng</title>
+    <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/home-style.css?v=4">
+    
+    <!-- ==================================================================== -->
+    <!-- 🎨 BENTENG CSS: DIKUNCI AGAR ALBUM RAPI & TIDAK MEMENUHI LAYAR HP -->
+    <!-- ==================================================================== -->
+    <style>
+    .galeri-album-section {
+        padding: 60px 0;
+        background-color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .galeri-filter-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 35px;
+    }
+    .galeri-select-filter {
+        padding: 12px 24px;
+        font-size: 0.95rem;
+        color: #334155;
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 50px;
+        outline: none;
+        cursor: pointer;
+        min-width: 280px;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    
+    #galeriKegiatanContainer {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 25px !important;
+        margin-top: 30px !important;
+    }
+
+    /* ✅ PERBAIKAN: Hanya target card yang TIDAK tersembunyi */
+    #galeriKegiatanContainer > a.galeri-card:not(.album-tersembunyi), 
+    #galeriKegiatanContainer > div.galeri-card:not(.album-tersembunyi) {
+        display: flex !important;
+        flex-direction: column !important;
+        background: #ffffff !important;
+        border-radius: 18px !important;
+        overflow: hidden !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        text-decoration: none !important;
+        height: 100% !important;
+        position: relative !important;
+    }
+    
+    /* ✅ ATURAN PALING KUAT: Sembunyikan card yang difilter */
+    #galeriKegiatanContainer > a.galeri-card.album-tersembunyi,
+    #galeriKegiatanContainer > div.galeri-card.album-tersembunyi {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        z-index: -9999 !important;
+        pointer-events: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    #galeriKegiatanContainer > a.galeri-card:not(.album-tersembunyi):hover,
+    #galeriKegiatanContainer > div.galeri-card:not(.album-tersembunyi):hover {
+        transform: translateY(-6px) !important;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.09) !important;
+    }
+
+    #galeriKegiatanContainer img {
+        width: 100% !important;
+        height: 170px !important;
+        object-fit: cover !important;
+        display: block !important;
+    }
+    
+    #galeriKegiatanContainer a,
+    #galeriKegiatanContainer span,
+    #galeriKegiatanContainer p {
+        padding: 20px 15px !important;
+        text-align: center !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+        text-decoration: none !important; 
+        text-transform: uppercase !important;
+        letter-spacing: 0.3px !important;
+        line-height: 1.5 !important;
+        background: #ffffff !important;
+        margin: 0 !important;
+        display: block !important;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+        #galeriKegiatanContainer { grid-template-columns: repeat(3, 1fr) !important; }
+    }
+    @media (max-width: 768px) {
+        #galeriKegiatanContainer { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+        #galeriKegiatanContainer img { height: 130px !important; }
+        #galeriKegiatanContainer a, #galeriKegiatanContainer span { font-size: 0.78rem !important; padding: 12px 8px !important; }
+        
+        /* Double check untuk mobile */
+        #galeriKegiatanContainer > a.galeri-card.album-tersembunyi,
+        #galeriKegiatanContainer > div.galeri-card.album-tersembunyi {
+            display: none !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        #galeriKegiatanContainer > a.galeri-card.album-tersembunyi,
+        #galeriKegiatanContainer > div.galeri-card.album-tersembunyi {
+            display: none !important;
+        }
+    }
+    
+    .album-tersembunyi { display: none !important; }
+    
+    .galeri-album-section {
+        padding-top: 20px !important;
+        padding-bottom: 60px !important;
+    }
+
+    .galeri-album-section h2,
+    .galeri-album-section .section-title,
+    .galeri-album-section h1 {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    .berita-section, 
+    .news-section, 
+    #berita {
+        padding-bottom: 10px !important;
+        margin-bottom: 10px !important;
+    }
+</style>
+
+        <!-- ══════════════════════════════════════════════ -->
+    <!-- 🛡️ PERBAIKAN VISIBILITAS INPUT LOGIN (KHUSUS HOME) -->
+    <!-- ══════════════════════════════════════════════ -->
+    <style>
+        /* Target spesifik untuk input di dalam wrapper ikon login */
+        .input-icon-wrapper input[type="email"],
+        .input-icon-wrapper input[type="password"],
+        .input-icon-wrapper input[type="text"] {
+            color: #0f172a !important; /* Teks sangat gelap agar kontras dan jelas */
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            background: rgba(255, 255, 255, 0.9) !important; /* Background putih solid tapi sedikit transparan */
+            border: 2px solid rgba(255, 255, 255, 0.5) !important;
+            border-radius: 8px !important;
+            padding: 12px 45px 12px 40px !important; /* Padding kiri & kanan disesuaikan agar tidak menabrak ikon */
+            transition: all 0.3s ease !important;
+        }
+
+        /* Saat input diklik / di-hover (Fokus) */
+        .input-icon-wrapper input[type="email"]:focus,
+        .input-icon-wrapper input[type="password"]:focus,
+        .input-icon-wrapper input[type="text"]:focus {
+            color: #0f172a !important;
+            background: #ffffff !important; /* Putih penuh saat aktif */
+            border-color: #10b981 !important; /* Border hijau khas SIPELITA */
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2) !important; /* Efek glow hijau halus */
+            outline: none !important;
+        }
+
+        /* Placeholder text (teks contoh) */
+        .input-icon-wrapper input::placeholder {
+            color: #64748b !important;
+            font-weight: 400 !important;
+            opacity: 1 !important;
+        }
+
+        /* Memastikan ikon amplop/gembok tetap terlihat rapi */
+        .input-icon-wrapper .icon-main {
+            color: #10b981 !important;
+            font-size: 1.1rem !important;
+            z-index: 2 !important;
+        }
+        
+        /* Memastikan ikon mata (toggle password) tetap terlihat dan bisa diklik */
+        .input-icon-wrapper .toggle-password {
+            color: #64748b !important;
+            cursor: pointer !important;
+            z-index: 2 !important;
+            transition: color 0.2s !important;
+        }
+        .input-icon-wrapper .toggle-password:hover {
+            color: #10b981 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═════════════════════════════════════════════ -->
+    <!--  CUSTOM SPLASH SCREEN -->
+    <!-- ═════════════════════════════════════════════ -->
+    <div id="customSplashScreen" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #fef9f3 0%, #fff5eb 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+    ">
+        <!-- Logo Besar -->
+        <div id="splashLogo" style="width: 280px; height: 280px; margin-bottom: 40px; animation: splashLogoBounce 2s ease-in-out infinite;">
+            <img src="assets/images/sipelita-app.png" alt="SIPELITA" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.1));">
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="splashProgressWrapper" style="width: 280px; height: 8px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+            <div id="splashProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); border-radius: 10px; transition: width 0.3s ease; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
+        </div>
+
+        <!-- Persentase Loading -->
+        <div id="splashPercentage" style="font-size: 1.8rem; font-weight: 700; color: #10b981; margin-bottom: 10px; font-family: 'Courier New', monospace;">0%</div>
+
+        <!-- Teks Loading -->
+        <div id="splashLoadingText" style="font-size: 1.1rem; color: #64748b; font-weight: 500; animation: splashDots 1.5s ease-in-out infinite;">
+            Loading<span class="dots">...</span>
+        </div>
+
+        <!-- Tagline -->
+        <div id="splashTagline" style="margin-top: 30px; font-size: 0.9rem; color: #94a3b8; text-align: center; max-width: 300px; line-height: 1.5;">
+            Sistem Pengelolaan Edukasi &<br>Layanan Terpadu MAN Bantaeng
+        </div>
+    </div>
+
+    <!-- Animasi CSS untuk Splash Screen -->
+    <style>
+        @keyframes splashLogoBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.02); }
+        }
+        @keyframes splashDots {
+            0%, 20% { opacity: 0.4; }
+            40%, 100% { opacity: 1; }
+        }
+        .dots::after {
+            content: '';
+            animation: splashDotPulse 1.5s infinite;
+        }
+        @keyframes splashDotPulse {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75%, 100% { content: '...'; }
+        }
+        .splash-hidden {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        
+        /* ═══════════════════════════════════════════ */
+        /* 📱 RESPONSIVE UNTUK MOBILE */
+        /* ════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            #splashLogo {
+                width: 200px !important;
+                height: 200px !important;
+                margin-bottom: 30px !important;
+            }
+            #splashProgressWrapper {
+                width: 200px !important;
+            }
+            #splashPercentage {
+                font-size: 1.5rem !important;
+            }
+            #splashLoadingText {
+                font-size: 1rem !important;
+            }
+            #splashTagline {
+                font-size: 0.85rem !important;
+                max-width: 250px !important;
+                margin-top: 20px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #splashLogo {
+                width: 150px !important;
+                height: 150px !important;
+                margin-bottom: 20px !important;
+            }
+            #splashProgressWrapper {
+                width: 180px !important;
+                height: 6px !important;
+            }
+            #splashPercentage {
+                font-size: 1.3rem !important;
+            }
+            #splashLoadingText {
+                font-size: 0.95rem !important;
+            }
+            #splashTagline {
+                font-size: 0.8rem !important;
+                max-width: 220px !important;
+                margin-top: 15px !important;
+                padding: 0 10px !important;
+            }
+        }
+    </style>
+
+    <!-- Script Animasi Loading -->
+    <script>
+        let splashProgress = 0;
+        const splashInterval = setInterval(() => {
+            splashProgress += Math.random() * 15;
+            if (splashProgress > 100) splashProgress = 100;
+            
+            document.getElementById('splashProgressBar').style.width = splashProgress + '%';
+            document.getElementById('splashPercentage').textContent = Math.floor(splashProgress) + '%';
+            
+            if (splashProgress === 100) {
+                clearInterval(splashInterval);
+                setTimeout(() => {
+                    document.getElementById('customSplashScreen').classList.add('splash-hidden');
+                    setTimeout(() => {
+                        document.getElementById('customSplashScreen').style.display = 'none';
+                    }, 500);
+                }, 500);
+            }
+        }, 200);
+    </script>
+    <!-- ════════════════════════════════════════════ -->
+
+    <!-- ========================================== -->
+    <!-- KONTEN LAMAN YANG SUDAH ADA -->
+    <!-- ========================================== -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <img src="assets/images/sipelita-app.png" alt="SIPELITA">
+                <span>SIPELITA</span>
+            </div>
+            <ul class="nav-links"></ul>
+        </div>
+    </nav>
+
+    <div class="marquee-running-bar">
+        <div class="marquee-container-wrapper">
+            <div class="marquee-flex-layout">
+                <span class="info-badge">INFO</span>
+                <div class="marquee-overflow-hide">
+                    <marquee behavior="scroll" direction="left" scrollamount="5">
+                        Aplikasi Ini Masih Dalam Tahap Pengembangan. Mohon Do'anya Semoga Allah Mudahkan Sampai Selesai. Aamiin!
+                    </marquee>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="hero">
+        <div class="container hero-vertical-layout">
+            <div class="hero-text-center">
+                <h1>Selamat Datang di SIPELITA</h1>
+                <p>Sistem Pengelolaan Edukasi & Layanan Terpadu – MAN Bantaeng</p>
+            </div>
+
+            <div class="hero-login-card-wide">
+                <h2>LOGIN USER</h2>
+                <p class="subtitle">Portal Akses Guru & Staf Madrasah</p>
+                
+                <div id="errorMsg" class="error-msg"></div>
+
+                <form id="landingLoginForm">
+                    <div class="form-group">
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-envelope icon-main"></i>
+                            <input type="email" id="email" placeholder="Masukkan email anda" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-icon-wrapper">
+                            <i class="fas fa-lock icon-main"></i>
+                            <input type="password" id="password" placeholder="Masukkan password" required>
+                            <i class="fas fa-eye-slash toggle-password" id="togglePassword"></i>
+                        </div>
+                    </div>
+
+                    <div class="remember-me-container">
+                        <label class="remember-me-label">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="checkbox-custom"></span>
+                            Ingat Saya
+                        </label>
+                    </div>
+
+                    <button type="submit" id="btnLogin" class="btn-inline-login">MASUK PORTAL</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section id="berita" class="berita-section">
+        <div class="container">
+            <h2 class="section-title">Berita Terbaru</h2>
+            <div class="berita-grid" id="beritaContainer"></div>
+            <a href="pages/daftar-berita.html" id="btnLihatSemuaBerita" class="btn-more">Lihat Semua Berita →</a>
+        </div>
+    </section>      
+           
+    <section id="galeri" class="galeri-album-section">
+        <div class="container">
+            <h2 class="section-title" style="text-align: center; margin-bottom: 5px;">Galeri Kegiatan MAN Bantaeng</h2>
+            
+            <div class="galeri-filter-wrapper">
+                <select id="filterKegiatan" class="galeri-select-filter">
+                    <option value="semua">Semua Kegiatan</option>
+                    <option value="2026">Kegiatan Tahun 2026</option>
+                    <option value="2025">Kegiatan Tahun 2025</option>
+                    <option value="2024">Kegiatan Tahun 2024</option>
+                </select>
+            </div>
+
+            <div id="loadingGaleri" style="text-align: center; padding: 40px; display: none;">
+                <div class="spinner" style="margin: 0 auto; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #2e7d32; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <p style="color: #2e7d32; margin-top: 15px; font-weight: 500;">🔄 Menyingkronkan dengan Google Drive...</p>
+            </div>
+
+            <div class="galeri-grid" id="galeriKegiatanContainer"></div>
+        </div>
+    </section>
+        
+    <section class="social-section">
+        <h2>Ikuti Kami</h2>
+        <div class="social-grid">
+            <a href="https://web.facebook.com/dini.abnm" target="_blank" class="social-card facebook">
+                <i class="fab fa-facebook-f"></i> <span>Facebook</span>
+            </a>
+            <a href="https://www.instagram.com/man.bantaeng" target="_blank" class="social-card instagram">
+                <i class="fab fa-instagram"></i> <span>Instagram</span>
+            </a>
+            <a href="https://www.youtube.com/@manbantaeng" target="_blank" class="social-card youtube">
+                <i class="fab fa-youtube"></i> <span>YouTube</span>
+            </a>
+            <a href="https://wa.me/6281347027844" target="_blank" class="social-card whatsapp">
+                <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
+            </a>
+        </div>
+    </section>
+        
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-column">
+                <h3>SIPELITA</h3>
+                <p>Sistem Pengelolaan Edukasi & Layanan Terpadu<br>MAN Bantaeng</p>
+            </div>
+            <div class="footer-column">
+                <h3>Kontak</h3>
+                <p><i class="fas fa-map-marker-alt"></i> Jl. Parela Dampang Kel. Gantarangkeke Kab. Bantaeng</p>
+                <p><i class="fas fa-phone-alt"></i> Humas: 08219372244</p>
+                <p><i class="fas fa-envelope"></i> info@manbantaeng.sch.id</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <hr class="footer-divider">
+            <p>&copy; 2026 SIPELITA – MAN Bantaeng. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- RUNNING SCRIPTS CORE -->
+    <script type="module" src="js/home-auth.js"></script>
+    <script type="module" src="js/berita.js"></script>
+    <script type="module" src="js/load-galeri.js"></script>
+</body>
+</html>
