@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurnal Mengajar Online - SIPELITA</title>
+    <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; }
+        
+        .header {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white; padding: 24px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.2);
+        }
+        .header h1 { font-size: 1.5rem; margin-bottom: 4px; }
+        .header p { opacity: 0.9; font-size: 0.88rem; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-dashboard {
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 10px 20px; border-radius: 8px; text-decoration: none;
+            font-weight: 600; border: 1px solid rgba(255,255,255,0.3);
+            font-size: 0.88rem;
+        }
+        .btn-dashboard:hover { background: rgba(255,255,255,0.3); }
+        
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        
+        .info-banner {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+            padding: 14px 18px; border-radius: 8px;
+            margin-bottom: 20px; font-size: 0.88rem; color: #78350f;
+        }
+        .info-banner strong { color: #92400e; }
+        
+        .card {
+            background: white; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07); margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #047857; font-size: 1.2rem; margin-bottom: 20px;
+            padding-bottom: 12px; border-bottom: 2px solid #d1fae5;
+            display: flex; align-items: center; gap: 8px;
+        }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; margin-bottom: 6px;
+            font-weight: 600; color: #334155; font-size: 0.9rem;
+        }
+        .required { color: #ef4444; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 0.95rem; font-family: inherit;
+            outline: none; transition: all 0.2s; background: white;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+        .form-group input:disabled, .form-group input[readonly] {
+            background: #f1f5f9; color: #64748b; cursor: not-allowed;
+        }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        
+        .form-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+        }
+        .form-row-3 {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+        }
+        
+        /* 🆕 Style untuk range jam */
+        .jam-range-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+        .jam-separator {
+            text-align: center;
+            font-weight: 700;
+            color: #047857;
+            padding-bottom: 11px;
+            font-size: 1.1rem;
+        }
+        .jam-preview {
+            background: #d1fae5;
+            color: #047857;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            padding: 11px 22px; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 700; font-size: 0.9rem;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .btn-primary { background: #059669; color: white; }
+        .btn-primary:hover { background: #047857; }
+        .btn-secondary { background: #64748b; color: white; }
+        .btn-secondary:hover { background: #475569; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .alert {
+            padding: 12px 16px; border-radius: 8px;
+            margin-bottom: 16px; font-weight: 600;
+            display: none; font-size: 0.9rem;
+        }
+        .alert.show { display: block; }
+        .alert-success { background: #dcfce7; color: #166534; border-left: 4px solid #10b981; }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 3px solid #f3f3f3; border-top: 3px solid #059669;
+            border-radius: 50%; animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .helper-text {
+            font-size: 0.8rem; color: #64748b; margin-top: 4px;
+        }
+        
+        .toast {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            padding: 14px 22px; border-radius: 10px; font-weight: 700;
+            font-size: 0.9rem; color: white;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; gap: 12px; padding: 16px; }
+            .header h1 { font-size: 1.2rem; }
+            .form-row, .form-row-3 { grid-template-columns: 1fr; }
+            .jam-range-container { grid-template-columns: 1fr; }
+            .jam-separator { 
+                padding: 5px 0; 
+                transform: rotate(90deg);
+                font-size: 1.3rem;
+            }
+            .container { padding: 12px; }
+            .card { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="flex: 1;">
+        <h1>📝 JURNAL MENGAJAR ONLINE</h1>
+        <p>MAN BANTAENG - TA. 2025/2026 SEMESTER GENAP</p>
+    </div>
+    <div class="header-actions">
+        <a href="jurnal-rekap.html" class="btn-dashboard">📊 Rekap Jurnal</a>
+        <a href="../index.html" class="btn-dashboard">← Dashboard</a>
+    </div>
+</div>
+
+<div class="container">
+    
+    <div class="info-banner">
+        <strong>ℹ️ Informasi:</strong> Jurnal ini digunakan sebagai dokumentasi kehadiran dan bahan evaluasi. 
+        Data akan tersimpan otomatis di sistem SIPELITA.
+    </div>
+    
+    <form id="formJurnal">
+        
+        <!-- Info Guru (Auto-fill) -->
+        <div class="card">
+            <h2>‍🏫 Data Guru</h2>
+            <div id="alertInfo" class="alert"></div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nama Guru <span class="required">*</span></label>
+                    <input type="text" id="namaGuru" readonly placeholder="Otomatis dari login">
+                </div>
+                <div class="form-group">
+                    <label>NIP <span class="required">*</span></label>
+                    <input type="text" id="nipGuru" placeholder="Masukkan NIP Anda" required>
+                    <div class="helper-text">Isi NIP Anda (hanya sekali, akan tersimpan)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Mengajar -->
+        <div class="card">
+            <h2>📅 Informasi Mengajar</h2>
+            
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label>Hari/Tanggal <span class="required">*</span></label>
+                    <input type="date" id="tanggal" required>
+                </div>
+                
+                <!-- 🆕 RENTANG JAM MENGAJAR (Dua Dropdown) -->
+                <div class="form-group">
+                    <label>Jam Mengajar <span class="required">*</span></label>
+                    <div class="jam-range-container">
+                        <select id="jamMulai" required>
+                            <option value="">Jam Mulai</option>
+                            <option value="1">Jam ke-1</option>
+                            <option value="2">Jam ke-2</option>
+                            <option value="3">Jam ke-3</option>
+                            <option value="4">Jam ke-4</option>
+                            <option value="5">Jam ke-5</option>
+                            <option value="6">Jam ke-6</option>
+                            <option value="7">Jam ke-7</option>
+                            <option value="8">Jam ke-8</option>
+                            <option value="9">Jam ke-9</option>
+                            <option value="10">Jam ke-10</option>
+                        </select>
+                        
+                        <div class="jam-separator">s/d</div>
+                        
+                        <select id="jamSelesai" required>
+                            <option value="">Jam Selesai</option>
+                            <option value="1">Jam ke-1</option>
+                            <option value="2">Jam ke-2</option>
+                            <option value="3">Jam ke-3</option>
+                            <option value="4">Jam ke-4</option>
+                            <option value="5">Jam ke-5</option>
+                            <option value="6">Jam ke-6</option>
+                            <option value="7">Jam ke-7</option>
+                            <option value="8">Jam ke-8</option>
+                            <option value="9">Jam ke-9</option>
+                            <option value="10">Jam ke-10</option>
+                        </select>
+                    </div>
+                    <div id="jamPreview" class="jam-preview" style="display: none;"></div>
+                    <div class="helper-text">Pilih rentang jam mengajar (contoh: Jam 1-2 berarti mengajar 2 jam)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Mengajar di Kelas <span class="required">*</span></label>
+                    <select id="kelas" required>
+                        <option value="">-- Pilih Kelas --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Murid yang Hadir</label>
+                    <input type="number" id="muridHadir" min="0" value="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Murid yang Tidak Hadir <span class="required">*</span></label>
+                    <input type="number" id="muridTidakHadir" min="0" value="0" required placeholder="0">
+                    <div class="helper-text">Jumlah siswa yang absen (sakit/izin/alpha)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Materi & Keterangan -->
+        <div class="card">
+            <h2>📖 Materi & Keterangan</h2>
+            
+            <div class="form-group">
+                <label>Materi / Tugas <span class="required">*</span></label>
+                <textarea id="materi" required placeholder="Tuliskan materi yang diajarkan atau tugas yang diberikan..." rows="5"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Keterangan <span class="required">*</span></label>
+                <textarea id="keterangan" required placeholder="Catatan tambahan, kendala, atau hal penting lainnya..." rows="4"></textarea>
+            </div>
+        </div>
+        
+        <!-- Tombol Submit -->
+        <div class="card" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button type="submit" class="btn btn-primary" id="btnSimpan" style="flex: 1;">
+                    💾 Simpan Jurnal
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    🔄 Reset
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='../index.html'">
+                    ❌ Batal
+                </button>
+            </div>
+        </div>
+        
+    </form>
+    
+</div>
+
+<script src="../js/jurnal-online.js"></script>
+
+</body>
+</html>

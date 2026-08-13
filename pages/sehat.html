@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEHAT - Sistem Informasi Kesehatan Madrasah</title>
+<link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
+<link rel="stylesheet" href="../css/sehat.css">
+<script type="module" src="../js/switch-mode.js"></script>
+<style>
+/* Anti-bocor: modal pasti tersembunyi walau CSS eksternal masih cache lama */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:16px}
+.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:14px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:1.1rem;font-weight:800;color:#0f766e;margin-bottom:18px}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a href="../index.html" class="hdr-btn">🏠 Dashboard</a>
+    <h1>🏥 SEHAT — UKS Madrasah</h1>
+    <div style="display:flex;gap:8px;align-items:center">
+  <span class="hdr-btn" id="accessBadge">👁️</span>
+  <button class="hdr-btn" id="btnSettings" style="display:none">⚙️</button>
+  <span class="hdr-btn" id="petugasBadge">👤</span>
+</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+  <button class="tab" data-tab="kunjungan">➕ Kunjungan</button>
+  <button class="tab" data-tab="riwayat">📒 Riwayat</button>
+  <button class="tab" data-tab="profil">👤 Profil</button>
+  <button class="tab" data-tab="apotek">💊 Apotek</button>
+  <button class="tab" data-tab="skrining">📏 Skrining</button>
+  <button class="tab" data-tab="laporan">📄 Laporan</button>
+  <button class="tab" data-tab="settings" id="tabSettingsBtn" style="display:none">⚙️ Pengelola</button>
+</div>
+
+<div class="container">
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard">
+    <div class="alert-bar" id="apotekAlertBar" style="display:none"></div>
+    <div class="stat-row">
+      <div class="stat"><h2 id="statHariIni">0</h2><p>Kunjungan Hari Ini</p></div>
+      <div class="stat"><h2 id="statPerlu">0</h2><p>Istirahat/Dirujuk</p></div>
+      <div class="stat"><h2 id="statBulan">0</h2><p>Kunjungan Bulan Ini</p></div>
+      <div class="stat"><h2 id="statSkrining">0</h2><p>Skrining Tahun Ini</p></div>
+      <div class="stat"><h2 id="statSiswa">0</h2><p>Total Siswa</p></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#0f766e;">🕐 Kunjungan Terbaru</h3>
+      <div class="list" id="listTerbaru"><div class="empty">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- KUNJUNGAN -->
+  <div id="tab-kunjungan" style="display:none">
+    <div class="card">
+      <h3 style="margin:0 0 15px;color:#0f766e;">➕ Catat Kunjungan UKS</h3>
+      <div class="fg search-wrap">
+        <label>Cari Siswa</label>
+        <input type="text" id="cariSiswa" placeholder="Ketik nama siswa..." autocomplete="off">
+        <div class="search-drop" id="dropSiswa"></div>
+        <div id="chipSiswa"></div>
+      </div>
+      <div class="grid2">
+        <div class="fg"><label>Tanggal</label><input type="date" id="vTanggal"></div>
+        <div class="fg"><label>Jam</label><input type="time" id="vJam"></div>
+      </div>
+      <div class="fg"><label>Keluhan Utama *</label><textarea id="vKeluhan" rows="2"></textarea></div>
+      <div class="grid2">
+        <div class="fg"><label>Suhu (°C)</label><input type="number" id="vSuhu" step="0.1"></div>
+        <div class="fg"><label>Tensi (mmHg)</label><input type="text" id="vTensi"></div>
+      </div>
+      <div class="fg"><label>Diagnosis / Tindakan</label><textarea id="vTindakan" rows="2"></textarea></div>
+      <div class="grid2">
+        <div class="fg"><label>Obat dari Apotek UKS</label><select id="vObatSelect"><option value="">-- Tidak ada --</option></select></div>
+        <div class="fg"><label>Jumlah</label><input type="number" id="vObatQty" min="1" value="1"></div>
+      </div>
+      <div class="fg"><label>Hasil Kunjungan *</label>
+        <select id="vHasil">
+          <option value="kelas">✅ Kembali ke Kelas</option>
+          <option value="istirahat">🛏️ Istirahat di UKS</option>
+          <option value="pulang">🏠 Dipulangkan</option>
+          <option value="rujukan">🏥 Dirujuk</option>
+        </select>
+      </div>
+      <div class="fg"><label>Catatan</label><input type="text" id="vCatatan"></div>
+      <button class="btn btn-primary" id="btnSimpanKunjungan">💾 Simpan Kunjungan</button>
+    </div>
+  </div>
+
+  <!-- RIWAYAT -->
+  <div id="tab-riwayat" style="display:none">
+    <div class="card">
+      <div class="grid2">
+        <div class="fg"><label>Bulan</label><select id="fBulan"></select></div>
+        <div class="fg"><label>Tahun</label><select id="fTahun"></select></div>
+      </div>
+      <div class="fg"><label>Cari Nama</label><input type="text" id="fNama"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr></thead>
+          <tbody id="tbodyRiwayat"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFIL -->
+  <div id="tab-profil" style="display:none">
+    <div class="card">
+      <div class="fg search-wrap">
+        <label>Cari Siswa untuk Profil Kesehatan</label>
+        <input type="text" id="cariProfil" placeholder="Ketik nama siswa..." autocomplete="off">
+        <div class="search-drop" id="dropProfil"></div>
+        <div id="chipProfil"></div>
+      </div>
+      <div id="formProfil" style="display:none">
+        <div class="grid2">
+          <div class="fg"><label>Golongan Darah</label>
+            <select id="pGol"><option value="-">-</option><option>A</option><option>B</option><option>AB</option><option>O</option></select>
+          </div>
+          <div class="fg"><label>Kontak Darurat</label><input type="text" id="pKontak"></div>
+        </div>
+        <div class="fg"><label>Alergi</label><input type="text" id="pAlergi"></div>
+        <div class="fg"><label>Penyakit Bawaan</label><input type="text" id="pPenyakit"></div>
+        <div class="fg"><label>Catatan</label><textarea id="pCatatan" rows="2"></textarea></div>
+        <button class="btn btn-primary" id="btnSimpanProfil">💾 Simpan Profil</button>
+      </div>
+      <div id="riwayatProfil" style="margin-top:20px"></div>
+    </div>
+  </div>
+
+  <!-- APOTEK -->
+  <div id="tab-apotek" style="display:none">
+    <div class="stat-row">
+      <div class="stat"><h2 id="stTotalObat">0</h2><p>Jenis Obat</p></div>
+      <div class="stat"><h2 id="stMenipis">0</h2><p>Stok Menipis</p></div>
+      <div class="stat"><h2 id="stSegeraED">0</h2><p>Segera ED</p></div>
+      <div class="stat"><h2 id="stExpired">0</h2><p>Kadaluarsa</p></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="margin:0;color:#0f766e;">💊 Inventaris Obat UKS</h3>
+        <button class="btn btn-primary" id="btnAddObat">➕ Tambah Obat</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nama Obat</th><th>Kategori</th><th>Bentuk</th><th>Stok</th><th>Kadaluarsa</th><th>Status</th><th class="col-aksi">Aksi</th></tr></thead>
+          <tbody id="tbodyApotek"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#0f766e;">📒 Log Stok Terakhir</h3>
+      <div class="list" id="listLogObat"><div class="empty">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- SKRINING -->
+  <div id="tab-skrining" style="display:none">
+    <div class="card">
+      <h3 style="margin:0 0 15px;color:#0f766e;">📏 Skrining Kesehatan (DDJS)</h3>
+      <div class="fg search-wrap">
+        <label>Cari Siswa</label>
+        <input type="text" id="cariSkrining" placeholder="Ketik nama siswa..." autocomplete="off">
+        <div class="search-drop" id="dropSkrining"></div>
+        <div id="chipSkrining"></div>
+      </div>
+      <div class="chart-box" id="chartCard" style="display:none">
+        <div style="font-size:.85rem;font-weight:700;color:#0f766e;margin-bottom:6px">📈 Grafik Pertumbuhan <span id="chartInfo"></span></div>
+        <svg id="chartSvg" viewBox="0 0 600 220" style="width:100%;height:auto"></svg>
+        <div style="font-size:.75rem;color:#64748b">🔵 Berat (kg) &nbsp; 🟢 Tinggi (cm)</div>
+      </div>
+      <div class="grid2">
+        <div class="fg"><label>Tanggal</label><input type="date" id="sTanggal"></div>
+        <div class="fg"><label>Kelas</label><input type="text" id="sKelas" disabled></div>
+      </div>
+      <div class="grid2">
+        <div class="fg"><label>Tinggi Badan (cm) *</label><input type="number" id="sTinggi" step="0.1"></div>
+        <div class="fg"><label>Berat Badan (kg) *</label><input type="number" id="sBerat" step="0.1"></div>
+      </div>
+      <div class="grid2">
+        <div class="fg"><label>IMT (otomatis)</label><div class="imt-box" id="sImt">-</div></div>
+        <div class="fg"><label>Status Gizi</label><div class="imt-box" id="sStatus">-</div></div>
+      </div>
+      <div class="fg"><label>Catatan</label><input type="text" id="sCatatan"></div>
+      <button class="btn btn-primary" id="btnSimpanSkrining">💾 Simpan Skrining</button>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#0f766e;">📒 Riwayat Skrining</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>TB</th><th>BB</th><th>IMT</th><th>Status</th></tr></thead>
+          <tbody id="tbodySkrining"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+    <!-- LAPORAN -->
+  <div id="tab-laporan" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;color:#0f766e;">📄 Laporan Bulanan UKS</h3>
+        <button class="btn btn-primary" id="btnExportLaporan">📄 Export PDF</button>
+      </div>
+      <div class="grid2">
+        <div class="fg"><label>Bulan</label><select id="lBulan"></select></div>
+        <div class="fg"><label>Tahun</label><select id="lTahun"></select></div>
+      </div>
+      <div id="laporanPreview"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" style="display:none">
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#0f766e;">⚙️ Pengelola UKS</h3>
+      <p style="font-size:.9rem;color:#64748b">Petugas saat ini: <b id="pengelolaNow">-</b></p>
+      <div class="fg"><label>Pilih Pengelola (1 orang)</label><select id="selPengelola"><option value="">-- Pilih User --</option></select></div>
+      <button class="btn btn-primary" id="btnSimpanPengelola">💾 Tetapkan Pengelola</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL OBAT -->
+<div class="modal" id="modalObat">
+  <div class="modal-box">
+    <div class="modal-title" id="modalObatTitle">➕ Tambah Obat</div>
+    <input type="hidden" id="obatEditKey">
+    <div class="fg"><label>Nama Obat *</label><input type="text" id="oNama" placeholder="Paracetamol"></div>
+    <div class="grid2">
+      <div class="fg"><label>Kategori</label><select id="oKategori"><option>Obat</option><option>Vitamin</option><option>P3K</option><option>Bahan Habis Pakai</option></select></div>
+      <div class="fg"><label>Bentuk</label><select id="oBentuk"><option>Tablet</option><option>Kapsul</option><option>Sirup</option><option>Salep</option><option>Cairan</option><option>Alat</option></select></div>
+    </div>
+    <div class="grid2">
+      <div class="fg"><label>Stok Awal *</label><input type="number" id="oStok" min="0" value="0"></div>
+      <div class="fg"><label>Satuan</label><select id="oSatuan"><option>tablet</option><option>butir</option><option>botol</option><option>tube</option><option>pcs</option><option>roll</option></select></div>
+    </div>
+    <div class="grid2">
+      <div class="fg"><label>Tanggal Kadaluarsa</label><input type="date" id="oED"></div>
+      <div class="fg"><label>Stok Minimum</label><input type="number" id="oMin" min="0" value="10"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="btnBatalObat">Batal</button>
+      <button class="btn btn-primary" id="btnSimpanObat">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL STOK -->
+<div class="modal" id="modalStok">
+  <div class="modal-box">
+    <div class="modal-title">📥 Terima / Tambah Stok</div>
+    <input type="hidden" id="stokObatKey">
+    <div class="fg"><label>Obat</label><input type="text" id="stokNama" disabled></div>
+    <div class="fg"><label>Jumlah Masuk *</label><input type="number" id="stokQty" min="1" value="1"></div>
+    <div class="fg"><label>Keterangan</label><input type="text" id="stokKet" placeholder="Contoh: Pembelian dana BOS"></div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="btnBatalStok">Batal</button>
+      <button class="btn btn-primary" id="btnSimpanStok">📥 Tambah Stok</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL PENGATURAN PENGELOLA (Admin) -->
+<div class="modal" id="modalSettings"><div class="modal-box">
+  <div class="modal-title">⚙️ Tunjuk Pengelola UKS</div>
+  <div class="fg"><label>Pilih Pengelola (bisa input)</label>
+    <select id="setPengelola"><option value="">-- Pilih User --</option></select></div>
+  <div style="font-size:.82rem;color:#64748b">User lain hanya dapat <b>melihat</b>. Admin selalu punya akses penuh.</div>
+  <div class="modal-foot">
+    <button class="btn btn-secondary" id="btnBatalSettings">Batal</button>
+    <button class="btn btn-primary" id="btnSimpanConfig">💾 Simpan</button>
+  </div>
+</div></div>
+<script type="module" src="../js/sehat-core.js"></script>
+</body>
+</html>

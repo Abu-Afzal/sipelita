@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="theme-color" content="#10b981">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SIPELITA</title>
+    <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <img src="../assets/images/logo-sipelita.png" alt="SIPELITA" onerror="this.src='https://via.placeholder.com/40'">
+                <span>SIPELITA</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="../index.html">Keluar</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container main-content">
+        <h1>Dashboard Administrasi</h1>
+        
+        <h2 class="section-title">Layanan Umum</h2>
+        <div class="grid" id="layanan-umum"></div>
+
+        <h2 class="section-title">Layanan Madrasah</h2>
+        <div class="grid" id="layanan-madrasah"></div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>
