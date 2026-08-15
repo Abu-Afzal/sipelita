@@ -267,6 +267,74 @@
             color: #0891b2 !important;
         }
 
+        /* ═══════════════════════════════════════════ */
+        /* 🛠️ FIX TOTAL BANNER RUNNING TEXT TERPOTONG */
+        /* ═══════════════════════════════════════════ */
+        .marquee-running-bar {
+            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%) !important;
+            padding: 10px 20px !important;
+            border-bottom: 2px solid #0e7490 !important;
+            height: auto !important;
+            min-height: 50px !important;
+            max-height: none !important;
+            display: flex !important;
+            align-items: center !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+        }
+
+        .marquee-container-wrapper {
+            width: 100% !important;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .marquee-flex-layout {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        .info-badge {
+            background: #fef9f3 !important;
+            color: #0891b2 !important;
+            font-weight: 800 !important;
+            padding: 5px 14px !important;
+            border-radius: 6px !important;
+            font-size: 0.85rem !important;
+            flex-shrink: 0 !important;
+            line-height: 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: auto !important;
+        }
+
+        .marquee-overflow-hide {
+            flex: 1 !important;
+            min-width: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            overflow: hidden !important;
+            height: auto !important;
+            padding: 2px 0 !important;
+        }
+
+        .marquee-overflow-hide marquee {
+            color: #fef9f3 !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.5 !important;
+            display: block !important;
+        }
+
         /* Responsive untuk mobile */
         @media (max-width: 768px) {
             .hero-login-card-wide {
@@ -356,40 +424,47 @@
         }, 200);
     </script>
 
-     <!-- 🏷️ JUDUL & SUB-JUDUL SIPELITA -->
-            <div class="logo-text" style="display: flex; flex-direction: column; justify-content: center;">
-                <span style="font-size: 1.35rem; font-weight: 800; color: #0891b2; line-height: 1.1; letter-spacing: 0.5px;">
-                    SIPELITA
+    <!-- KONTEN UTAMA -->
+    <nav class="navbar" style="padding: 12px 0; background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="logo" style="display: flex; align-items: center; gap: 12px;">
+                <img src="assets/images/sipelita-app.png" alt="SIPELITA" style="height: 48px; width: auto; object-fit: contain;">
+                
+                <!-- 🏷️ JUDUL & SUB-JUDUL SIPELITA -->
+                <div class="logo-text" style="display: flex; flex-direction: column; justify-content: center;">
+                    <span style="font-size: 1.35rem; font-weight: 800; color: #0891b2; line-height: 1.1; letter-spacing: 0.5px;">
+                        SIPELITA
+                    </span>
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #475569; line-height: 1.3; margin-top: 2px;">
+                        Sistem Pelayanan Edukasi & Layanan Terpadu
+                    </span>
+                </div>
+            </div>
+            <ul class="nav-links"></ul>
+        </div>
+    </nav>
+
+    <!-- 📢 BANNER INFO BERJALAN -->
+    <div class="marquee-running-bar">
+        <div class="marquee-container-wrapper">
+            <div class="marquee-flex-layout">
+                
+                <!-- BADGE INFO -->
+                <span class="info-badge">
+                    INFO
                 </span>
-                <span style="font-size: 0.72rem; font-weight: 700; color: #475569; line-height: 1.3; margin-top: 2px;">
-                    Sistem Pelayanan Edukasi & Layanan Terpadu
-                </span>
+
+                <!-- CONTAINER TEKS BERJALAN -->
+                <div class="marquee-overflow-hide">
+                    <marquee behavior="scroll" direction="left" scrollamount="5">
+                        Selamat datang di Portal Personal SIPELITA Guru. Aplikasi ini dirancang untuk mempermudah administrasi dan manajemen kelas Anda.
+                    </marquee>
+                </div>
+
             </div>
         </div>
-        <ul class="nav-links"></ul>
     </div>
-</nav>
 
-    <!-- 📢 BANNER INFO BERJALAN (FIX TERPOTONG) -->
-<div class="marquee-running-bar" style="background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); padding: 10px 20px; border-bottom: 2px solid #0e7490; height: auto !important; min-height: 48px; display: flex; align-items: center; box-sizing: border-box;">
-    <div class="marquee-container-wrapper" style="width: 100%; max-width: 1200px; margin: 0 auto; height: auto !important;">
-        <div class="marquee-flex-layout" style="display: flex; align-items: center; gap: 12px; width: 100%;">
-            
-            <!-- BADGE INFO -->
-            <span class="info-badge" style="background: #fef9f3; color: #0891b2; font-weight: 800; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; height: 26px;">
-                INFO
-            </span>
-
-            <!-- CONTAINER TEKS BERJALAN -->
-            <div class="marquee-overflow-hide" style="flex: 1; min-width: 0; display: flex; align-items: center; overflow: hidden; height: auto !important;">
-                <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #fef9f3; font-weight: 600; font-size: 0.95rem; display: block; margin: 0; line-height: 1.4;">
-                    Selamat datang di Portal Personal SIPELITA Guru. Aplikasi ini dirancang untuk mempermudah administrasi dan manajemen kelas Anda.
-                </marquee>
-            </div>
-
-        </div>
-    </div>
-</div>
     <section class="hero">
         <div class="container hero-vertical-layout">
             <div class="hero-text-center">
