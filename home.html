@@ -241,7 +241,7 @@
             accent-color: #0891b2;
         }
 
-        /* ✅ TOMBOL LUPA PASSWORD BARU */
+        /* TOMBOL LUPA PASSWORD */
         .lupa-password-link {
             color: #0891b2 !important;
             text-decoration: none !important;
@@ -281,9 +281,7 @@
 </head>
 <body>
 
-    <!-- ════════════════════════════════════════════ -->
     <!-- 🚀 CUSTOM SPLASH SCREEN -->
-    <!-- ═════════════════════════════════════════════ -->
     <div id="customSplashScreen" style="
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: linear-gradient(135deg, #fef9f3 0%, #fff8f0 100%);
@@ -358,9 +356,7 @@
         }, 200);
     </script>
 
-    <!-- ========================================== -->
     <!-- KONTEN UTAMA -->
-    <!-- ========================================== -->
     <nav class="navbar">
         <div class="container">
             <div class="logo">
@@ -417,7 +413,6 @@
                             <input type="checkbox" id="rememberMe">
                             <span>Ingat Saya</span>
                         </label>
-                        <!-- ✅ TOMBOL LUPA PASSWORD -->
                         <a href="#" class="lupa-password-link" onclick="alert('Fitur lupa password akan segera hadir. Silakan hubungi admin untuk reset password.'); return false;">
                             <i class="fas fa-key"></i> Lupa Password?
                         </a>
@@ -440,26 +435,27 @@
         </div>
     </section>
         
-    <footer class="main-footer" style="background: #fef9f3; border-top: 3px solid #0891b2; padding: 30px 0; margin-top: 40px;">
+    <!-- 🎨 FOOTER BERWARNA BIRU TOSCA DENGAN TEKS PUTIH TULANG -->
+    <footer class="main-footer" style="background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); border-top: 3px solid #0e7490; padding: 30px 0 0 0; margin-top: 40px;">
         <div class="footer-container" style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 30px;">
             <div class="footer-column" style="flex: 1; min-width: 250px;">
-                <h3 style="color: #0891b2; margin-bottom: 15px;">SIPELITA Guru</h3>
-                <p style="color: #64748b; line-height: 1.6;">Portal Personal untuk Guru Profesional.<br>Mempermudah administrasi, fokus pada pengajaran.</p>
+                <h3 style="color: #fef9f3; margin-bottom: 15px; font-weight: 700;">SIPELITA Guru</h3>
+                <p style="color: #fef9f3; opacity: 0.9; line-height: 1.6;">Portal Personal untuk Guru Profesional.<br>Mempermudah administrasi, fokus pada pengajaran.</p>
             </div>
             <div class="footer-column" style="flex: 1; min-width: 250px;">
-                <h3 style="color: #0891b2; margin-bottom: 15px;">Versi Aplikasi</h3>
-                <p style="color: #64748b; line-height: 1.8;">
-                    <i class="fas fa-code-branch"></i> Build: 2026.1 (Personal)<br>
-                    <i class="fas fa-shield-alt"></i> Secure & Private
+                <h3 style="color: #fef9f3; margin-bottom: 15px; font-weight: 700;">Versi Aplikasi</h3>
+                <p style="color: #fef9f3; opacity: 0.9; line-height: 1.8;">
+                    <i class="fas fa-code-branch" style="color: #fef9f3;"></i> Build: 2026.1 (Personal)<br>
+                    <i class="fas fa-shield-alt" style="color: #fef9f3;"></i> Secure & Private
                 </p>
             </div>
         </div>
-        <div class="footer-bottom" style="text-align: center; padding: 20px; border-top: 1px solid #e2e8f0; margin-top: 30px;">
-            <p style="color: #94a3b8; margin: 0;">&copy; 2026 SIPELITA Guru. All rights reserved.</p>
+        <div class="footer-bottom" style="text-align: center; padding: 20px; border-top: 1px solid rgba(254, 249, 243, 0.2); margin-top: 30px;">
+            <p style="color: #fef9f3; opacity: 0.85; margin: 0;">&copy; 2026 SIPELITA Guru. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- ✅ RUNNING SCRIPTS CORE -->
+    <!-- RUNNING SCRIPTS CORE -->
     <script type="module" src="js/home-auth.js"></script>
 </body>
 </html>
