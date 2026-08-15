@@ -376,21 +376,26 @@
     </div>
 </nav>
 
-    <div class="marquee-running-bar" style="background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); padding: 10px 0; border-bottom: 2px solid #0e7490;">
-    <div class="marquee-container-wrapper">
-        <div class="marquee-flex-layout" style="display: flex; align-items: center; gap: 12px;">
-            <!-- Badge INFO dengan background putih tulang dan teks tosca agar kontras -->
-            <span class="info-badge" style="background: #fef9f3; color: #0891b2; font-weight: 800; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem;">INFO</span>
-            <div class="marquee-overflow-hide" style="width: 100%;">
-                <!-- Teks Berjalan Warna Putih Tulang -->
-                <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #fef9f3; font-weight: 600; font-size: 0.95rem;">
+    <!-- 📢 BANNER INFO BERJALAN (FIX TERPOTONG) -->
+<div class="marquee-running-bar" style="background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); padding: 10px 20px; border-bottom: 2px solid #0e7490; height: auto !important; min-height: 48px; display: flex; align-items: center; box-sizing: border-box;">
+    <div class="marquee-container-wrapper" style="width: 100%; max-width: 1200px; margin: 0 auto; height: auto !important;">
+        <div class="marquee-flex-layout" style="display: flex; align-items: center; gap: 12px; width: 100%;">
+            
+            <!-- BADGE INFO -->
+            <span class="info-badge" style="background: #fef9f3; color: #0891b2; font-weight: 800; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; height: 26px;">
+                INFO
+            </span>
+
+            <!-- CONTAINER TEKS BERJALAN -->
+            <div class="marquee-overflow-hide" style="flex: 1; min-width: 0; display: flex; align-items: center; overflow: hidden; height: auto !important;">
+                <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #fef9f3; font-weight: 600; font-size: 0.95rem; display: block; margin: 0; line-height: 1.4;">
                     Selamat datang di Portal Personal SIPELITA Guru. Aplikasi ini dirancang untuk mempermudah administrasi dan manajemen kelas Anda.
                 </marquee>
             </div>
+
         </div>
     </div>
 </div>
-
     <section class="hero">
         <div class="container hero-vertical-layout">
             <div class="hero-text-center">
