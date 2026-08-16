@@ -2,39 +2,325 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="theme-color" content="#10b981">
-    <link rel="manifest" href="../manifest.json">
-    <link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
+    <!-- ✅ PERBAIKAN 1: Warna tema disesuaikan menjadi Tosca -->
+    <meta name="theme-color" content="#0891b2">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/images/sipelita-app.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - SIPELITA</title>
-    <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
-    <link rel="stylesheet" href="../css/style.css">
+    <title>Dashboard - SIPELITA Guru</title>
+    <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chat-widget.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="js/alarm-engine.js"></script>
+    
+    <!-- 🔒 CEK KEAMANAN SINCRONOUS -->
+    <script>
+      (function() {
+        const sessionData = localStorage.getItem('sipelita_guru_user'); // ✅ Disesuaikan dengan key baru
+        
+        if (!sessionData) {
+          // ✅ PERBAIKAN 2: Redirect ke index.html (bukan home.html)
+          window.location.replace('index.html'); 
+        }
+      })();
+    </script>
+    
+    <style>
+        .btn-settings-akun {
+            background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569;
+            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; transition: all 0.2s ease;
+        }
+        .btn-settings-akun:hover {
+            background: #e2e8f0; color: #0f172a; transform: rotate(45deg);
+        }
+        .form-group-modal { margin-bottom: 16px; }
+        .form-group-modal label {
+            display: block; font-size: 0.85rem; font-weight: 600;
+            color: #334155; margin-bottom: 6px;
+        }
+        .form-group-modal input {
+            width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0;
+            border-radius: 8px; font-size: 0.9rem; outline: none;
+            transition: border-color 0.2s; box-sizing: border-box;
+        }
+        .form-group-modal input:focus {
+            border-color: #0891b2; /* ✅ Warna fokus tosca */
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+        }
+        .password-hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+    </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="logo">
-                <img src="../assets/images/logo-sipelita.png" alt="SIPELITA" onerror="this.src='https://via.placeholder.com/40'">
-                <span>SIPELITA</span>
+    <div class="container">
+        <header>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="assets/images/sipelita-app.png" alt="Logo SIPELITA" class="header-logo">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.4rem; color: #0891b2;">SIPELITA Guru</h1>
+                    <p style="margin: 0; font-size: 0.85rem;">Portal Personal & Administrasi Terpadu</p>
+                </div>
             </div>
-            <ul class="nav-links">
-                <li><a href="dashboard.html" class="active">Dashboard</a></li>
-                <li><a href="../index.html">Keluar</a></li>
-            </ul>
-        </div>
-    </nav>
+            
+            <div id="userPanel" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-left: auto;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="userRole" style="background: #cffafe; color: #0e7490; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;"></span>
+                    <button id="btnPengaturanAkun" class="btn-settings-akun" title="Pengaturan Akun">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button id="btnLogout" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Logout</button>
+                </div>
+                <span id="userName" style="color: #0f172a; font-weight: bold; font-size: 0.95rem;">Hi, ...</span>
+                <span id="userNip" style="color: #64748b; font-size: 0.8rem; font-family: 'Courier New', monospace;"></span>
+            </div>
+        </header>
 
-    <div class="container main-content">
-        <h1>Dashboard Administrasi</h1>
-        
         <h2 class="section-title">Layanan Umum</h2>
         <div class="grid" id="layanan-umum"></div>
 
         <h2 class="section-title">Layanan Madrasah</h2>
         <div class="grid" id="layanan-madrasah"></div>
     </div>
+    
+    <!-- Modal Konfigurasi Internal -->
+    <div class="modal" id="integrationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Konfigurasi Internal</h3>
+                <button class="close-btn" onclick="closeModal('integrationModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Catatan Administrator</label>
+                <input type="text" placeholder="Fitur ini untuk pengembangan internal...">
+            </div>
+            <button class="btn" onclick="closeModal('integrationModal')">Tutup</button>
+        </div>
+    </div>
 
-    <script src="../js/config.js"></script>
-    <script src="../js/main.js"></script>
+    <!-- MODAL PENGATURAN AKUN -->
+    <div class="modal" id="modalPengaturanAkun">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>⚙️ Pengaturan Akun</h3>
+                <button class="close-btn" onclick="closeModal('modalPengaturanAkun')">&times;</button>
+            </div>
+            
+            <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:20px;">
+                <div style="font-size:0.85rem; color:#0369a1;">
+                    <strong>📧 Email:</strong> <span id="settingUserEmail">-</span>
+                </div>
+            </div>
+
+            <div class="form-group-modal">
+                <label>🔒 Password Saat Ini *</label>
+                <input type="password" id="settingPasswordLama" placeholder="Masukkan password lama Anda">
+            </div>
+            
+            <div class="form-group-modal">
+                <label>🔑 Password Baru *</label>
+                <input type="password" id="settingPasswordBaru" placeholder="Minimal 6 karakter">
+                <div class="password-hint">Password harus berbeda dengan password lama.</div>
+            </div>
+            
+            <div class="form-group-modal">
+                <label>✅ Konfirmasi Password Baru *</label>
+                <input type="password" id="settingPasswordKonfirmasi" placeholder="Ulangi password baru">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 24px;">
+                <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569;" onclick="closeModal('modalPengaturanAkun')">Batal</button>
+                <button class="btn" id="btnSimpanPengaturan" style="flex: 1; background: #0891b2; color: white;">💾 Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 SIPELITA Guru. Portal Personal untuk Guru Profesional.
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    
+    <script type="module">
+        import { AuthService } from './js/auth-service.js';
+
+        // ✅ PERBAIKAN 3: Konfigurasi Firebase DIUPDATE ke proyek baru (sipelita-guru)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+            authDomain: "sipelita-guru.firebaseapp.com",
+            projectId: "sipelita-guru",
+            storageBucket: "sipelita-guru.firebasestorage.app",
+            messagingSenderId: "595996765157",
+            appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
+            measurementId: "G-ZGT7K2N7L5"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        async function refreshUserDataFromFirestore(userEmail) {
+            try {
+                const snapshot = await db.collection('users').where('email', '==', userEmail).limit(1).get();
+                if (!snapshot.empty) {
+                    return snapshot.docs[0].data();
+                }
+                return null;
+            } catch (error) {
+                console.error('❌ Error refresh user data:', error);
+                return null;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            alert(message); // Bisa diganti dengan library toast Anda jika ada
+        }
+
+        window.closeModal = (modalId) => {
+            document.getElementById(modalId).style.display = 'none';
+        };
+
+        try {
+            const user = AuthService.checkAuth();
+
+            if (user) {
+                const userNameEl = document.getElementById('userName');
+                if (userNameEl) userNameEl.textContent = `Hi, ${user.nama || 'User'}`;
+                
+                const userRoleEl = document.getElementById('userRole');
+                if (userRoleEl) {
+                    const roleMap = { 'admin': '👑 Admin', 'kepala': '👑 Kepala Madrasah', 'wakil': '⭐ Wakil Kepala' };
+                    userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
+                }
+
+                const userNipEl = document.getElementById('userNip');
+                if (userNipEl) {
+                    userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
+                }
+
+                if (user.email) {
+                    refreshUserDataFromFirestore(user.email).then(freshData => {
+                        if (freshData) {
+                            const updatedUser = { ...user, ...freshData, email: user.email };
+                            localStorage.setItem('sipelita_guru_user', JSON.stringify(updatedUser)); // ✅ Key disesuaikan
+                            
+                            if (userNameEl) userNameEl.textContent = `Hi, ${updatedUser.nama || 'User'}`;
+                            if (userNipEl) {
+                                userNipEl.textContent = updatedUser.nip ? 'NIP: ' + updatedUser.nip : 'NIP: Belum diisi';
+                                userNipEl.style.color = updatedUser.nip ? '#64748b' : '#ef4444';
+                            }
+                        }
+                    });
+                }
+
+                // LOGIKA PENGATURAN AKUN (UBAH PASSWORD)
+                const btnPengaturan = document.getElementById('btnPengaturanAkun');
+                const btnSimpanPengaturan = document.getElementById('btnSimpanPengaturan');
+
+                if (btnPengaturan) {
+                    btnPengaturan.addEventListener('click', () => {
+                        document.getElementById('settingUserEmail').textContent = user.email || '-';
+                        document.getElementById('settingPasswordLama').value = '';
+                        document.getElementById('settingPasswordBaru').value = '';
+                        document.getElementById('settingPasswordKonfirmasi').value = '';
+                        document.getElementById('modalPengaturanAkun').style.display = 'flex';
+                    });
+                }
+
+                if (btnSimpanPengaturan) {
+                    btnSimpanPengaturan.addEventListener('click', async () => {
+                        const passLama = document.getElementById('settingPasswordLama').value.trim();
+                        const passBaru = document.getElementById('settingPasswordBaru').value.trim();
+                        const passKonfirmasi = document.getElementById('settingPasswordKonfirmasi').value.trim();
+                        const currentUser = auth.currentUser;
+
+                        if (!passLama) return showToast('❌ Password saat ini wajib diisi!', 'error');
+                        if (passBaru.length < 6) return showToast('❌ Password baru minimal 6 karakter!', 'error');
+                        if (passBaru !== passKonfirmasi) return showToast('❌ Konfirmasi password tidak cocok!', 'error');
+                        if (passLama === passBaru) return showToast('❌ Password baru harus berbeda dengan yang lama!', 'error');
+
+                        btnSimpanPengaturan.disabled = true;
+                        btnSimpanPengaturan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+
+                        try {
+                            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, passLama);
+                            await currentUser.reauthenticateWithCredential(credential);
+                            await currentUser.updatePassword(passBaru);
+
+                            showToast('✅ Password berhasil diubah! Anda akan dialihkan ke halaman login.');
+                            closeModal('modalPengaturanAkun');
+
+                            setTimeout(async () => {
+                                localStorage.clear(); // ✅ Bersihkan semua
+                                sessionStorage.clear();
+                                await auth.signOut();
+                                window.location.replace('index.html'); // ✅ Redirect ke index.html
+                            }, 2000);
+
+                        } catch (error) {
+                            console.error('Error ubah password:', error);
+                            let msg = 'Gagal mengubah password.';
+                            if (error.code === 'auth/wrong-password') msg = '❌ Password saat ini salah!';
+                            else if (error.code === 'auth/weak-password') msg = '❌ Password terlalu lemah!';
+                            else if (error.code === 'auth/requires-recent-login') msg = '❌ Silakan logout dan login ulang terlebih dahulu!';
+                            else msg = '❌ ' + error.message;
+                            
+                            showToast(msg, 'error');
+                            btnSimpanPengaturan.disabled = false;
+                            btnSimpanPengaturan.innerHTML = '💾 Simpan Perubahan';
+                        }
+                    });
+                }
+                
+                // LOGIKA LOGOUT
+                const btnLogout = document.getElementById('btnLogout');
+                if (btnLogout) {
+                    btnLogout.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        btnLogout.disabled = true;
+                        btnLogout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Keluar...';
+                        
+                        try {
+                            localStorage.clear();
+                            sessionStorage.clear();
+                            
+                            if (typeof AuthService !== 'undefined' && AuthService.logout) {
+                                try { await AuthService.logout(); } catch (err) { console.warn('Firebase logout warning:', err); }
+                            }
+                            
+                            window.location.replace('index.html'); // ✅ Redirect ke index.html
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            window.location.replace('index.html');
+                        }
+                    });
+                }
+
+            } else {
+                window.location.replace('index.html'); // ✅ Redirect ke index.html
+            }
+
+        } catch (error) {
+            console.error('❌ Error di script module:', error);
+            window.location.replace('index.html'); // ✅ Fallback redirect
+        }
+    </script>
+    
+    <!-- Script Guard & Dashboard -->
+    <script type="module" src="js/dashboard-guard.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+    <script type="module" src="js/chat-widget.js"></script>
 </body>
 </html>
