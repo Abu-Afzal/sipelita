@@ -8,24 +8,24 @@
     
     <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman & Akses Ilegal) -->
     <script>
-    <script type="module" src="../js/switch-mode.js"></script>
+    <script type="module" src="js/switch-mode.js"></script>
       (function() {
         const sessionData = localStorage.getItem('sipelita_user'); // Sesuaikan jika key Anda berbeda
         
         if (!sessionData) {
           // Jika tidak ada session, redirect INSTAN sebelum halaman dirender
-          window.location.replace('../home.html');
+          window.location.replace('home.html');
         } else {
           try {
             const currentUser = JSON.parse(sessionData);
             if (currentUser.role !== 'admin') {
               // Jika bukan admin, redirect INSTAN ke dashboard
-              window.location.replace('../index.html');
+              window.location.replace('index.html');
             }
           } catch (e) {
             // Jika data session rusak, hapus dan redirect ke login
             localStorage.removeItem('sipelita_user');
-            window.location.replace('../home.html');
+            window.location.replace('home.html');
           }
         }
       })();
@@ -112,7 +112,7 @@
             <h1>👥 Kelola User</h1>
             <p>Manajemen akun Guru & Staff SIPELITA</p>
         </div>
-        <a href="../index.html" class="back-btn">← Kembali</a>
+        <a href="index.html" class="back-btn">← Kembali</a>
     </div>
 
     <div class="card">
@@ -238,6 +238,6 @@ function togglePwForm(inputId, btn) {
 }
 </script>
 
-<script type="module" src="../users/users.js"></script>
+<script type="module" src="users/users.js"></script>
 </body>
 </html>
