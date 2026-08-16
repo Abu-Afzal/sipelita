@@ -5,7 +5,8 @@ import {
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword,
     onAuthStateChanged, 
-    signOut 
+    signOut,
+    sendPasswordResetEmail 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -218,10 +219,29 @@ export const AuthService = {
         return user;
     },
     
-    // ✅ GET CURRENT USER (Helper)
+       // ✅ GET CURRENT USER (Helper)
     getCurrentUser() {
         const userStr = localStorage.getItem('sipelita_user');
         return userStr ? JSON.parse(userStr) : null;
+    },
+
+    // 🔑 KIRIM LINK RESET PASSWORD
+    async resetPassword(email) {
+        try {
+            const formatEmail = email.trim().toLowerCase();
+            await sendPasswordResetEmail(auth, formatEmail);
+            return { success: true };
+        } catch (error) {
+            console.error('Reset password error:', error.code);
+            let message = '❌ Gagal mengirim link reset.';
+            switch (error.code) {
+                case 'auth/user-not-found':  message = '❌ Email tidak terdaftar.'; break;
+                case 'auth/invalid-email':   message = '❌ Format email tidak valid.'; break;
+                case 'auth/too-many-requests': message = '⚠️ Terlalu banyak permintaan. Coba lagi nanti.'; break;
+                default: message = '❌ ' + (error.message || 'Gagal mengirim link reset.');
+            }
+            return { success: false, message };
+        }
     }
 };
 
