@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const loggedInUser = AuthService.checkAuth();
         if (loggedInUser) {
-            window.location.href = 'index.html';
+            window.location.href = 'dashboard.html';
             return;
         }
     } catch(e) {
