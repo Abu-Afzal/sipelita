@@ -5,13 +5,13 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
-  authDomain: "sipelita-digital.firebaseapp.com",
-  databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "sipelita-digital",
-  storageBucket: "sipelita-digital.firebasestorage.app",
-  messagingSenderId: "787840817745",
-  appId: "1:787840817745:web:e6b5237cfbb5e51be93670",
+  apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+  authDomain: "sipelita-guru.firebaseapp.com",
+  databaseURL: "https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "sipelita-guru",
+  storageBucket: "sipelita-guru.firebasestorage.app",
+  messagingSenderId: "595996765157",
+  appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
   measurementId: "G-1D5DWJV54E"
 };
 
