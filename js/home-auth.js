@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // ✅ PERBAIKAN REDIRECT: Arahkan ke dashboard, BUKAN index.html
-                    window.location.href = 'index.html'; 
+                    window.location.href = 'home.html'; 
                     
                 } else {
                     errorMsg.textContent = result ? result.message : 'Akses ditolak. Email atau password salah.';
