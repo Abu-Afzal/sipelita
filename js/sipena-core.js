@@ -13,9 +13,45 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const rtdb = firebase.database();
 const firestore = firebase.firestore();
-const ROOT = rtdb.ref("sipena2");
+
+// ══════════════════════════════════════════════
+// ADAPTER: Firestore berperilaku seperti RTDB
+// Semua modul SIPENA tetap jalan, data masuk FIRESTORE
+// ══════════════════════════════════════════════
+function clean(obj) {
+  const o = {};
+  for (const k in obj) { if (obj[k] !== undefined) o[k] = obj[k]; }
+  return o;
+}
+
+const ROOT = {
+  _col: () => firestore.collection('sipena2'),
+
+  child(id) {
+    const col = this._col();
+    return {
+      set:    (obj) => col.doc(id).set(clean(obj)),
+      update: (obj) => col.doc(id).set(clean(obj), { merge: true }),
+      remove: ()    => col.doc(id).delete(),
+    };
+  },
+
+  push() {
+    const ref = this._col().doc();
+    return { set: (obj) => ref.set(clean(obj)) };
+  },
+
+  on(event, cb, errCb) {
+    this._unsub = this._col().onSnapshot(snap => {
+      const val = {};
+      snap.forEach(d => { val[d.id] = d.data(); });
+      cb({ val: () => val });
+    }, err => { if (errCb) errCb(err); else console.error(err); });
+  },
+
+  off() { if (this._unsub) { this._unsub(); this._unsub = null; } },
+};
 
 // Global State
 let currentUser = '';
