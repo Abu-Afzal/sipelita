@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const loggedInUser = AuthService.checkAuth();
         if (loggedInUser) {
-            window.location.href = 'dashboard.html'; // ✅ Sudah benar
+            window.location.href = 'index.html'; // ✅ Sudah benar
             return;
         }
     } catch(e) {
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // ✅ PERBAIKAN REDIRECT: Arahkan ke dashboard, BUKAN index.html
-                    window.location.href = 'dashboard.html'; 
+                    window.location.href = 'index.html'; 
                     
                 } else {
                     errorMsg.textContent = result ? result.message : 'Akses ditolak. Email atau password salah.';
