@@ -21,17 +21,13 @@
     
     <!-- 🔒 CEK KEAMANAN SINKRONUS (Mencegah Flash Halaman Dashboard) -->
     <script>
-      (function() {
-        // ✅ FIX 1: Konsistenkan nama session key dengan auth-service.js
-        const sessionData = localStorage.getItem('sipelita_user');
-        if (!sessionData) {
-          const currentDomain = window.location.hostname;
-          const isManBantaeng = currentDomain.includes('manbantaeng');
-          const loginPage = isManBantaeng ? 'index.html' : 'home.html';
-          window.location.replace(loginPage); 
-        }
-      })();
-    </script>
+  (function() {
+    const sessionData = localStorage.getItem('sipelita_user'); // ✅ konsisten
+    if (!sessionData) {
+      window.location.replace('home.html'); // ✅ ke login, bukan ke diri sendiri
+    }
+  })();
+</script>
     
     <style>
         .btn-settings-akun {
@@ -160,9 +156,9 @@
         const isManBantaeng = currentDomain.includes('manbantaeng');
 
         // ✅ Helper: halaman login sesuai domain
-        function getLoginPage() {
-            return isManBantaeng ? 'index.html' : 'home.html';
-        }
+       function getLoginPage() {
+    return 'home.html';   // ✅ logout/timeout kembali ke login
+}
 
         // Konfigurasi Firebase LAMA (untuk MAN Bantaeng)
         const firebaseConfigLama = {
