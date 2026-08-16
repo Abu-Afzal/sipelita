@@ -115,7 +115,6 @@
 
         /* ══════════════════════════════
            FIX 1: MARQUEE INFO BAR
-           Presisi & tidak tumpang tindih
         ══════════════════════════════ */
         .marquee-running-bar {
             background: #0891b2 !important;
@@ -217,7 +216,6 @@
 
         /* ══════════════════════════════
            FIX 2: CHECKBOX INGAT SAYA
-           Dipaksa tampil dengan !important
         ══════════════════════════════ */
         .remember-me-container {
             display: flex !important;
@@ -237,7 +235,6 @@
             font-weight: 600 !important;
             user-select: none !important;
         }
-        /* Override agresif untuk checkbox */
         .remember-me-label input[type="checkbox"] {
             -webkit-appearance: checkbox !important;
             -moz-appearance: checkbox !important;
@@ -492,10 +489,10 @@
 <nav class="navbar">
     <div class="container">
         <div class="logo">
-            <img src="assets/images/sipelita-app.png" alt="SIPELITA">
+            <img id="logoImage" src="assets/images/sipelita-app.png" alt="SIPELITA">
             <div>
-                <span>SIPELITA</span>
-                <span>Sistem Pengelolaan Edukasi &amp; Layanan Terpadu</span>
+                <span id="logoTitle">SIPELITA</span>
+                <span id="logoSubtitle">Sistem Pengelolaan Edukasi &amp; Layanan Terpadu</span>
             </div>
         </div>
         <ul class="nav-links"></ul>
@@ -504,7 +501,6 @@
 
 <!-- ════════════════════════════════
      FIX 1: MARQUEE INFO BAR
-     Struktur disederhanakan & dipastikan presisi
 ════════════════════════════════ -->
 <div class="marquee-running-bar">
     <div class="marquee-container-wrapper">
@@ -523,7 +519,7 @@
 <section class="hero">
     <div class="container hero-vertical-layout">
         <div class="hero-text-center">
-            <h1>Selamat Datang, Bapak/Ibu Guru</h1>
+            <h1 id="heroTitle">Selamat Datang, Bapak/Ibu Guru</h1>
             <p>Asisten Digital Personal untuk Manajemen Kelas &amp; Administrasi</p>
         </div>
 
@@ -555,7 +551,6 @@
 
                 <!-- ════════════════════════════════
                      FIX 2: CHECKBOX INGAT SAYA
-                     Dibuat ulang tanpa ketergantungan CSS external
                 ════════════════════════════════ -->
                 <div class="remember-me-container">
                     <label class="remember-me-label" for="rememberMe">
@@ -591,7 +586,7 @@
 <footer class="main-footer">
     <div class="footer-container">
         <div class="footer-column">
-            <h3>SIPELITA Guru</h3>
+            <h3 id="footerTitle">SIPELITA Guru</h3>
             <p>Portal Personal untuk Guru Profesional.<br>Mempermudah administrasi, fokus pada pengajaran.</p>
         </div>
         <div class="footer-column">
@@ -603,7 +598,7 @@
         </div>
     </div>
     <div class="footer-bottom">
-        <p>&copy; 2026 SIPELITA Guru. All rights reserved.</p>
+        <p id="footerCopyright">&copy; 2026 SIPELITA Guru. All rights reserved.</p>
     </div>
 </footer>
 
@@ -615,7 +610,7 @@
         <h3><i class="fas fa-key"></i> Reset Password</h3>
         <p>Masukkan email Anda. Link reset password akan dikirim ke inbox email tersebut.</p>
         <div class="modal-message" id="modalMessage"></div>
-        <input type="email" id="resetEmail" placeholder="nama@manbantaeng.sch.id" autocomplete="email">
+        <input type="email" id="resetEmail" placeholder="nama@sekolah.sch.id" autocomplete="email">
         <div class="modal-buttons">
             <button class="modal-btn modal-btn-cancel" id="btnBatalReset">Batal</button>
             <button class="modal-btn modal-btn-submit" id="btnKirimReset">
@@ -630,8 +625,24 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
 <script>
-// ── Firebase Init ──
-const firebaseConfig = {
+// ══════════════════════════════════════════════════════
+// 🎯 AUTO-DETECT DOMAIN & FIREBASE CONFIG
+// ══════════════════════════════════════════════════════
+const currentDomain = window.location.hostname;
+const isManBantaeng = currentDomain.includes('manbantaeng');
+
+// Config Firebase LAMA (untuk MAN Bantaeng)
+const firebaseConfigLama = {
+    apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
+    authDomain: "sipelita-digital.firebaseapp.com",
+    projectId: "sipelita-digital",
+    storageBucket: "sipelita-digital.firebasestorage.app",
+    messagingSenderId: "787840817745",
+    appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+};
+
+// Config Firebase BARU (untuk sipelita.my.id)
+const firebaseConfigBaru = {
     apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
     authDomain: "sipelita-guru.firebaseapp.com",
     projectId: "sipelita-guru",
@@ -640,8 +651,36 @@ const firebaseConfig = {
     appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
     measurementId: "G-ZGT7K2N7L5"
 };
+
+// Pilih config berdasarkan domain
+const firebaseConfig = isManBantaeng ? firebaseConfigLama : firebaseConfigBaru;
+
+// Log untuk debugging
+console.log(`🌐 Domain: ${currentDomain}`);
+console.log(`🔥 Firebase: ${isManBantaeng ? 'SIPENA LAMA (MAN Bantaeng)' : 'SIPENA BARU (guru.sipelita.my.id)'}`);
+
+// Simpan flag untuk diakses oleh file JS lain
+window.isManBantaeng = isManBantaeng;
+
+// ── Firebase Init ──
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+
+// ══════════════════════════════════════════════════════
+// 🎨 DINAMIS BRANDING BERDASARKAN DOMAIN
+// ══════════════════════════════════════════════════════
+if (isManBantaeng) {
+    // Domain MAN Bantaeng: tampilkan identitas sekolah
+    document.getElementById('logoTitle').textContent = 'MAN BANTAENG';
+    document.getElementById('logoSubtitle').textContent = 'Sistem Penilaian & Absensi Digital';
+    document.getElementById('heroTitle').textContent = 'Portal Guru MAN Bantaeng';
+    document.getElementById('footerTitle').textContent = 'MAN Bantaeng';
+    document.getElementById('footerCopyright').innerHTML = '&copy; 2026 MAN Bantaeng. All rights reserved.';
+    document.title = 'MAN Bantaeng – Sistem Penilaian & Absensi Digital';
+} else {
+    // Domain netral: branding SIPELITA Guru (default, sudah sesuai HTML)
+    console.log('✅ Mode: SIPELITA Guru (Personal)');
+}
 
 // ── Toggle Password Visibility ──
 document.getElementById('togglePassword').addEventListener('click', function() {
@@ -688,18 +727,15 @@ document.getElementById('modalLupaPassword').addEventListener('click', (e) => {
 
 // ════════════════════════════════
 // FIX 3: KIRIM LINK RESET PASSWORD
-// Perbaikan error handling & domain check
 // ════════════════════════════════
 async function kirimResetPassword() {
     const email     = document.getElementById('resetEmail').value.trim();
     const msgDiv    = document.getElementById('modalMessage');
     const btnKirim  = document.getElementById('btnKirimReset');
 
-    // Sembunyikan pesan lama
     msgDiv.className = 'modal-message';
     msgDiv.style.display = 'none';
 
-    // Validasi
     if (!email) {
         msgDiv.className = 'modal-message error';
         msgDiv.textContent = '❌ Masukkan email terlebih dahulu!';
@@ -714,14 +750,13 @@ async function kirimResetPassword() {
         return;
     }
 
-    // Loading state
     btnKirim.disabled = true;
     btnKirim.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
 
     try {
-        // Konfigurasi action URL (sesuaikan dengan domain GitHub Pages Anda)
+        // ✅ Action URL dinamis mengikuti domain asal
         const actionCodeSettings = {
-            url: window.location.origin + '/sipelita/',
+            url: window.location.origin + '/',
             handleCodeInApp: false
         };
 
@@ -735,7 +770,6 @@ async function kirimResetPassword() {
         document.getElementById('resetEmail').value = '';
         btnKirim.innerHTML = '<i class="fas fa-check"></i> Terkirim!';
 
-        // Tutup otomatis setelah 6 detik
         setTimeout(() => {
             document.getElementById('modalLupaPassword').classList.remove('active');
             btnKirim.disabled = false;
