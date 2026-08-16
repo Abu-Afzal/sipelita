@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#10b981">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jadwal Mengajar & Alarm - SIPELITA</title>
+<link rel="icon" href="../assets/images/manbtg-app.png">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f3f4f6;min-height:100vh;}
+.header{background:#3b82f6;color:white;padding:20px 24px;border-radius:0 0 16px 16px;margin-bottom:24px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 15px rgba(59,130,246,0.2);}
+.header-logo{width:60px;height:60px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.3);background:white;}
+.header-info{flex:1;}
+.header-title{font-size:1.6rem;font-weight:800;color:white;margin-bottom:2px;}
+.header-subtitle{font-size:0.9rem;color:rgba(255,255,255,0.9);}
+.header-user{text-align:right;}
+.user-name{font-size:0.95rem;font-weight:700;color:white;margin-bottom:6px;}
+.btn-dashboard{padding:8px 16px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:0.85rem;cursor:pointer;font-weight:600;transition:background .2s;text-decoration:none;display:inline-block;}
+.btn-dashboard:hover{background:rgba(255,255,255,0.3);}
+.app-wrap{max-width:1200px;margin:0 auto;padding:0 20px 40px;}
+.content-card{background:white;border-radius:14px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;}
+.section-title{font-size:1.3rem;font-weight:800;color:#1e40af;margin-bottom:18px;padding-bottom:10px;border-bottom:3px solid #3b82f6;display:flex;align-items:center;gap:8px;}
+.date-bar{background:#eff6ff;border:1px solid #dbeafe;border-radius:8px;padding:12px 16px;font-weight:700;color:#1e40af;margin-bottom:16px;text-align:center;}
+.live-clock{font-family:'Courier New',monospace;color:#059669;font-size:1.1rem;font-weight:800;margin-left:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;text-decoration:none;}
+.btn-primary{background:#3b82f6;color:white;} .btn-primary:hover{background:#2563eb;}
+.btn-success{background:#10b981;color:white;} .btn-success:hover{background:#059669;}
+.btn-danger{background:#ef4444;color:white;} .btn-danger:hover{background:#dc2626;}
+.btn-warning{background:#f59e0b;color:white;} .btn-warning:hover{background:#d97706;}
+.btn-secondary{background:#6b7280;color:white;} .btn-secondary:hover{background:#4b5563;}
+.btn-sm{padding:7px 14px;font-size:0.82rem;}
+.action-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.tbl-wrap{overflow-x:auto;margin-top:10px;}
+table{width:100%;border-collapse:collapse;font-size:0.9rem;}
+th{background:#eff6ff;color:#1e40af;font-weight:700;padding:12px 13px;text-align:left;border-bottom:2px solid #dbeafe;}
+td{padding:12px 13px;border-bottom:1px solid #e5e7eb;vertical-align:middle;}
+tr:hover td{background:#f9fafb;}
+tr.row-upcoming{background:#fef3c7 !important;border-left:4px solid #f59e0b;}
+tr.row-upcoming td{background:#fef3c7 !important;}
+tr.row-recent{background:#f1f5f9 !important;border-left:4px solid #94a3b8;}
+tr.row-recent td{background:#f1f5f9 !important;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;}
+.modal.active{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.modal-box{background:white;border-radius:14px;padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+.modal-title{font-size:1.15rem;font-weight:800;color:#1e40af;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid #e5e7eb;}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:0.88rem;font-weight:600;color:#374151;margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none;transition:border-color .2s;background:white;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.empty{text-align:center;padding:40px 20px;color:#9ca3af;}
+.empty .ei{font-size:3rem;margin-bottom:10px;}
+.badge{display:inline-block;padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:700;}
+.badge-green{background:#dcfce7;color:#166534;}
+.badge-red{background:#fee2e2;color:#991b1b;}
+.badge-amber{background:#fef3c7;color:#92400e;}
+.badge-blue{background:#dbeafe;color:#1e40af;}
+.badge-purple{background:#ede9fe;color:#5b21b6;}
+.badge-gray{background:#f1f5f9;color:#475569;}
+.alarm-box{background:#eff6ff;border-radius:10px;padding:20px;border:1px solid #dbeafe;margin-bottom:18px;}
+.alarm-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.alarm-row:last-child{margin-bottom:0;}
+.alarm-desc{font-size:0.85rem;color:#6b7280;line-height:1.5;}
+.alarm-desc strong{color:#1e40af;}
+.toggle{position:relative;width:46px;height:25px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:25px;cursor:pointer;transition:.3s;}
+.toggle-slider::before{content:'';position:absolute;height:19px;width:19px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.toggle input:checked + .toggle-slider{background:#3b82f6;}
+.toggle input:checked + .toggle-slider::before{transform:translateX(21px);}
+.alarm-status{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;}
+.alarm-status.on{background:#dcfce7;color:#166534;}
+.alarm-status.off{background:#f1f5f9;color:#6b7280;}
+.spinner{display:inline-block;width:16px;height:16px;border:3px solid #f3f3f3;border-top:3px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast-ok{background:#10b981 !important;}
+.toast-err{background:#ef4444 !important;}
+.toast-warn{background:#f59e0b !important;}
+.upload-jadwal-area{background:#eff6ff;border:2px dashed #3b82f6;border-radius:12px;padding:30px 20px;text-align:center;transition:all .2s;}
+.upload-jadwal-area:hover{background:#dbeafe;border-color:#2563eb;}
+.upload-jadwal-area.dragover{background:#dbeafe;border-color:#2563eb;transform:scale(1.01);}
+.upload-icon{font-size:4rem;margin-bottom:10px;}
+.upload-title{color:#1e40af;font-size:1.1rem;font-weight:700;margin-bottom:6px;}
+.upload-desc{color:#6b7280;font-size:0.88rem;margin-bottom:14px;}
+.jadwal-preview-wrap{position:relative;background:white;border:2px solid #e5e7eb;border-radius:12px;padding:16px;overflow:hidden;}
+.jadwal-preview-wrap img{max-width:100%;height:auto;border-radius:8px;display:block;margin:0 auto;cursor:zoom-in;transition:transform .2s;}
+.jadwal-preview-wrap img:hover{transform:scale(1.02);}
+.jadwal-actions{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.jadwal-info{margin-top:12px;padding:10px;background:#f9fafb;border-radius:8px;font-size:0.82rem;color:#6b7280;text-align:center;}
+.zoom-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10000;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;}
+.zoom-modal.active{display:flex;}
+.zoom-modal img{max-width:95%;max-height:95%;object-fit:contain;border-radius:8px;}
+.zoom-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.2);color:white;border:none;width:44px;height:44px;border-radius:50%;font-size:1.5rem;cursor:pointer;transition:background .2s;}
+.zoom-close:hover{background:rgba(255,255,255,0.3);}
+.periode-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;}
+.periode-active{background:#dcfce7;color:#166534;}
+.periode-expired{background:#fee2e2;color:#991b1b;}
+.periode-soon{background:#fef3c7;color:#92400e;}
+.live-indicator{display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.2)}}
+@media(max-width:768px){
+  .header{flex-wrap:wrap;padding:16px;}
+  .header-title{font-size:1.3rem;}
+  .header-user{width:100%;text-align:left;margin-top:10px;}
+  .fr2{grid-template-columns:1fr;}
+  .content-card{padding:20px;}
+}
+</style>
+</head>
+<body>
+<div class="app-wrap">
+
+  <div class="header">
+    <img src="../assets/images/manbtg-app.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-info">
+      <div class="header-title">MAN BANTAENG</div>
+      <div class="header-subtitle">Jadwal Mengajar & Alarm Pengingat</div>
+    </div>
+    <div class="header-user">
+      <div class="user-name" id="userDisplay">–</div>
+      <a href="../index.html" class="btn-dashboard">← Dashboard SIPELITA</a>
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div class="section-title">⚙️ Pengaturan Alarm</div>
+    <div class="alarm-box">
+      <div class="alarm-row">
+        <div style="flex:1;min-width:220px;">
+          <div style="font-weight:700;color:#1e40af;margin-bottom:3px;">Aktifkan Alarm Jadwal Mengajar</div>
+          <div class="alarm-desc">Sistem akan membunyikan alarm dan mengucapkan pengingat suara tepat saat jam mengajar Anda tiba. <strong style="color:#10b981;">✅ Alarm dicek setiap 1 DETIK untuk akurasi maksimal.</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="alarm-status off" id="alarmStatusBadge">🔕 Nonaktif</span>
+          <label class="toggle">
+            <input type="checkbox" id="toggleAlarm">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="alarm-row">
+        <div class="alarm-desc">Izinkan notifikasi browser agar pengingat tetap muncul walau Anda sedang membuka tab lain.</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="notifPermStatus" style="font-size:0.85rem;color:#6b7280;font-weight:600;">Belum diizinkan</span>
+          <button class="btn btn-secondary btn-sm" id="btnNotifPerm">🔔 Izinkan Notifikasi</button>
+        </div>
+      </div>
+      <div class="alarm-row">
+        <div class="alarm-desc">Coba dengar bunyi alarm dan suara pengingat sebelum mengaktifkannya.</div>
+        <button class="btn btn-secondary btn-sm" id="btnTestAlarm">🔊 Tes Alarm</button>
+      </div>
+      <div class="alarm-row" style="background:#fef3c7;border-radius:8px;padding:10px;margin-top:8px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;color:#92400e;margin-bottom:3px;"><span class="live-indicator"></span>Monitor Alarm Real-time</div>
+          <div class="alarm-desc" id="alarmMonitorText">Menunggu aktivitas alarm...</div>
+        </div>
+        <div style="font-family:'Courier New',monospace;font-weight:800;color:#059669;font-size:1.1rem;" id="liveClock">--:--:--</div>
+      </div>
+      <div class="alarm-row" style="background:#dbeafe;border-radius:8px;padding:10px;margin-top:8px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;color:#1e40af;margin-bottom:3px;"> Status Voice</div>
+          <div class="alarm-desc" id="voiceStatusText">Memeriksa voice...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div class="section-title">🖼️ Jadwal Mengajar Saya (Gambar)</div>
+    
+    <div id="uploadJadwalArea">
+      <div class="upload-jadwal-area" id="dropZone">
+        <div class="upload-icon">📤</div>
+        <div class="upload-title">Upload Gambar Jadwal Mengajar</div>
+        <div class="upload-desc">
+          Drag & drop gambar di sini, atau klik tombol di bawah<br>
+          Format: JPG, PNG • Maksimal: 5 MB<br>
+          <small style="color:#9ca3af;">Gambar akan dikompres otomatis untuk menghemat ruang</small>
+        </div>
+        <input type="file" id="inputJadwalFile" accept="image/jpeg,image/png,image/jpg" style="display:none;">
+        <button class="btn btn-primary" onclick="document.getElementById('inputJadwalFile').click()" style="width:auto;">
+          📁 Pilih Gambar Jadwal
+        </button>
+        <div id="jadwalUploadProgress" style="display:none;margin-top:14px;">
+          <div class="spinner" style="width:24px;height:24px;"></div>
+          <span style="margin-left:8px;color:#6b7280;">Mengompres & mengupload gambar...</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="previewJadwalArea" style="display:none;">
+      <div class="jadwal-preview-wrap">
+        <img id="jadwalPreviewImg" src="" alt="Jadwal Mengajar" onclick="openZoomModal(this.src)">
+        <div class="jadwal-actions">
+          <button class="btn btn-warning btn-sm" onclick="document.getElementById('inputJadwalFile').click()">✏️ Ganti Gambar</button>
+          <button class="btn btn-primary btn-sm" onclick="openZoomModal(document.getElementById('jadwalPreviewImg').src)">🔍 Perbesar</button>
+          <button class="btn btn-danger btn-sm" onclick="hapusJadwalMengajar()">🗑️ Hapus</button>
+        </div>
+        <div class="jadwal-info" id="jadwalInfoText"></div>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+        <strong style="color:#92400e;"> Tips:</strong>
+        <span style="color:#78350f;font-size:0.9rem;">Gunakan jadwal ini sebagai referensi saat membuat alarm. Klik gambar untuk memperbesar.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div class="section-title">📅 Jadwal Mengajar (Alarm)</div>
+    <div class="date-bar" id="currentDate">📅 Memuat...</div>
+    
+    <div id="periodeInfo" style="background:#eff6ff;border:1px solid #dbeafe;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.9rem;color:#1e40af;display:none;">
+      <strong>ℹ️ Info Periode:</strong> <span id="periodeText">-</span>
+    </div>
+    
+    <div class="action-bar">
+      <button class="btn btn-primary" id="btnTambahJadwal">➕ Tambah Jadwal</button>
+      <button class="btn btn-success" id="btnTerapkanSemua" title="Terapkan semua jadwal ke periode tertentu">📆 Terapkan ke Semua Pekan</button>
+    </div>
+    
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hari</th>
+            <th>Jam</th>
+            <th>Kelas</th>
+            <th>Ruang</th>
+            <th>Materi</th>
+            <th>Periode</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="jadwalTableBody">
+          <tr><td colspan="7"><div class="empty"><div class="ei">📅</div><p>Memuat data...</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal" id="modalJadwal">
+  <div class="modal-box">
+    <div class="modal-title" id="modalJadwalTitle">📅 Tambah Jadwal Mengajar</div>
+    <input type="hidden" id="jadwalEditKey">
+    <div class="fr2">
+      <div class="fg"><label>Hari *</label>
+        <select id="inputHari">
+          <option>Senin</option><option>Selasa</option><option>Rabu</option>
+          <option>Kamis</option><option>Jumat</option><option>Sabtu</option>
+        </select>
+      </div>
+      <div class="fg"><label>Kelas *</label><select id="inputJadwalKelas"></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label>Jam Mulai *</label><input type="time" id="inputJamMulai"></div>
+      <div class="fg"><label>Jam Selesai</label><input type="time" id="inputJamSelesai"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label>Mata Pelajaran</label><input type="text" id="inputMapel" placeholder="Matematika..."></div>
+      <div class="fg"><label>Ruang</label><input type="text" id="inputRuang" placeholder="Ruang 12..."></div>
+    </div>
+    <div class="fg"><label>Materi / Topik</label><input type="text" id="inputMateri" placeholder="Topik yang akan diajarkan"></div>
+    
+    <div style="background:#fef3c7;border:1px solid #fde047;border-radius:8px;padding:12px;margin-top:10px;">
+      <div style="font-weight:700;color:#92400e;margin-bottom:8px;">📆 Periode Berlaku</div>
+      <div class="fr2">
+        <div class="fg" style="margin-bottom:8px;"><label>Berlaku Mulai *</label><input type="date" id="inputPeriodeMulai"></div>
+        <div class="fg" style="margin-bottom:8px;"><label>Berlaku Sampai *</label><input type="date" id="inputPeriodeSampai"></div>
+      </div>
+      <div style="font-size:0.8rem;color:#78350f;">💡 <strong>Tips:</strong> Setting sekali untuk seluruh semester. Contoh: 1 Juli 2025 - 31 Desember 2025</div>
+    </div>
+    
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="btnBatalJadwal">Batal</button>
+      <button class="btn btn-primary" id="btnSimpanJadwal">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalTerapkanSemua">
+  <div class="modal-box">
+    <div class="modal-title">📆 Terapkan Periode ke Semua Jadwal</div>
+    <div style="background:#eff6ff;border:1px solid #dbeafe;border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div style="font-weight:700;color:#1e40af;margin-bottom:6px;">⚡ Fitur Cepat</div>
+      <div style="font-size:0.88rem;color:#6b7280;">Set periode berlaku untuk <strong>SEMUA jadwal</strong> Anda sekaligus. Cocok untuk setting awal semester.</div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label>Berlaku Mulai *</label><input type="date" id="applyPeriodeMulai"></div>
+      <div class="fg"><label>Berlaku Sampai *</label><input type="date" id="applyPeriodeSampai"></div>
+    </div>
+    <div style="background:#fef3c7;border-radius:8px;padding:12px;margin-top:10px;font-size:0.85rem;color:#78350f;">
+      <strong>⚠️ Perhatian:</strong> Tindakan ini akan mengubah periode semua jadwal mengajar Anda.
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modalTerapkanSemua')">Batal</button>
+      <button class="btn btn-success" id="btnConfirmTerapkan">✅ Terapkan ke Semua</button>
+    </div>
+  </div>
+</div>
+
+<div class="zoom-modal" id="zoomModal" onclick="closeZoomModal()">
+  <button class="zoom-close" onclick="closeZoomModal()">&times;</button>
+  <img id="zoomModalImg" src="" alt="Zoom">
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey:"AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
+  authDomain:"sipelita-digital.firebaseapp.com",
+  databaseURL:"https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"sipelita-digital",
+  storageBucket:"sipelita-digital.firebasestorage.app",
+  messagingSenderId:"787840817745",
+  appId:"1:787840817745:web:e6b5237cfbb5e51be93670"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+
+// ✅ Pulihkan sesi login yang tersimpan (dari login.html)
+//    sehingga rules "auth != null" lolos di halaman ini
+auth.onAuthStateChanged(user => {
+  if (user) {
+    console.log('✅ Firebase Auth aktif di halaman jadwal:', user.email);
+  } else {
+    console.warn('⚠️ Sesi Firebase Auth tidak ditemukan. Silakan login ulang via Dashboard.');
+  }
+});
+
+const ROOT_JADWAL = db.ref("jadwal_alarm");
+const ROOT_SIPENA = db.ref("sipena2");
+const ROOT_JADWAL_GAMBAR = db.ref("jadwal_gambar");
+
+let currentUser = '';
+let daftarKelas = [];
+let daftarJadwal = [];
+let alarmEnabled = false;
+let _alarmAudioCtx = null;
+let cachedIndonesianVoice = null;
+
+// ✅ SIMPEL TRACKING: Gunakan Set untuk track alarm yang sudah bunyi
+// Format: "YYYY-MM-DD_HH:MM" (tanggal + jam)
+let alarmFiredToday = new Set();
+
+function toArr(val){ return val ? Object.keys(val).map(k=>({__key:k,...val[k]})) : []; }
+function nowISO(){ return new Date().toISOString(); }
+
+function toast(msg, type='ok'){
+  const t=document.createElement('div');
+  t.className = type==='ok' ? 'toast-ok' : type==='warn' ? 'toast-warn' : 'toast-err';
+  t.style.cssText=`position:fixed;top:20px;right:20px;z-index:9999;padding:13px 20px;border-radius:10px;font-weight:700;font-size:0.88rem;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.2);transition:opacity .3s;max-width:350px;`;
+  t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>t.style.opacity='0',3000);
+  setTimeout(()=>t.remove(),3400);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+function formatDateID(dateStr){
+  if(!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function romawiKeKata(text) {
+  if (!text) return '';
+  const romawiMap = {
+    'XII': 'Dua Belas', 'XI': 'Sebelas', 'X': 'Sepuluh',
+    'IX': 'Sembilan', 'VIII': 'Delapan', 'VII': 'Tujuh',
+    'VI': 'Enam', 'V': 'Lima', 'IV': 'Empat',
+    'III': 'Tiga', 'II': 'Dua', 'I': 'Satu'
+  };
+  let result = text;
+  Object.keys(romawiMap).sort((a, b) => b.length - a.length).forEach(romawi => {
+    const regex = new RegExp('\\b' + romawi + '\\b', 'g');
+    result = result.replace(regex, romawiMap[romawi]);
+  });
+  return result;
+}
+
+function angkaKeKata(angka) {
+  const angkaMap = {
+    '0': 'nol', '1': 'satu', '2': 'dua', '3': 'tiga', '4': 'empat',
+    '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'delapan', '9': 'sembilan',
+    '10': 'sepuluh', '11': 'sebelas', '12': 'dua belas'
+  };
+  return angkaMap[String(angka)] || angka;
+}
+
+function konversiKelas(kelas) {
+  if (!kelas) return '';
+  let result = kelas.replace(/[.\-\/]/g, ' ').trim();
+  result = romawiKeKata(result);
+  result = result.split(' ').map(word => {
+    if (/^\d+$/.test(word)) return angkaKeKata(word);
+    return word;
+  }).join(' ');
+  return result;
+}
+
+function parseDateLocal(dateStr){
+  if(!dateStr) return null;
+  const parts = dateStr.split('-').map(Number);
+  if(parts.length !== 3) return null;
+  const [year, month, day] = parts;
+  return new Date(year, month - 1, day);
+}
+
+function isJadwalActive(jadwal){
+  if(!jadwal.periode_mulai || !jadwal.periode_sampai) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const mulai = parseDateLocal(jadwal.periode_mulai);
+  const sampai = parseDateLocal(jadwal.periode_sampai);
+  if(!mulai || !sampai) return true;
+  return today >= mulai && today <= sampai;
+}
+
+function getPeriodeStatus(jadwal){
+  if(!jadwal.periode_mulai || !jadwal.periode_sampai) return {text:'Tanpa Batas', class:'badge-blue'};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const mulai = parseDateLocal(jadwal.periode_mulai);
+  const sampai = parseDateLocal(jadwal.periode_sampai);
+  if(!mulai || !sampai) return {text:'Tanpa Batas', class:'badge-blue'};
+  if(today < mulai) return {text:'Belum Aktif', class:'badge-gray'};
+  if(today > sampai) return {text:'Expired', class:'badge-red'};
+  const sisaHari = Math.ceil((sampai - today) / (1000 * 60 * 60 * 24));
+  if(sisaHari <= 7) return {text:`${sisaHari} hari lagi`, class:'periode-soon'};
+  return {text:'Aktif', class:'periode-active'};
+}
+
+function initApp(){
+  try{
+    const s = localStorage.getItem('sipelita_user');
+    const userData = s ? JSON.parse(s) : null;
+    currentUser = userData ? (userData.nama || userData.email || 'guru') : 'guru';
+    window.currentUserEmail = userData ? userData.email : '';
+    window.currentUserRole = userData ? userData.role : 'guru';
+  } catch(e){ 
+    currentUser = 'guru'; 
+    window.currentUserEmail = '';
+    window.currentUserRole = 'guru';
+  }
+
+  const userDisplay = document.getElementById('userDisplay');
+  if (userDisplay) {
+    const roleIcon = {
+      'admin': '👑', 'kepala': '👑', 'wakil': '⭐', 'guru': '👨‍🏫'
+    }[window.currentUserRole] || '👨‍🏫';
+    userDisplay.innerHTML = `<div style="font-weight:700;color:#334155;font-size:0.95rem;">${roleIcon} Hi, ${currentUser}</div>`;
+  }
+  
+  updateDateBar();
+  loadAlarmPref();
+  initFirebaseListeners();
+  bindEvents();
+  initAlarmEngine();
+  loadJadwalGambar();
+  initDragDrop();
+  initVoiceSystem();
+}
+
+function updateDateBar(){
+  const dateEl = document.getElementById('currentDate');
+  if(!dateEl) return;
+  const dateStr = new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  dateEl.innerHTML = `📅 ${dateStr} <span class="live-clock" id="liveClockHeader"> --:--:--</span>`;
+}
+
+function initVoiceSystem(){
+  const voiceStatus = document.getElementById('voiceStatusText');
+  if(!('speechSynthesis' in window)){
+    if(voiceStatus) voiceStatus.textContent = '❌ Browser tidak mendukung text-to-speech';
+    return;
+  }
+  
+  function loadIndonesianVoice(){
+    const voices = window.speechSynthesis.getVoices();
+    cachedIndonesianVoice = 
+      voices.find(v => v.lang === 'id-ID') ||
+      voices.find(v => v.lang === 'id') ||
+      voices.find(v => v.lang.startsWith('id')) ||
+      voices.find(v => v.name.toLowerCase().includes('indonesia')) ||
+      voices.find(v => v.name.toLowerCase().includes('bahasa indonesia')) ||
+      voices.find(v => v.name.toLowerCase().includes('damayanti')) ||
+      voices.find(v => v.name.toLowerCase().includes('andika')) ||
+      null;
+    
+    if(cachedIndonesianVoice){
+      console.log(`✅ Voice Indonesia: ${cachedIndonesianVoice.name} (${cachedIndonesianVoice.lang})`);
+      if(voiceStatus){
+        voiceStatus.innerHTML = `✅ <strong>Voice Indonesia aktif:</strong> ${cachedIndonesianVoice.name}`;
+        voiceStatus.style.color = '#166534';
+      }
+    } else {
+      console.warn('⚠️ Voice Indonesia tidak ditemukan!');
+      if(voiceStatus){
+        voiceStatus.innerHTML = `⚠️ <strong>Voice Indonesia tidak tersedia.</strong> <a href="#" onclick="showVoiceHelp();return false;" style="color:#1e40af;">Cara install</a>`;
+        voiceStatus.style.color = '#92400e';
+      }
+    }
+  }
+  
+  loadIndonesianVoice();
+  if(window.speechSynthesis.onvoiceschanged !== undefined){
+    window.speechSynthesis.onvoiceschanged = loadIndonesianVoice;
+  }
+  setTimeout(loadIndonesianVoice, 1000);
+  setTimeout(loadIndonesianVoice, 3000);
+}
+
+window.showVoiceHelp = function(){
+  alert('🔊 Cara Install Voice Indonesia di Chrome:\n\n📱 WINDOWS 10/11:\n1. Settings → Time & Language → Language\n2. Add a language → Bahasa Indonesia\n3. Download language pack\n4. Restart Chrome\n\n💻 MAC:\n1. System Preferences → Accessibility → Spoken Content\n2. System voice → Manage Voices\n3. Download "Damayanti"\n4. Restart Chrome');
+};
+
+function loadJadwalGambar(){
+  const uploadArea = document.getElementById('uploadJadwalArea');
+  const previewArea = document.getElementById('previewJadwalArea');
+  const previewImg = document.getElementById('jadwalPreviewImg');
+  const infoText = document.getElementById('jadwalInfoText');
+
+  // ✅ PERBAIKAN: Gunakan email yang di-sanitize sebagai kunci
+  ROOT_JADWAL_GAMBAR.child(sanitizeEmail(window.currentUserEmail)).on('value', snap => {
+    const data = snap.val();
+    if(data && data.base64){
+      previewImg.src = data.base64;
+      uploadArea.style.display = 'none';
+      previewArea.style.display = 'block';
+      const uploadedAt = data.uploadedAt ? new Date(data.uploadedAt).toLocaleString('id-ID') : '-';
+            const sizeKB = data.sizeKB ? parseFloat(data.sizeKB).toFixed(1) : '?';
+      const originalKB = data.originalSizeKB ? parseFloat(data.originalSizeKB).toFixed(1) : '?';
+      infoText.innerHTML = `📤 Diupload: <strong>${uploadedAt}</strong> • 📦 Ukuran: <strong>${sizeKB} KB</strong> (asli ${originalKB} KB, sudah dikompres)`;
+    } else {
+      uploadArea.style.display = 'block';
+      previewArea.style.display = 'none';
+    }
+  });
+}
+
+function sanitizeEmail(email){
+  if (!email) return 'guest';  // ✅ Fallback aman jika email kosong
+  return String(email).replace(/[.#$\[\]]/g, '_');
+}
+
+function compressImage(file, maxWidth = 1000, quality = 0.75){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width, height = img.height;
+        if(width > maxWidth){ height = (height * maxWidth) / width; width = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleJadwalFile(file){
+  if(!file) return;
+  if(!['image/jpeg','image/png','image/jpg'].includes(file.type)){ toast('❌ Format harus JPG atau PNG','err'); return; }
+  if(file.size > 5 * 1024 * 1024){ toast('❌ Ukuran maksimal 5 MB','err'); return; }
+  
+  const progressDiv = document.getElementById('jadwalUploadProgress');
+  progressDiv.style.display = 'flex'; progressDiv.style.alignItems = 'center'; progressDiv.style.justifyContent = 'center';
+  
+  try {
+    const base64 = await compressImage(file, 1000, 0.75);
+    const sizeKB = (base64.length * 0.75) / 1024;
+    if(sizeKB > 5000){ toast('❌ Gambar terlalu besar setelah kompresi','err'); progressDiv.style.display = 'none'; return; }
+    
+       // ✅ PERBAIKAN: Simpan sizeKB sebagai ANGKA (bukan string) agar aman dibaca
+    await ROOT_JADWAL_GAMBAR.child(sanitizeEmail(window.currentUserEmail)).set({
+      base64: base64, 
+      fileName: file.name, 
+      originalSizeKB: Math.round(file.size / 1024),   // ✅ ANGKA bulat
+      sizeKB: Math.round(sizeKB),                      // ✅ ANGKA bulat
+      uploadedAt: nowISO(), 
+      uploadedBy: currentUser
+    });
+    toast('✅ Jadwal berhasil diupload!');
+  } catch(err){ toast('❌ Gagal upload: ' + err.message,'err'); }
+  finally {
+    progressDiv.style.display = 'none';
+    document.getElementById('inputJadwalFile').value = '';
+  }
+}
+
+window.hapusJadwalMengajar = async function(){
+  if(!confirm('⚠️ Hapus gambar jadwal mengajar Anda?')) return;
+  try { 
+    // ✅ PERBAIKAN: Gunakan email
+    await ROOT_JADWAL_GAMBAR.child(sanitizeEmail(window.currentUserEmail)).remove(); 
+    toast('✅ Gambar jadwal dihapus'); 
+  } catch(err){ toast('❌ Gagal menghapus: ' + err.message,'err'); }
+};
+
+window.openZoomModal = function(src){ document.getElementById('zoomModalImg').src = src; document.getElementById('zoomModal').classList.add('active'); };
+window.closeZoomModal = function(){ document.getElementById('zoomModal').classList.remove('active'); };
+
+function initDragDrop(){
+  const dropZone = document.getElementById('dropZone');
+  if(!dropZone) return;
+  ['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+  dropZone.addEventListener('drop', e => { const file = e.dataTransfer.files[0]; if(file) handleJadwalFile(file); });
+}
+
+function initFirebaseListeners(){
+  ROOT_SIPENA.on('value', snap=>{
+    const allData = toArr(snap.val());
+    
+    // ✅ DUAL FILTER: Support email DAN nama (untuk masa transisi)
+    daftarKelas = allData.filter(d => {
+      if (d.type !== 'class') return false;
+      
+      // Prioritas: cocokkan dengan email
+      if (d.user_email === window.currentUserEmail) return true;
+      
+      // Fallback: cocokkan dengan nama (untuk data lama)
+      if (d.user_name === currentUser) return true;
+      
+      // Fallback extra: cocokkan nama depan (jika ada perbedaan gelar)
+      if (d.user_name && currentUser) {
+        const namaDepanDatabase = d.user_name.split(',')[0].trim().toLowerCase();
+        const namaDepanSekarang = currentUser.split(',')[0].trim().toLowerCase();
+        if (namaDepanDatabase === namaDepanSekarang) return true;
+      }
+      
+      return false;
+    });
+    
+    populateKelasSelect();
+  });
+  
+  ROOT_JADWAL.on('value', snap=>{
+    const allData = toArr(snap.val());
+    
+    // ✅ DUAL FILTER: Support email DAN nama (untuk masa transisi)
+    daftarJadwal = allData.filter(d => {
+      // Prioritas: cocokkan dengan email
+      if (d.user_email === window.currentUserEmail) return true;
+      
+      // Fallback: cocokkan dengan nama (untuk data lama)
+      if (d.user_name === currentUser) return true;
+      
+      // Fallback extra: cocokkan nama depan (jika ada perbedaan gelar)
+      if (d.user_name && currentUser) {
+        const namaDepanDatabase = d.user_name.split(',')[0].trim().toLowerCase();
+        const namaDepanSekarang = currentUser.split(',')[0].trim().toLowerCase();
+        if (namaDepanDatabase === namaDepanSekarang) return true;
+      }
+      
+      return false;
+    });
+    
+    renderJadwalTable();
+    updatePeriodeInfo();
+  });
+}
+
+function populateKelasSelect(){
+  const sel = document.getElementById('inputJadwalKelas');
+  if(!daftarKelas.length){ sel.innerHTML = '<option value="">-- Belum ada kelas di SIPENA --</option>'; return; }
+  sel.innerHTML = daftarKelas.map(k=>`<option value="${k.class_name}">${k.class_name}</option>`).join('');
+}
+
+function updatePeriodeInfo(){
+  const infoDiv = document.getElementById('periodeInfo');
+  const textSpan = document.getElementById('periodeText');
+  if(daftarJadwal.length === 0){ infoDiv.style.display = 'none'; return; }
+  let earliest = null, latest = null;
+  daftarJadwal.forEach(j => {
+    if(j.periode_mulai && (!earliest || parseDateLocal(j.periode_mulai) < parseDateLocal(earliest))) earliest = j.periode_mulai;
+    if(j.periode_sampai && (!latest || parseDateLocal(j.periode_sampai) > parseDateLocal(latest))) latest = j.periode_sampai;
+  });
+  if(earliest && latest){
+    const activeCount = daftarJadwal.filter(j => isJadwalActive(j)).length;
+    const expiredCount = daftarJadwal.length - activeCount;
+    textSpan.innerHTML = `<strong>${formatDateID(earliest)}</strong> s/d <strong>${formatDateID(latest)}</strong> • <span style="color:#166534;">✅ ${activeCount} aktif</span>${expiredCount > 0 ? ` • <span style="color:#991b1b;"> ${expiredCount} expired</span>` : ''}`;
+    infoDiv.style.display = 'block';
+  } else { infoDiv.style.display = 'none'; }
+}
+
+function bindEvents(){
+  document.getElementById('btnTambahJadwal').onclick = () => {
+    if(!daftarKelas.length){ toast('Buat kelas terlebih dahulu di menu SIPENA → Kelola Kelas','err'); return; }
+    document.getElementById('jadwalEditKey').value='';
+    document.getElementById('modalJadwalTitle').textContent='📅 Tambah Jadwal Mengajar';
+    document.getElementById('inputHari').value='Senin';
+    populateKelasSelect();
+    document.getElementById('inputJamMulai').value=''; document.getElementById('inputJamSelesai').value='';
+    document.getElementById('inputMapel').value=''; document.getElementById('inputRuang').value=''; document.getElementById('inputMateri').value='';
+    const today = new Date(); const sixMonthsLater = new Date(); sixMonthsLater.setMonth(today.getMonth() + 6);
+    document.getElementById('inputPeriodeMulai').value = today.toISOString().split('T')[0];
+    document.getElementById('inputPeriodeSampai').value = sixMonthsLater.toISOString().split('T')[0];
+    openModal('modalJadwal');
+  };
+  document.getElementById('btnBatalJadwal').onclick = () => closeModal('modalJadwal');
+  document.getElementById('btnSimpanJadwal').onclick = simpanJadwal;
+
+  document.getElementById('toggleAlarm').onchange = e => setAlarmEnabled(e.target.checked);
+  document.getElementById('btnNotifPerm').onclick = requestNotifPermission;
+  document.getElementById('btnTestAlarm').onclick = () => { 
+  prewarmVoice(); // ✅ pastikan voice diizinkan
+  if (_alarmAudioCtx && _alarmAudioCtx.state === 'suspended') _alarmAudioCtx.resume();
+  playAlarmSound('X.1', 'Matematika'); 
+  toast('🔊 Mencoba bunyi alarm...'); 
+};
+
+  document.getElementById('inputJadwalFile').onchange = e => { const file = e.target.files[0]; if(file) handleJadwalFile(file); };
+
+  document.getElementById('btnTerapkanSemua').onclick = () => {
+    if(daftarJadwal.length === 0){ toast('Belum ada jadwal untuk diterapkan','err'); return; }
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const sixMonthsLater = new Date(today.getFullYear(), today.getMonth() + 6, 0);
+    document.getElementById('applyPeriodeMulai').value = startOfMonth.toISOString().split('T')[0];
+    document.getElementById('applyPeriodeSampai').value = sixMonthsLater.toISOString().split('T')[0];
+    openModal('modalTerapkanSemua');
+  };
+  document.getElementById('btnConfirmTerapkan').onclick = terapkanKeSemua;
+
+  document.querySelectorAll('.modal').forEach(m=>{ m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('active'); }); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeZoomModal(); });
+}
+
+async function terapkanKeSemua(){
+  const mulai = document.getElementById('applyPeriodeMulai').value;
+  const sampai = document.getElementById('applyPeriodeSampai').value;
+  if(!mulai || !sampai){ toast('Tanggal periode wajib diisi!','err'); return; }
+  if(new Date(sampai) < new Date(mulai)){ toast('Tanggal selesai harus setelah tanggal mulai!','err'); return; }
+  if(!confirm(`Terapkan periode ${formatDateID(mulai)} s/d ${formatDateID(sampai)} ke SEMUA ${daftarJadwal.length} jadwal Anda?`)) return;
+  
+  const btn = document.getElementById('btnConfirmTerapkan');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menerapkan...';
+  try {
+    const updates = {};
+    daftarJadwal.forEach(j => { updates[j.__key + '/periode_mulai'] = mulai; updates[j.__key + '/periode_sampai'] = sampai; updates[j.__key + '/updated_at'] = nowISO(); });
+    await ROOT_JADWAL.update(updates);
+    closeModal('modalTerapkanSemua');
+    toast(`✅ Periode diterapkan ke ${daftarJadwal.length} jadwal!`);
+  } catch(e){ toast('Gagal menerapkan: ' + e.message,'err'); }
+  btn.disabled = false; btn.textContent = '✅ Terapkan ke Semua';
+}
+
+const HARI_ORDER=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+async function simpanJadwal(){
+  const editKey = document.getElementById('jadwalEditKey').value;
+  const kelas = document.getElementById('inputJadwalKelas').value;
+  const jamMulai = document.getElementById('inputJamMulai').value;
+  const periodeMulai = document.getElementById('inputPeriodeMulai').value;
+  const periodeSampai = document.getElementById('inputPeriodeSampai').value;
+
+  if(!kelas){ toast('Pilih kelas terlebih dahulu!','err'); return; }
+  if(!jamMulai){ toast('Jam mulai wajib diisi!','err'); return; }
+  if(!periodeMulai || !periodeSampai){ toast('Periode berlaku wajib diisi!','err'); return; }
+  if(new Date(periodeSampai) < new Date(periodeMulai)){ toast('Tanggal selesai harus setelah tanggal mulai!','err'); return; }
+
+  const payload = {
+    hari: document.getElementById('inputHari').value, kelas: kelas, mulai: jamMulai,
+    selesai: document.getElementById('inputJamSelesai').value, mapel: document.getElementById('inputMapel').value.trim(),
+    ruang: document.getElementById('inputRuang').value.trim(), materi: document.getElementById('inputMateri').value.trim(),
+    user_email: window.currentUserEmail, // ✅ Selalu simpan email
+    user_name: currentUser, // ✅ Tetap simpan nama untuk backward compatibility
+    periode_mulai: periodeMulai, periode_sampai: periodeSampai, updated_at: nowISO()
+  };
+
+  const btn = document.getElementById('btnSimpanJadwal');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+  try{
+    if(editKey){ 
+      await ROOT_JADWAL.child(editKey).update(payload); 
+    } else { 
+      await ROOT_JADWAL.push().set({...payload, created_at: nowISO()}); 
+    }
+    closeModal('modalJadwal');
+    toast(editKey ? '✅ Jadwal berhasil diperbarui!' : '✅ Jadwal berhasil ditambahkan!');
+  } catch(e){ toast('Gagal menyimpan: '+e.message, 'err'); }
+  btn.disabled = false; btn.textContent = '💾 Simpan';
+}
+
+function editJadwal(key){
+  const j = daftarJadwal.find(d=>d.__key===key); if(!j) return;
+  document.getElementById('jadwalEditKey').value = key;
+  document.getElementById('modalJadwalTitle').textContent = '✏️ Edit Jadwal Mengajar';
+  populateKelasSelect();
+  document.getElementById('inputHari').value = j.hari || 'Senin';
+  document.getElementById('inputJadwalKelas').value = j.kelas || '';
+  document.getElementById('inputJamMulai').value = j.mulai || '';
+  document.getElementById('inputJamSelesai').value = j.selesai || '';
+  document.getElementById('inputMapel').value = j.mapel || '';
+  document.getElementById('inputRuang').value = j.ruang || '';
+  document.getElementById('inputMateri').value = j.materi || '';
+  document.getElementById('inputPeriodeMulai').value = j.periode_mulai || '';
+  document.getElementById('inputPeriodeSampai').value = j.periode_sampai || '';
+  openModal('modalJadwal');
+}
+
+async function hapusJadwal(key, label){
+  if(!confirm(`Hapus jadwal "${label}"?`)) return;
+  try{ await ROOT_JADWAL.child(key).remove(); toast('✅ Jadwal dihapus.'); }
+  catch(e){ toast('Gagal menghapus: '+e.message, 'err'); }
+}
+
+function renderJadwalTable(){
+  const tbody = document.getElementById('jadwalTableBody');
+  if(!daftarJadwal.length){
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="ei">📅</div><p>Belum ada jadwal mengajar. Klik "➕ Tambah Jadwal".</p></div></td></tr>`;
+    return;
+  }
+  const sorted = [...daftarJadwal].sort((a,b)=> HARI_ORDER.indexOf(a.hari) - HARI_ORDER.indexOf(b.hari) || (a.mulai||'').localeCompare(b.mulai||''));
+  const hariBadge = {Senin:'badge-blue',Selasa:'badge-purple',Rabu:'badge-amber',Kamis:'badge-green',Jumat:'badge-red',Sabtu:'badge-gray'};
+
+  const now = new Date();
+  const hariMap = {0:'Minggu',1:'Senin',2:'Selasa',3:'Rabu',4:'Kamis',5:'Jumat',6:'Sabtu'};
+  const hariIni = hariMap[now.getDay()];
+  const menitSekarang = now.getHours() * 60 + now.getMinutes();
+
+  tbody.innerHTML = sorted.map(j=>{
+    const isActive = isJadwalActive(j);
+    const periodeStatus = getPeriodeStatus(j);
+    
+    let rowClass = '';
+    let rowStyle = '';
+    
+    if(j.hari === hariIni && isActive){
+      const [jam, menit] = (j.mulai || '00:00').split(':').map(Number);
+      const menitJadwal = jam * 60 + (menit || 0);
+      const selisih = menitJadwal - menitSekarang;
+      
+      if(selisih >= 0 && selisih <= 30){
+        rowClass = 'row-upcoming';
+      } else if(selisih < 0 && selisih >= -60){
+        rowClass = 'row-recent';
+      }
+    } else if(!isActive){
+      rowStyle = 'opacity:0.6;';
+    }
+    
+    return `
+    <tr class="${rowClass}" style="${rowStyle}">
+      <td><span class="badge ${hariBadge[j.hari]||'badge-gray'}">${j.hari}</span></td>
+      <td>${j.mulai||'?'}${j.selesai?' – '+j.selesai:''}</td>
+      <td><b style="color:#1e40af;">${j.kelas}</b></td>
+      <td>${j.ruang||'-'}</td>
+      <td>${j.materi||j.mapel||'-'}</td>
+      <td>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span class="badge ${periodeStatus.class}">${periodeStatus.text}</span>
+          ${j.periode_mulai ? `<span style="font-size:0.72rem;color:#6b7280;">${formatDateID(j.periode_mulai)} → ${formatDateID(j.periode_sampai)}</span>` : '<span style="font-size:0.72rem;color:#9ca3af;">Tanpa batas</span>'}
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn btn-warning btn-sm" data-action="edit" data-key="${j.__key}" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm" data-action="hapus" data-key="${j.__key}" data-label="${j.kelas} (${j.hari} ${j.mulai})" title="Hapus">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('[data-action="edit"]').forEach(btn=>{ btn.onclick = () => editJadwal(btn.dataset.key); });
+  tbody.querySelectorAll('[data-action="hapus"]').forEach(btn=>{ btn.onclick = () => hapusJadwal(btn.dataset.key, btn.dataset.label); });
+}
+
+function loadAlarmPref(){
+  try{ alarmEnabled = localStorage.getItem('sipelita_alarm_'+window.currentUserEmail) === 'true'; } catch(e){ alarmEnabled = false; }
+  document.getElementById('toggleAlarm').checked = alarmEnabled;
+  renderAlarmStatusBadge();
+}
+function setAlarmEnabled(val){
+  alarmEnabled = val;
+  try{ localStorage.setItem('sipelita_alarm_'+window.currentUserEmail, val ? 'true':'false'); }catch(e){}
+  renderAlarmStatusBadge();
+  toast(val ? '🔔 Alarm jadwal diaktifkan' : '🔕 Alarm jadwal dinonaktifkan');
+  if(val) { 
+    updateAlarmMonitor('🟢 Alarm aktif + layar tetap menyala...'); 
+    requestWakeLock(); 
+    // ✅ PRE-WARM: "panaskan" voice saat user klik toggle (user gesture)
+    //    Ini memberi izin browser untuk bunyikan audio di kemudian hari
+    prewarmVoice();
+    // Juga panaskan AudioContext untuk beep
+    if (!_alarmAudioCtx) {
+      try { _alarmAudioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {}
+    }
+    if (_alarmAudioCtx && _alarmAudioCtx.state === 'suspended') {
+      _alarmAudioCtx.resume().catch(()=>{});
+    }
+  }
+  else { updateAlarmMonitor('🔴 Alarm nonaktif'); releaseWakeLock(); }
+}
+
+// ✅ PRE-WARM VOICE: ucapkan teks sunyi agar browser "mengizinkan" speech
+function prewarmVoice(){
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const utter = new SpeechSynthesisUtterance(' ');
+    utter.volume = 0.01; // sangat pelan (hampir tak terdengar)
+    if (cachedIndonesianVoice) utter.voice = cachedIndonesianVoice;
+    utter.lang = 'id-ID';
+    window.speechSynthesis.speak(utter);
+    console.log('✅ Voice pre-warmed via user gesture');
+  } catch(e) { console.warn('Pre-warm gagal:', e); }
+}
+
+function renderAlarmStatusBadge(){
+  const badge = document.getElementById('alarmStatusBadge');
+  if(alarmEnabled){ badge.textContent = '🔔 Aktif'; badge.className = 'alarm-status on'; }
+  else { badge.textContent = '🔕 Nonaktif'; badge.className = 'alarm-status off'; }
+}
+function renderNotifPermStatus(){
+  const el = document.getElementById('notifPermStatus');
+  if(!('Notification' in window)){ el.textContent = 'Tidak didukung browser ini'; return; }
+  const perm = Notification.permission;
+  el.textContent = perm==='granted' ? '✅ Sudah diizinkan' : perm==='denied' ? '❌ Ditolak' : 'Belum diizinkan';
+}
+function requestNotifPermission(){
+  if(!('Notification' in window)){ toast('Browser ini tidak mendukung notifikasi','err'); return; }
+  Notification.requestPermission().then(perm=>{
+    renderNotifPermStatus();
+    if(perm==='granted') toast('✅ Notifikasi berhasil diizinkan!');
+    else if(perm==='denied') toast('❌ Notifikasi ditolak. Aktifkan manual di pengaturan browser.','err');
+  });
+}
+// ══════════════════════════════════════════════
+// ✅ NOTIFIKASI VIA SERVICE WORKER (WAJIB di Android)
+// ══════════════════════════════════════════════
+async function kirimNotifikasi(title, body, tag){
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    // Android Chrome: new Notification() TIDAK didukung → pakai Service Worker
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && typeof reg.showNotification === 'function') {
+        await reg.showNotification(title, {
+          body: body,
+          icon: '/assets/images/manbtg-app.png',
+          badge: '/assets/images/manbtg-app.png',
+          tag: tag || 'sipelita-alarm',
+          requireInteraction: true,
+          vibrate: [300, 150, 300]
+        });
+        return;
+      }
+    }
+    // Fallback desktop
+    new Notification(title, { body: body, tag: tag, requireInteraction: true });
+  } catch(e) { console.error('❌ Notifikasi error:', e); }
+}
+
+// ══════════════════════════════════════════════
+// ✅ WAKE LOCK: cegah layar HP tidur agar alarm & voice tetap jalan
+// ══════════════════════════════════════════════
+let _wakeLock = null;
+async function requestWakeLock(){
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+      console.log('✅ Wake Lock aktif — layar tetap menyala');
+    } else { console.warn('⚠️ Browser tidak mendukung Wake Lock'); }
+  } catch(e) { console.warn('Wake Lock gagal:', e); }
+}
+async function releaseWakeLock(){
+  try { if (_wakeLock) { await _wakeLock.release(); _wakeLock = null; } } catch(e) {}
+}
+// Ambil ulang wake lock saat aplikasi kembali terlihat
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && alarmEnabled) requestWakeLock();
+});
+function playAlarmBeep(){
+  return new Promise((resolve)=>{
+    try{
+      if(!_alarmAudioCtx) _alarmAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const ctx = _alarmAudioCtx;
+      if(ctx.state === 'suspended') ctx.resume();
+      
+      const playBeep = (startTime, freq) => {
+        const osc = ctx.createOscillator(); 
+        const gain = ctx.createGain();
+        osc.type = 'sine'; 
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.35, startTime+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime+0.35);
+        osc.connect(gain); 
+        gain.connect(ctx.destination);
+        osc.start(startTime); 
+        osc.stop(startTime+0.4);
+      };
+      
+      const now = ctx.currentTime;
+      for(let i=0;i<3;i++){ 
+        playBeep(now+i*0.55, 880); 
+        playBeep(now+i*0.55+0.25, 660); 
+      }
+      setTimeout(resolve, 1800);
+    } catch(e){ 
+      console.error('Gagal memutar beep:', e); 
+      resolve(); 
+    }
+  });
+}
+
+function speakAlarmMessage(kelasNama, mapel) {
+  if (!('speechSynthesis' in window)) return;
+  
+  const kelasDibaca = konversiKelas(kelasNama);
+  const mapelText = mapel ? `, mata pelajaran ${mapel},` : '';
+  const kalimat = `Perhatian! Sekarang saatnya Anda mengajar di kelas ${kelasDibaca}${mapelText}. Selamat, mengajar...`;
+  
+  console.log(`🔊 Teks: "${kalimat}"`);
+  
+  // ✅ Fungsi internal: coba speak dengan retry
+  function trySpeak(attempt = 1) {
+    try {
+      const utter = new SpeechSynthesisUtterance(kalimat);
+      utter.lang = 'id-ID';
+      utter.rate = 0.9;
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+      
+      if (cachedIndonesianVoice) {
+        utter.voice = cachedIndonesianVoice;
+      } else {
+        const voices = window.speechSynthesis.getVoices();
+        const idVoice = voices.find(v => v.lang === 'id-ID') 
+                     || voices.find(v => v.lang === 'id')
+                     || voices.find(v => v.lang.startsWith('id'));
+        if (idVoice) utter.voice = idVoice;
+      }
+      
+      utter.onstart = () => console.log('🔊 Speech dimulai');
+      utter.onend = () => console.log('🔊 Speech selesai');
+      utter.onerror = (e) => {
+        console.error('❌ Speech error:', e);
+        // Retry sekali jika error (Chrome Android sering error di attempt pertama)
+        if (attempt < 2) {
+          console.log('🔄 Retry speak...');
+          setTimeout(() => trySpeak(attempt + 1), 300);
+        }
+      };
+      
+      window.speechSynthesis.speak(utter);
+      
+      // Chrome Android bug workaround: pause/resume agar tidak macet
+      setTimeout(() => {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      }, 5000);
+      
+    } catch (e) {
+      console.error('❌ Gagal memutar suara:', e);
+    }
+  }
+  
+  // ✅ JANGAN panggil cancel() — ini yang bikin bug di Chrome Android
+  //    Langsung speak saja. Jika ada speak lain, akan otomatis ditimpa.
+  setTimeout(() => trySpeak(1), 100);
+}
+
+function playAlarmSound(kelasNama, mapel){
+  console.log(`🔔 Memutar alarm: ${kelasNama} - ${mapel}`);
+  playAlarmBeep();
+  speakAlarmMessage(kelasNama || 'Anda', mapel || '');
+}
+
+function fireScheduleAlarm(jadwalItem){
+  const kelasDibaca = konversiKelas(jadwalItem.kelas);
+  playAlarmSound(jadwalItem.kelas, jadwalItem.mapel);
+  toast(`🔔 WAKTUNYA MENGAJAR! Kelas ${kelasDibaca} - ${jadwalItem.mapel||''} (${jadwalItem.mulai})`,'err');
+  updateAlarmMonitor(` ALARM FIRED: Kelas ${kelasDibaca} - ${jadwalItem.mapel||'-'} (${jadwalItem.mulai})`);
+  
+    kirimNotifikasi('⏰ Waktunya Mengajar!', `Kelas ${kelasDibaca} · ${jadwalItem.mapel||''} · ${jadwalItem.mulai}${jadwalItem.ruang?' · '+jadwalItem.ruang:''}`, 'sipelita-jadwal-alarm');
+}
+
+// ══════════════════════════════════════════════
+// ✅ CHECK ALARM - TRACKING SEDERHANA (TANGGAL + JAM)
+// ══════════════════════════════════════════════
+function checkScheduleAlarms(){
+  if(!alarmEnabled) return;
+  
+  const now = new Date();
+  const hariMap = {0:'Minggu',1:'Senin',2:'Selasa',3:'Rabu',4:'Kamis',5:'Jumat',6:'Sabtu'};
+  const hariIni = hariMap[now.getDay()];
+  
+  // Format waktu sekarang: "YYYY-MM-DD_HH:MM"
+  const todayStr = now.toISOString().slice(0,10);
+  const jamSekarang = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const waktuSekarang = todayStr + '_' + jamSekarang;
+  
+  daftarJadwal.forEach(j=>{
+    // Skip jika bukan hari ini atau tidak aktif
+    if(j.hari !== hariIni || !isJadwalActive(j)) return;
+    
+    // Skip jika jam tidak cocok
+    if(j.mulai !== jamSekarang) return;
+    
+    // ✅ TRACKING KEY: Tanggal + Jam (bukan ID database)
+    // Ini memungkinkan kelas sama di jam berbeda tetap berbunyi
+    const trackingKey = todayStr + '_' + j.mulai;
+    
+    // Skip jika sudah bunyi di jam ini hari ini
+    if(alarmFiredToday.has(trackingKey)) return;
+    
+    // Mark sebagai sudah bunyi
+    alarmFiredToday.add(trackingKey);
+    
+    // Fire alarm!
+    fireScheduleAlarm(j);
+    console.log(`✅ Alarm fired: ${j.kelas} at ${j.mulai} (tracking: ${trackingKey})`);
+  });
+}
+
+function checkUpcomingSchedules(){
+  if(!alarmEnabled) return;
+  
+  const now = new Date();
+  const hariMap = {0:'Minggu',1:'Senin',2:'Selasa',3:'Rabu',4:'Kamis',5:'Jumat',6:'Sabtu'};
+  const hariIni = hariMap[now.getDay()];
+  const menitSekarang = now.getHours() * 60 + now.getMinutes();
+  const todayStr = now.toISOString().slice(0,10);
+  
+  daftarJadwal.forEach(j=>{
+    if(j.hari !== hariIni || !isJadwalActive(j)) return;
+    
+    const [jam, menit] = (j.mulai || '00:00').split(':').map(Number);
+    const menitJadwal = jam * 60 + (menit || 0);
+    const selisih = menitJadwal - menitSekarang;
+    
+    const notifKey = todayStr + '_' + j.mulai + '_upcoming';
+    if(alarmFiredToday.has(notifKey)) return;
+    
+    if(selisih === 10){
+      alarmFiredToday.add(notifKey);
+      const kelasDibaca = konversiKelas(j.kelas);
+      toast(`⏰ 10 menit lagi mengajar: Kelas ${kelasDibaca} (${j.mulai})`, 'warn');
+      updateAlarmMonitor(` UPCOMING: Kelas ${kelasDibaca} dalam 10 menit (${j.mulai})`);
+      
+            kirimNotifikasi('⏰ Siap-siap Mengajar!', `Kelas ${kelasDibaca} dalam 10 menit · ${j.mapel||''}`, 'sipelita-upcoming');
+    }
+  });
+}
+
+function updateAlarmMonitor(text){
+  const el = document.getElementById('alarmMonitorText');
+  if(el) el.textContent = text;
+}
+
+function updateLiveClock(){
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+  
+  const clockHeader = document.getElementById('liveClockHeader');
+  if(clockHeader) clockHeader.textContent = `🕐 ${timeStr}`;
+  
+  const clockMonitor = document.getElementById('liveClock');
+  if(clockMonitor) clockMonitor.textContent = timeStr;
+}
+
+function scheduleDailyReset(){
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 1, 0, 0);
+  
+  const delay = tomorrow - now;
+  
+  setTimeout(() => {
+    alarmFiredToday.clear();
+    console.log('✅ Alarm fired list direset untuk hari baru');
+    updateAlarmMonitor('🔄 Reset harian - siap untuk hari baru');
+    scheduleDailyReset();
+  }, delay);
+}
+
+function initAlarmEngine(){
+  renderNotifPermStatus();
+  
+  // ✅ CHECK ALARM SETIAP 1 DETIK
+  setInterval(checkScheduleAlarms, 1000);
+  
+  // Cek upcoming setiap 30 detik
+  setInterval(checkUpcomingSchedules, 30000);
+  
+  // Update live clock setiap 1 detik
+  setInterval(updateLiveClock, 1000);
+  
+  // Refresh tabel setiap 60 detik
+  setInterval(renderJadwalTable, 60000);
+  
+  updateLiveClock();
+  checkScheduleAlarms();
+  checkUpcomingSchedules();
+  
+  scheduleDailyReset();
+  
+  console.log('🔔 Alarm engine initialized - checking every 1 SECOND');
+}
+
+window.addEventListener('load', initApp);
+
+window.addEventListener('focus', () => {
+  const todayStr = new Date().toISOString().slice(0,10);
+  const lastResetDate = localStorage.getItem('sipelita_alarm_last_reset');
+  if(lastResetDate !== todayStr){
+    alarmFiredToday.clear();
+    localStorage.setItem('sipelita_alarm_last_reset', todayStr);
+    console.log('✅ Alarm fired list direset saat halaman difokuskan');
+  }
+});
+</script>
+</body>
+</html>

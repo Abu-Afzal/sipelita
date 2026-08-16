@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIAGA - Ekstrakurikuler | SIPELITA</title>
+<link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
+<link rel="stylesheet" href="../css/ekskul.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a href="../index.html" class="hdr-btn">🏠 Dashboard</a>
+    <h1>🏹 SIAGA — Ekstrakurikuler Madrasah</h1>
+    <span class="hdr-btn" id="userBadge">👤</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+  <button class="tab" data-tab="master" id="tabMasterBtn" style="display:none">🗂️ Master Ekskul</button>
+  <button class="tab" data-tab="anggota">👥 Anggota</button>
+  <button class="tab" data-tab="kegiatan">📝 Kegiatan & Absensi</button>
+  <button class="tab" data-tab="rekap">📈 Rekap</button>
+    <button class="tab" data-tab="monitor" id="tabMonitorBtn" style="display:none">📊 Monitoring</button>
+</div>
+
+<div class="container">
+
+  <div class="toolbar">
+    <label>Ekskul Aktif:</label>
+    <select id="selectEkskul"><option value="">-- Memuat... --</option></select>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard">
+    <div class="stat-row">
+      <div class="stat"><h2 id="stEkskul">0</h2><p>Ekskul</p></div>
+      <div class="stat"><h2 id="stAnggota">0</h2><p>Anggota</p></div>
+      <div class="stat"><h2 id="stKegiatan">0</h2><p>Kegiatan Bulan Ini</p></div>
+      <div class="stat"><h2 id="stHadir">0%</h2><p>Rata-rata Kehadiran</p></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#6d28d9;">🕐 Kegiatan Terbaru</h3>
+      <div class="list" id="listTerbaru"><div class="empty">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- MASTER (Admin) -->
+  <div id="tab-master" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="margin:0;color:#6d28d9;">🗂️ Daftar Ekskul</h3>
+        <button class="btn btn-primary" id="btnAddEkskul">➕ Tambah Ekskul</button>
+      </div>
+      <div class="list" id="masterEkskulList"><div class="empty">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- ANGGOTA -->
+  <div id="tab-anggota" style="display:none">
+    <div class="card">
+      <div class="fg search-wrap">
+        <label>➕ Tambah Anggota (cari dari master siswa)</label>
+        <input type="text" id="cariAnggota" placeholder="Ketik nama / kelas / NIS..." autocomplete="off">
+        <div class="search-drop" id="dropAnggota"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>Jabatan</th><th>Aksi</th></tr></thead>
+          <tbody id="tbodyAnggota"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEGIATAN & ABSENSI -->
+  <div id="tab-kegiatan" style="display:none">
+    <div class="card">
+      <h3 style="margin:0 0 14px;color:#6d28d9;">📝 Buat Laporan Kegiatan + Absensi</h3>
+      <div class="grid2">
+        <div class="fg"><label>Tanggal *</label><input type="date" id="kTanggal"></div>
+        <div class="fg"><label>Jam</label><input type="time" id="kJam"></div>
+      </div>
+      <div class="fg"><label>Judul Kegiatan *</label><input type="text" id="kJudul" placeholder="Contoh: Latihan rutin mingguan"></div>
+      <div class="grid2">
+        <div class="fg"><label>Materi</label><input type="text" id="kMateri" placeholder="Opsional"></div>
+        <div class="fg"><label>Tempat</label><input type="text" id="kTempat" placeholder="Opsional"></div>
+      </div>
+      <div class="fg"><label>Deskripsi / Catatan</label><textarea id="kDesk" rows="2"></textarea></div>
+      <div class="fg"><label>Foto (maks 3)</label><input type="file" id="kFoto" accept="image/*" multiple></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
+        <label style="margin:0;">✅ Absensi Anggota</label>
+        <button class="btn btn-secondary btn-sm" id="btnSemuaHadir">Semua Hadir</button>
+      </div>
+      <div id="absensiList"><div class="empty">Pilih ekskul & pastikan ada anggota.</div></div>
+
+      <button class="btn btn-primary" id="btnSimpanKegiatan" style="margin-top:14px;">💾 Simpan Laporan</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#6d28d9;">📒 Riwayat Kegiatan</h3>
+      <div class="list" id="listKegiatan"><div class="empty">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- REKAP -->
+  <div id="tab-rekap" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;color:#6d28d9;">📈 Rekap Kehadiran per Siswa</h3>
+        <button class="btn btn-primary btn-sm" id="btnExportPDF">📄 Export PDF</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>NIS</th><th>Nama</th><th>Kelas</th><th>Hadir</th><th>S</th><th>I</th><th>A</th><th>%</th><th>Predikat</th></tr></thead>
+          <tbody id="tbodyRekap"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+ <!-- MONITORING (Kepala/Waka/Admin) -->
+  <div id="tab-monitor" style="display:none">
+    <div id="monitorContent"><div class="empty">Memuat...</div></div>
+  </div>
+  
+</div>
+
+<!-- MODAL EKSKUL -->
+<div class="modal" id="modalEkskul">
+  <div class="modal-box">
+    <div class="modal-title" id="modalEkskulTitle">➕ Tambah Ekskul</div>
+    <input type="hidden" id="ekskulEditKey">
+    <div class="grid2">
+      <div class="fg"><label>Nama Ekskul *</label><input type="text" id="eNama" placeholder="Pramuka"></div>
+      <div class="fg"><label>Ikon</label><select id="eIkon">
+        <option>⚜️</option><option>⛑️</option><option>💬</option><option>📰</option>
+        <option>⚽</option><option>🎨</option><option>🎵</option><option>💻</option><option>🕌</option>
+      </select></div>
+    </div>
+    <div class="grid2">
+      <div class="fg"><label>Hari</label><select id="eHari">
+        <option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option>
+        <option>Jumat</option><option>Sabtu</option><option>Minggu</option>
+      </select></div>
+      <div class="fg"><label>Ruang</label><input type="text" id="eRuang"></div>
+    </div>
+    <div class="grid2">
+      <div class="fg"><label>Jam Mulai</label><input type="time" id="eJamMulai"></div>
+      <div class="fg"><label>Jam Selesai</label><input type="time" id="eJamSelesai"></div>
+    </div>
+    <div class="fg"><label>Pembina *</label><select id="ePembina"><option value="">-- Pilih Pembina --</option></select></div>
+    <div class="fg"><label>Deskripsi</label><textarea id="eDesk" rows="2"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="btnBatalEkskul">Batal</button>
+      <button class="btn btn-primary" id="btnSimpanEkskul">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOTO DOKUMENTASI -->
+<div class="modal" id="fotoModal">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-title" id="fotoModalTitle">📷 Dokumentasi</div>
+    <div id="fotoModalImgs"></div>
+    <div class="modal-foot"><button class="btn btn-secondary" id="btnTutupFoto">Tutup</button></div>
+  </div>
+</div>
+<script type="module" src="../js/ekskul-core.js"></script>
+</body>
+</html>

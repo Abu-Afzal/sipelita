@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Learning - SIPELITA</title>
+    <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 24px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 1.6rem; }
+        .header p { opacity: 0.9; font-size: 0.9rem; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 10px 20px; border-radius: 24px; text-decoration: none;
+            font-weight: 600; border: 1px solid rgba(255,255,255,0.3);
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px; margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid #667eea;
+        }
+        .stat-card h3 { color: #64748b; font-size: 0.85rem; margin-bottom: 8px; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; color: #1e40af; }
+        
+        .card {
+            background: white; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07); margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .card h2 { color: #1e40af; font-size: 1.2rem; }
+        
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 600; font-size: 0.9rem;
+            display: inline-flex; align-items: center; gap: 6px;
+            text-decoration: none;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        
+        .session-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+        .session-card {
+            background: white; border: 2px solid #e2e8f0;
+            border-radius: 12px; padding: 20px;
+            transition: all 0.2s;
+        }
+        .session-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        .session-card.active { border-color: #10b981; }
+        .session-card.selesai { border-color: #94a3b8; opacity: 0.8; }
+        
+        .session-title {
+            font-size: 1.1rem; font-weight: 700; color: #1e40af;
+            margin-bottom: 8px;
+        }
+        .session-meta {
+            display: flex; gap: 12px; flex-wrap: wrap;
+            font-size: 0.85rem; color: #64748b; margin-bottom: 12px;
+        }
+        .session-meta span { display: inline-flex; align-items: center; gap: 4px; }
+        
+        .pin-display {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; padding: 12px; border-radius: 8px;
+            text-align: center; margin: 12px 0;
+        }
+        .pin-display .label { font-size: 0.75rem; opacity: 0.9; }
+        .pin-display .pin { font-size: 1.8rem; font-weight: 700; letter-spacing: 4px; }
+        
+        .session-stats {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 8px; margin: 12px 0;
+        }
+        .session-stat {
+            text-align: center; padding: 8px;
+            background: #f8fafc; border-radius: 6px;
+        }
+        .session-stat .num { font-size: 1.2rem; font-weight: 700; color: #1e40af; }
+        .session-stat .lbl { font-size: 0.7rem; color: #64748b; }
+        
+        .session-actions {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        
+        .badge {
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 0.7rem; font-weight: 700;
+            display: inline-block;
+        }
+        .badge-aktif { background: #dcfce7; color: #166534; }
+        .badge-draft { background: #fef3c7; color: #92400e; }
+        .badge-selesai { background: #e2e8f0; color: #475569; }
+        
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            color: #64748b;
+        }
+        .empty-state .icon { font-size: 4rem; margin-bottom: 16px; }
+        
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 3px solid #e2e8f0; border-top: 3px solid #667eea;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; gap: 12px; }
+            .session-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="flex: 1;">
+        <h1>🎓 E-Learning SIPELITA</h1>
+        <p>Platform Belajar Online untuk Guru & Siswa</p>
+    </div>
+    <a href="../index.html" class="back-btn">← Dashboard</a>
+</div>
+
+<div class="container">
+    
+    <!-- Statistik -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Sesi</h3>
+            <div class="value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Sesi Aktif</h3>
+            <div class="value" id="statAktif" style="color: #10b981;">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Total Siswa Join</h3>
+            <div class="value" id="statSiswa">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Rata-rata Nilai</h3>
+            <div class="value" id="statNilai">-</div>
+        </div>
+    </div>
+    
+    <!-- Daftar Sesi -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📚 Daftar Sesi Belajar</h2>
+            <a href="elearning-buat.html" class="btn btn-primary">➕ Buat Sesi Baru</a>
+        </div>
+        
+        <div id="loadingState" style="text-align: center; padding: 40px;">
+            <div class="spinner"></div>
+            <p style="margin-top: 12px; color: #64748b;">Memuat sesi...</p>
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="icon">📭</div>
+            <h3>Belum Ada Sesi</h3>
+            <p style="margin: 12px 0;">Mulai buat sesi belajar pertama Anda!</p>
+            <a href="elearning-buat.html" class="btn btn-primary">➕ Buat Sesi Pertama</a>
+        </div>
+        
+        <div id="sessionGrid" class="session-grid" style="display: none;"></div>
+    </div>
+    
+</div>
+
+<script src="../js/elearning-core.js"></script>
+<script>
+// Load daftar sesi saat halaman dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof loadDaftarSesi === 'function') {
+        loadDaftarSesi();
+    }
+});
+</script>
+
+</body>
+</html>
