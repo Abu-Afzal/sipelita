@@ -19,12 +19,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <script src="js/alarm-engine.js"></script>
     
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman Dashboard) -->
+    <!-- 🔒 CEK KEAMANAN SINKRONUS (Mencegah Flash Halaman Dashboard) -->
     <script>
       (function() {
-        const sessionData = localStorage.getItem('sipelita_guru_user');
+        // ✅ FIX 1: Konsistenkan nama session key dengan auth-service.js
+        const sessionData = localStorage.getItem('sipelita_user');
         if (!sessionData) {
-          window.location.replace('index.html'); 
+          const currentDomain = window.location.hostname;
+          const isManBantaeng = currentDomain.includes('manbantaeng');
+          const loginPage = isManBantaeng ? 'index.html' : 'home.html';
+          window.location.replace(loginPage); 
         }
       })();
     </script>
@@ -62,8 +66,8 @@
             <div style="display: flex; align-items: center; gap: 15px;">
                 <img src="assets/images/sipelita-app.png" alt="Logo SIPELITA" class="header-logo">
                 <div>
-                    <h1 style="margin: 0; font-size: 1.4rem; color: #0891b2;">SIPELITA Guru</h1>
-                    <p style="margin: 0; font-size: 0.85rem;">Portal Personal & Administrasi Terpadu</p>
+                    <h1 id="headerTitle" style="margin: 0; font-size: 1.4rem; color: #0891b2;">SIPELITA Guru</h1>
+                    <p id="headerSubtitle" style="margin: 0; font-size: 0.85rem;">Portal Personal & Administrasi Terpadu</p>
                 </div>
             </div>
             
@@ -139,7 +143,7 @@
         </div>
     </div>
 
-    <footer>
+    <footer id="footerCopyright">
         &copy; 2026 SIPELITA Guru. Portal Personal untuk Guru Profesional.
     </footer>
 
@@ -147,12 +151,35 @@
     <script src="js/main.js"></script>
     
     <script type="module">
-        // ✅ Perbaikan path import (menghapus './' agar konsisten)
         import { AuthService } from 'js/auth-service.js';
 
-        const firebaseConfig = {
+        // ══════════════════════════════════════════════════════
+        // 🌐 AUTO-DETECT DOMAIN & FIREBASE CONFIG
+        // ══════════════════════════════════════════════════════
+        const currentDomain = window.location.hostname;
+        const isManBantaeng = currentDomain.includes('manbantaeng');
+
+        // ✅ Helper: halaman login sesuai domain
+        function getLoginPage() {
+            return isManBantaeng ? 'index.html' : 'home.html';
+        }
+
+        // Konfigurasi Firebase LAMA (untuk MAN Bantaeng)
+        const firebaseConfigLama = {
+            apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
+            authDomain: "sipelita-digital.firebaseapp.com",
+            databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sipelita-digital",
+            storageBucket: "sipelita-digital.firebasestorage.app",
+            messagingSenderId: "787840817745",
+            appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+        };
+
+        // Konfigurasi Firebase BARU (untuk sipelita.my.id)
+        const firebaseConfigBaru = {
             apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
             authDomain: "sipelita-guru.firebaseapp.com",
+            databaseURL: "https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "sipelita-guru",
             storageBucket: "sipelita-guru.firebasestorage.app",
             messagingSenderId: "595996765157",
@@ -160,11 +187,30 @@
             measurementId: "G-ZGT7K2N7L5"
         };
 
+        // Pilih config berdasarkan domain
+        const firebaseConfig = isManBantaeng ? firebaseConfigLama : firebaseConfigBaru;
+
+        console.log(`🌐 [dashboard.html] Domain: ${currentDomain}`);
+        console.log(`🔥 [dashboard.html] Firebase: ${isManBantaeng ? 'sipelita-digital (MAN Bantaeng)' : 'sipelita-guru (guru.sipelita.my.id)'}`);
+
+        // Inisialisasi Firebase (hanya jika belum)
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
         const auth = firebase.auth();
+
+        // ══════════════════════════════════════════════════════
+        // 🎨 BRANDING DINAMIS BERDASARKAN DOMAIN
+        // ══════════════════════════════════════════════════════
+        if (isManBantaeng) {
+            document.getElementById('headerTitle').textContent = 'MAN BANTAENG';
+            document.getElementById('headerSubtitle').textContent = 'Sistem Penilaian & Absensi Digital';
+            document.getElementById('footerCopyright').innerHTML = '&copy; 2026 MAN Bantaeng. Portal Guru Digital.';
+            document.title = 'Dashboard - MAN Bantaeng';
+        } else {
+            console.log('✅ Mode: SIPELITA Guru (Personal)');
+        }
 
         async function refreshUserDataFromFirestore(userEmail) {
             try {
@@ -188,6 +234,7 @@
         };
 
         try {
+            // ✅ FIX 1: Konsisten dengan auth-service.js (pakai 'sipelita_user')
             const user = AuthService.checkAuth();
 
             if (user) {
@@ -209,7 +256,8 @@
                     refreshUserDataFromFirestore(user.email).then(freshData => {
                         if (freshData) {
                             const updatedUser = { ...user, ...freshData, email: user.email };
-                            localStorage.setItem('sipelita_guru_user', JSON.stringify(updatedUser));
+                            // ✅ Konsisten: pakai 'sipelita_user'
+                            localStorage.setItem('sipelita_user', JSON.stringify(updatedUser));
                             
                             if (userNameEl) userNameEl.textContent = `Hi, ${updatedUser.nama || 'User'}`;
                             if (userNipEl) {
@@ -261,7 +309,8 @@
                                 localStorage.clear();
                                 sessionStorage.clear();
                                 await auth.signOut();
-                                window.location.replace('index.html');
+                                // ✅ FIX 2: Redirect dinamis
+                                window.location.replace(getLoginPage());
                             }, 2000);
 
                         } catch (error) {
@@ -297,21 +346,23 @@
                                 try { await AuthService.logout(); } catch (err) { console.warn('Firebase logout warning:', err); }
                             }
                             
-                            window.location.replace('index.html');
+                            // ✅ FIX 2: Redirect dinamis
+                            window.location.replace(getLoginPage());
                         } catch (error) {
                             console.error('Logout error:', error);
-                            window.location.replace('index.html');
+                            window.location.replace(getLoginPage());
                         }
                     });
                 }
 
             } else {
-                window.location.replace('index.html');
+                // ✅ FIX 2: Redirect dinamis
+                window.location.replace(getLoginPage());
             }
 
         } catch (error) {
             console.error('❌ Error di script module:', error);
-            window.location.replace('index.html');
+            window.location.replace(getLoginPage());
         }
     </script>
     
