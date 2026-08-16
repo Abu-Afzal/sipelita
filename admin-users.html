@@ -6,31 +6,26 @@
     <title>Kelola User - SIPELITA</title>
     <link rel="icon" type="image/png" href="assets/images/icon-app.png">
     
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman & Akses Ilegal) -->
+       <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman & Akses Ilegal) -->
     <script>
-    <script type="module" src="js/switch-mode.js"></script>
       (function() {
-        const sessionData = localStorage.getItem('sipelita_user'); // Sesuaikan jika key Anda berbeda
-        
+        const sessionData = localStorage.getItem('sipelita_user');
         if (!sessionData) {
-          // Jika tidak ada session, redirect INSTAN sebelum halaman dirender
           window.location.replace('home.html');
         } else {
           try {
             const currentUser = JSON.parse(sessionData);
             if (currentUser.role !== 'admin') {
-              // Jika bukan admin, redirect INSTAN ke dashboard
               window.location.replace('index.html');
             }
           } catch (e) {
-            // Jika data session rusak, hapus dan redirect ke login
             localStorage.removeItem('sipelita_user');
             window.location.replace('home.html');
           }
         }
       })();
     </script>
-
+    
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
         body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;}
