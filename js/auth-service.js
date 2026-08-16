@@ -13,6 +13,21 @@ import { collection, query, where, getDocs } from "https://www.gstatic.com/fireb
 const auth = getAuth();
 
 // ══════════════════════════════════════════════
+// 🌐 HELPER: DETEKSI DOMAIN UNTUK REDIRECT
+// ══════════════════════════════════════════════
+function getLoginPage() {
+    const currentDomain = window.location.hostname;
+    const isManBantaeng = currentDomain.includes('manbantaeng');
+    
+    // MAN Bantaeng pakai index.html, domain netral pakai home.html
+    return isManBantaeng ? 'index.html' : 'home.html';
+}
+
+function getDashboardPage() {
+    return 'dashboard.html';
+}
+
+// ══════════════════════════════════════════════
 // 🔐 AUTO-LOGOUT SESSION TIMEOUT (24 JAM)
 // ══════════════════════════════════════════════
 const SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 jam
@@ -26,10 +41,8 @@ function checkSessionTimeout() {
     const lastActivity = localStorage.getItem(ACTIVITY_KEY);
     const sipelitaUser = localStorage.getItem('sipelita_user');
     
-    // Jika tidak ada session, tidak perlu cek
     if (!sipelitaUser) return true;
     
-    // Jika belum ada timestamp, set sekarang
     if (!lastActivity) {
         updateActivityTimestamp();
         return true;
@@ -37,22 +50,19 @@ function checkSessionTimeout() {
     
     const elapsed = Date.now() - parseInt(lastActivity);
     
-    // Jika sudah lewat timeout, logout otomatis
     if (elapsed > SESSION_TIMEOUT_MS) {
         console.log('⏰ Session timeout setelah', Math.round(elapsed / 1000 / 60 / 60), 'jam');
         
-        // Hapus semua session
         localStorage.removeItem('sipelita_user');
         localStorage.removeItem(ACTIVITY_KEY);
         sessionStorage.removeItem('sipelita_user');
         
-        // Sign out dari Firebase Auth
         signOut(auth).catch(err => console.log('Firebase signOut error:', err));
         
         alert('⏰ Session Anda telah berakhir karena tidak ada aktivitas selama 24 jam.\n\nSilakan login kembali.');
         
-        // Redirect ke halaman login
-        window.location.href = 'index.html';
+        // ✅ REDIRECT DINAMIS
+        window.location.href = getLoginPage();
         return false;
     }
     
@@ -65,7 +75,6 @@ function setupActivityListeners() {
     
     activities.forEach(event => {
         document.addEventListener(event, () => {
-            // Throttle: update maksimal setiap 30 detik
             if (!throttleTimer) {
                 throttleTimer = setTimeout(() => {
                     updateActivityTimestamp();
@@ -76,7 +85,6 @@ function setupActivityListeners() {
     });
 }
 
-// Jalankan auto-logout check
 checkSessionTimeout();
 setupActivityListeners();
 
@@ -110,11 +118,9 @@ export const AuthService = {
             const formatEmail = email.trim().toLowerCase();
             const formatPassword = password.trim();
 
-            // 0. CLEAR SESSION LAMA
             localStorage.removeItem('sipelita_user');
             sessionStorage.removeItem('sipelita_user');
 
-            // 1. Validasi user di Firestore
             const q = query(collection(db, "users"), where("email", "==", formatEmail));
             const querySnapshot = await getDocs(q);
 
@@ -125,7 +131,6 @@ export const AuthService = {
             const docSnap = querySnapshot.docs[0];
             const userData = docSnap.data();
 
-            // 2. Sign In atau Auto Register
             let user;
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, formatEmail, formatPassword);
@@ -147,7 +152,6 @@ export const AuthService = {
                 }
             }
 
-            // 3. Simpan info user
             const userDataLengkap = {
                 uid: user.uid,
                 email: user.email,
@@ -160,7 +164,6 @@ export const AuthService = {
             localStorage.setItem('sipelita_user', JSON.stringify(userDataLengkap));
             sessionStorage.setItem('sipelita_user', JSON.stringify(userDataLengkap));
             
-            // ✅ UPDATE ACTIVITY TIMESTAMP saat login berhasil
             updateActivityTimestamp();
             
             console.log('✅ User login berhasil:', userDataLengkap);
@@ -172,21 +175,19 @@ export const AuthService = {
         }
     },
 
-    // 🔓 LOGOUT (✅ INI YANG HILANG!)
+    // 🔓 LOGOUT
     async logout() {
         try {
-            // Sign out dari Firebase Auth
             await signOut(auth);
             
-            // Hapus semua data session
             localStorage.removeItem('sipelita_user');
             localStorage.removeItem(ACTIVITY_KEY);
             sessionStorage.removeItem('sipelita_user');
             
             console.log('✅ User berhasil logout');
             
-            // Redirect ke halaman login
-            window.location.href = 'index.html';
+            // ✅ REDIRECT DINAMIS
+            window.location.href = getLoginPage();
             
             return { success: true };
         } catch (error) {
@@ -202,7 +203,6 @@ export const AuthService = {
         
         const user = JSON.parse(userStr);
         
-        // Cek session timeout saat checkAuth dipanggil
         const lastActivity = localStorage.getItem(ACTIVITY_KEY);
         if (lastActivity) {
             const elapsed = Date.now() - parseInt(lastActivity);
