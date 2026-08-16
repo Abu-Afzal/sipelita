@@ -2,7 +2,6 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <!-- ✅ PERBAIKAN 1: Warna tema disesuaikan menjadi Tosca -->
     <meta name="theme-color" content="#0891b2">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/images/sipelita-app.png">
@@ -20,13 +19,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <script src="js/alarm-engine.js"></script>
     
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS -->
+    <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman Dashboard) -->
     <script>
       (function() {
-        const sessionData = localStorage.getItem('sipelita_guru_user'); // ✅ Disesuaikan dengan key baru
-        
+        const sessionData = localStorage.getItem('sipelita_guru_user');
         if (!sessionData) {
-          // ✅ PERBAIKAN 2: Redirect ke index.html (bukan home.html)
           window.location.replace('index.html'); 
         }
       })();
@@ -53,7 +50,7 @@
             transition: border-color 0.2s; box-sizing: border-box;
         }
         .form-group-modal input:focus {
-            border-color: #0891b2; /* ✅ Warna fokus tosca */
+            border-color: #0891b2;
             box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
         }
         .password-hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
@@ -150,9 +147,9 @@
     <script src="js/main.js"></script>
     
     <script type="module">
-        import { AuthService } from './js/auth-service.js';
+        // ✅ Perbaikan path import (menghapus './' agar konsisten)
+        import { AuthService } from 'js/auth-service.js';
 
-        // ✅ PERBAIKAN 3: Konfigurasi Firebase DIUPDATE ke proyek baru (sipelita-guru)
         const firebaseConfig = {
             apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
             authDomain: "sipelita-guru.firebaseapp.com",
@@ -183,7 +180,7 @@
         }
 
         function showToast(message, type = 'success') {
-            alert(message); // Bisa diganti dengan library toast Anda jika ada
+            alert(message); 
         }
 
         window.closeModal = (modalId) => {
@@ -212,7 +209,7 @@
                     refreshUserDataFromFirestore(user.email).then(freshData => {
                         if (freshData) {
                             const updatedUser = { ...user, ...freshData, email: user.email };
-                            localStorage.setItem('sipelita_guru_user', JSON.stringify(updatedUser)); // ✅ Key disesuaikan
+                            localStorage.setItem('sipelita_guru_user', JSON.stringify(updatedUser));
                             
                             if (userNameEl) userNameEl.textContent = `Hi, ${updatedUser.nama || 'User'}`;
                             if (userNipEl) {
@@ -261,10 +258,10 @@
                             closeModal('modalPengaturanAkun');
 
                             setTimeout(async () => {
-                                localStorage.clear(); // ✅ Bersihkan semua
+                                localStorage.clear();
                                 sessionStorage.clear();
                                 await auth.signOut();
-                                window.location.replace('index.html'); // ✅ Redirect ke index.html
+                                window.location.replace('index.html');
                             }, 2000);
 
                         } catch (error) {
@@ -300,7 +297,7 @@
                                 try { await AuthService.logout(); } catch (err) { console.warn('Firebase logout warning:', err); }
                             }
                             
-                            window.location.replace('index.html'); // ✅ Redirect ke index.html
+                            window.location.replace('index.html');
                         } catch (error) {
                             console.error('Logout error:', error);
                             window.location.replace('index.html');
@@ -309,12 +306,12 @@
                 }
 
             } else {
-                window.location.replace('index.html'); // ✅ Redirect ke index.html
+                window.location.replace('index.html');
             }
 
         } catch (error) {
             console.error('❌ Error di script module:', error);
-            window.location.replace('index.html'); // ✅ Fallback redirect
+            window.location.replace('index.html');
         }
     </script>
     
