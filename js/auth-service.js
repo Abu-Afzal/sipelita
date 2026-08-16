@@ -13,18 +13,18 @@ import { collection, query, where, getDocs } from "https://www.gstatic.com/fireb
 const auth = getAuth();
 
 // ══════════════════════════════════════════════
-// 🌐 HELPER: DETEKSI DOMAIN UNTUK REDIRECT
+// 🌐 HELPER: REDIRECT PATH (Universal)
 // ══════════════════════════════════════════════
+// Struktur file saat ini:
+//   - home.html  = Halaman Login (semua domain)
+//   - index.html = Dashboard     (semua domain)
+
 function getLoginPage() {
-    const currentDomain = window.location.hostname;
-    const isManBantaeng = currentDomain.includes('manbantaeng');
-    
-    // MAN Bantaeng pakai index.html, domain netral pakai home.html
-    return isManBantaeng ? 'index.html' : 'home.html';
+    return 'home.html';
 }
 
 function getDashboardPage() {
-    return 'dashboard.html';
+    return 'index.html';
 }
 
 // ══════════════════════════════════════════════
