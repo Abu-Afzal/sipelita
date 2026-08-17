@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════
-// SIPENA CORE: Firebase Init, State & Helpers (SECURE & FOLDER STRUCTURE VERSION)
+// SIPENA CORE: Firebase Init, State & Helpers
+// Versi Multi-Domain Ready dengan Adapter Firestore v2
 // ══════════════════════════════════════════════
 
 const firebaseConfig = {
@@ -16,8 +17,9 @@ firebase.initializeApp(firebaseConfig);
 const firestore = firebase.firestore();
 
 // ══════════════════════════════════════════════
-// ADAPTER: Firestore berperilaku seperti RTDB
-// Semua modul SIPENA tetap jalan, data masuk FIRESTORE
+// ADAPTER FIRESTORE v2 (Recursive)
+// Mendukung ROOT.child('x').push().set(...)
+// Semua data masuk ke collection 'sipena2' + penanda __folder
 // ══════════════════════════════════════════════
 function clean(obj) {
   const o = {};
@@ -25,38 +27,75 @@ function clean(obj) {
   return o;
 }
 
-const ROOT = {
-  _col: () => firestore.collection('sipena2'),
+const BASE_COL = 'sipena2';
 
-  child(id) {
-    const col = this._col();
-    return {
-      set:    (obj) => col.doc(id).set(clean(obj)),
-      update: (obj) => col.doc(id).set(clean(obj), { merge: true }),
-      remove: ()    => col.doc(id).delete(),
-    };
-  },
+function createRef(path) {
+  return {
+    _path: path || '',
 
-  push() {
-    const ref = this._col().doc();
-    return { set: (obj) => ref.set(clean(obj)) };
-  },
+    child(sub) {
+      return createRef(this._path ? this._path + '/' + sub : String(sub));
+    },
 
-  on(event, cb, errCb) {
-    this._unsub = this._col().onSnapshot(snap => {
-      const val = {};
-      snap.forEach(d => { val[d.id] = d.data(); });
-      cb({ val: () => val });
-    }, err => { if (errCb) errCb(err); else console.error(err); });
-  },
+    push() {
+      const newId = firestore.collection(BASE_COL).doc().id;
+      return createRef(this._path ? this._path + '/' + newId : newId);
+    },
 
-  off() { if (this._unsub) { this._unsub(); this._unsub = null; } },
-};
+    set(obj) {
+      const parts = this._path.split('/');
+      if (parts.length === 1) {
+        return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj));
+      }
+      const [folder, id] = parts;
+      return firestore.collection(BASE_COL).doc(id).set({ ...clean(obj), __folder: folder });
+    },
+
+    update(obj) {
+      const parts = this._path.split('/');
+      if (parts.length === 1) {
+        return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj), { merge: true });
+      }
+      const [folder, id] = parts;
+      return firestore.collection(BASE_COL).doc(id).set({ ...clean(obj), __folder: folder }, { merge: true });
+    },
+
+    remove() {
+      const parts = this._path.split('/');
+      const id = parts.length === 1 ? parts[0] : parts[1];
+      return firestore.collection(BASE_COL).doc(id).delete();
+    },
+
+    on(event, cb, errCb) {
+      this._unsub = firestore.collection(BASE_COL).onSnapshot(snap => {
+        const result = {};
+        snap.forEach(d => {
+          const data = d.data();
+          if (data && data.__folder) {
+            if (!result[data.__folder]) result[data.__folder] = {};
+            const copy = { ...data };
+            delete copy.__folder;
+            result[data.__folder][d.id] = copy;
+          } else {
+            result[d.id] = data;
+          }
+        });
+        cb({ val: () => result });
+      }, err => { if (errCb) errCb(err); else console.error(err); });
+    },
+
+    off() {
+      if (this._unsub) { this._unsub(); this._unsub = null; }
+    }
+  };
+}
+
+const ROOT = createRef('');
 
 // Global State
 let currentUser = '';
-let currentUserEmail = ''; // ✅ SIMPAN EMAIL UNTUK RULES OWNERSHIP
-let currentUserRole = 'guru'; // ✅ SIMPAN ROLE UNTUK LOGIKA ADMIN/KEPALA
+let currentUserEmail = '';
+let currentUserRole = 'guru';
 let allData = [];
 let currentClass = '';
 let currentRekapClass = '';
@@ -114,7 +153,6 @@ window.renderActive = () => {
   }
 };
 
-// Tampilkan loading screen saat menunggu auth
 function showAuthLoading(msg) {
   let loading = document.getElementById('authLoadingScreen');
   if (!loading) {
@@ -144,28 +182,23 @@ function hideAuthLoading() {
   if (el) el.remove();
 }
 
-// Init App yang menunggu Firebase Auth
 window.initApp = () => {
   showAuthLoading('Mohon tunggu sebentar...');
 
-  // Gerbang utama autentikasi
   firebase.auth().onAuthStateChanged(user => {
-    // KASUS 1: User tidak login via Firebase Auth -> Redirect ke Login
     if (!user) {
       console.warn('⚠️ Tidak terautentikasi via Firebase Auth. Mengalihkan ke login...');
       hideAuthLoading();
       window.toast('⚠️ Sesi berakhir. Silakan login ulang.', 'err');
       setTimeout(() => {
-        window.location.href = '../index.html';
+        window.location.href = '../home.html';
       }, 1500);
       return;
     }
 
-    // KASUS 2: User terautentikasi -> Lanjut
     console.log('✅ Auth siap:', user.email);
     currentUserEmail = user.email;
 
-    // Ambil data tambahan dari localStorage (nama, role)
     let userData = null;
     try {
       const s = localStorage.getItem('sipelita_user');
@@ -180,14 +213,12 @@ window.initApp = () => {
       currentUserRole = 'guru';
     }
 
-    // Tampilkan nama user di header
     const userDisplay = document.getElementById('userDisplay');
     if (userDisplay) {
       const roleIcon = { 'admin': '👑', 'kepala': '👑', 'wakil': '⭐', 'guru': '👨‍🏫' }[currentUserRole] || '👨‍🏫';
       userDisplay.innerHTML = `<div style="font-weight:700;color:#334155;font-size:0.95rem;">${roleIcon} Hi, ${currentUser}</div>`;
     }
 
-    // Set tanggal hari ini
     const currentDateEl = document.getElementById('currentDate');
     if (currentDateEl) {
       currentDateEl.textContent = '📅 ' + new Date().toLocaleDateString('id-ID', { 
@@ -195,7 +226,6 @@ window.initApp = () => {
       });
     }
 
-    // Listener RTDB dengan retry otomatis
     let sudahRetry = false;
 
     const pasangListener = () => {
@@ -203,28 +233,24 @@ window.initApp = () => {
         const rawData = snap.val() || {};
         allData = [];
 
-        // 1. Ambil Data Kelas dari folder 'classes'
         if (rawData.classes) {
           Object.keys(rawData.classes).forEach(key => {
             allData.push({ __key: key, type: 'class', ...rawData.classes[key] });
           });
         }
 
-        // 2. Ambil Data Siswa dari folder 'students'
         if (rawData.students) {
           Object.keys(rawData.students).forEach(key => {
             allData.push({ __key: key, type: 'student', ...rawData.students[key] });
           });
         }
 
-        // 3. Ambil Data Absensi dari folder 'attendance_logs'
         if (rawData.attendance_logs) {
           Object.keys(rawData.attendance_logs).forEach(key => {
             allData.push({ __key: key, type: 'attendance_log', ...rawData.attendance_logs[key] });
           });
         }
 
-        // 4. Backward Compatibility: Tetap baca data lama jika ada yang belum masuk folder
         Object.keys(rawData).forEach(key => {
           if (!['classes', 'students', 'attendance_logs'].includes(key) && typeof rawData[key] === 'object' && rawData[key] !== null) {
             allData.push({ __key: key, ...rawData[key] });
@@ -260,14 +286,13 @@ window.initApp = () => {
         hideAuthLoading();
         if (err.code === 'PERMISSION_DENIED') {
           window.toast('❌ Akses ditolak. Sesi tidak valid. Login ulang.', 'err');
-          setTimeout(() => window.location.href = '../index.html', 2000);
+          setTimeout(() => window.location.href = '../home.html', 2000);
         } else {
           window.toast('Gagal terhubung ke database: ' + err.message, 'err');
         }
       });
     };
 
-    // Refresh token sebelum listener dipasang
     (async () => {
       try { 
         await user.getIdToken(true); 
