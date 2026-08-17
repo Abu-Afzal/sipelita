@@ -25,11 +25,7 @@
 })();
 // ═══════════════════════════════════════════════════════════
 
-// Modul fitur dihapus karena tidak lagi dipakai di admin-users
-import './load-users.js';
-import './tambah-user.js';
-import './edit-user.js';
-import './hapus-user.js';
-import './modal.js';
+// Hanya import 1 file utama (sudah berisi semua logika)
+import './users-manager.js';
 
 console.log('✅ Users module loaded & secured');
