@@ -58,12 +58,12 @@
 </head>
 <body>
 <div class="app-wrap">
-  <!-- HEADER -->
+    <!-- HEADER -->
   <div class="header">
-    <img src="https://iili.io/KSGDE9s.jpg" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+    <img src="../assets/images/sipelita-app.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
     <div class="header-info">
-      <div class="header-title">MAN BANTAENG</div>
-      <div class="header-subtitle">Sistem Penilaian & Absensi Digital</div>
+      <div class="header-title">SIPENA</div>
+      <div class="header-subtitle">Sistem Penilaian & Absensi</div>
     </div>
     <div class="header-user">
       <div class="user-name" id="userDisplay">–</div>
@@ -384,11 +384,6 @@ document.getElementById('btnCetakPDF').onclick = window.cetakAnalisisPDF;
     const konfirmasi = document.getElementById('inputKonfirmasiHapusRekap').value.trim();
     const kelasDipilih = document.getElementById('selectKelasHapus').value;
     
-    console.log(' DEBUG INFO:');
-    console.log('- Kelas dipilih:', kelasDipilih);
-    console.log('- Current user:', currentUser);
-    console.log('- Total data di allData:', allData ? allData.length : 0);
-    
     if (konfirmasi !== 'HAPUS') {
         window.toast('❌ Konfirmasi tidak sesuai. Ketik HAPUS.', 'err');
         return;
@@ -405,104 +400,42 @@ document.getElementById('btnCetakPDF').onclick = window.cetakAnalisisPDF;
     btn.innerHTML = '<span class="spinner"></span> Menghapus...';
     
     try {
-        let deletedCount = 0;
+        // Ambil semua data absensi dari attendance_logs
+        const snap = await ROOT.once('value');
+        const rawData = (snap && snap.val()) || {};
+        const logs = rawData.attendance_logs || {};
         
-        // Debug: Lihat sample data untuk memahami strukturnya
-        console.log(' Sample 3 data pertama dari allData:');
-        allData.slice(0, 3).forEach((d, i) => {
-            console.log(`  Data ${i + 1}:`, d);
-            console.log(`  Keys:`, Object.keys(d));
+        // Filter berdasarkan user & kelas
+        const targets = Object.keys(logs).filter(key => {
+            const log = logs[key];
+            const matchUser = log.user_name === currentUser;
+            const matchClass = (kelasDipilih === 'all') || (log.class_name === kelasDipilih);
+            return matchUser && matchClass;
         });
         
-        // Deteksi data absensi berdasarkan karakteristik:
-        // - Memiliki field yang berhubungan dengan kehadiran (hadir, izin, sakit, alpa, bolos)
-        // - ATAU memiliki field date/tanggal DAN students/class
-        // - TAPI BUKAN data siswa (tidak memiliki student_name sebagai field utama)
-        const semuaAbsensi = allData.filter(d => {
-            // Cek apakah ini data absensi berdasarkan field-field khas
-            const hasAttendanceFields = d.hadir !== undefined || 
-                                       d.izin !== undefined || 
-                                       d.sakit !== undefined || 
-                                       d.alpa !== undefined || 
-                                       d.bolos !== undefined;
-            
-            const hasDateAndClass = (d.date || d.tanggal) && 
-                                   (d.class_name || d.className || d.kelas);
-            
-            const hasStudentsArray = Array.isArray(d.students) && d.students.length > 0;
-            
-            // Pastikan bukan data siswa individual
-            const isNotStudentData = !d.student_name && d.type !== 'student';
-            
-            return (hasAttendanceFields || hasDateAndClass || hasStudentsArray) && isNotStudentData;
-        });
-        
-        console.log('📊 Total data absensi terdeteksi:', semuaAbsensi.length);
-        
-        if (semuaAbsensi.length > 0) {
-            console.log('📝 Sample data absensi:', semuaAbsensi[0]);
-            console.log('🔑 Keys:', Object.keys(semuaAbsensi[0]));
-            
-            // Cek kelas yang ada
-            const kelasTersedia = [...new Set(semuaAbsensi.map(d => 
-                d.class_name || d.className || d.kelas || 'unknown'
-            ))];
-            console.log('📚 Kelas yang tersedia:', kelasTersedia);
-        }
-        
-        // Filter berdasarkan kelas
-        let absensiData = [];
-        
-        if (kelasDipilih === 'all') {
-            absensiData = semuaAbsensi;
-        } else {
-            absensiData = semuaAbsensi.filter(d => {
-                const dataClass = d.class_name || d.className || d.kelas;
-                return dataClass === kelasDipilih;
-            });
-        }
-        
-        console.log('✅ Data yang akan dihapus:', absensiData.length);
-        
-        if (absensiData.length === 0) {
-            console.error('❌ Tidak ada data yang cocok dengan filter!');
-            window.toast('⚠️ Tidak ada data rekap untuk kelas "' + kelasDipilih + '". Lihat console.', 'warn');
+        if (targets.length === 0) {
+            window.toast('⚠️ Tidak ada data rekap untuk dihapus.', 'err');
             btn.disabled = false;
             btn.innerHTML = originalText;
             return;
         }
         
         // Konfirmasi
-        const confirmMsg = `Yakin ingin menghapus ${absensiData.length} data rekap absensi?\n\nData siswa TIDAK akan terhapus.`;
+        const confirmMsg = 'Yakin ingin menghapus ' + targets.length + ' data rekap absensi?\n\nData siswa TIDAK akan terhapus.';
         if (!confirm(confirmMsg)) {
             btn.disabled = false;
             btn.innerHTML = originalText;
             return;
         }
         
-                // ✅ Ambil snapshot penuh SEKALI, lalu cari path asli tiap record
-        const snap = await ROOT.once('value');
-        const findByKey = (node, key) => {
-            if (node.key === key) return node;
-            let found = null;
-            node.forEach(c => { if (!found) found = findByKey(c, key); });
-            return found;
-        };
-
-        for (const item of absensiData) {
-            const node = findByKey(snap, item.__key);
-            if (node) {
-                console.log('📍 Path asli:', node.ref.toString());
-                await node.ref.remove();
-                deletedCount++;
-                console.log('✅ BENAR-BENAR terhapus:', item.__key);
-            } else {
-                console.warn('⚠️ Node tidak ditemukan:', item.__key);
-            }
+        // Hapus satu per satu menggunakan adapter v3
+        for (let i = 0; i < targets.length; i++) {
+            await ROOT.child('attendance_logs').child(targets[i]).remove();
+            console.log('✅ Terhapus:', targets[i]);
         }
         
         window.closeModal('modalHapusRekap');
-        window.toast(`✅ Berhasil menghapus ${deletedCount} data rekap absensi! Data siswa tetap aman.`, 'success');
+        window.toast('✅ Berhasil menghapus ' + targets.length + ' data rekap absensi!', 'success');
         
         setTimeout(() => {
             if (typeof window.renderRekap === 'function') {
@@ -518,13 +451,6 @@ document.getElementById('btnCetakPDF').onclick = window.cetakAnalisisPDF;
     btn.disabled = false;
     btn.innerHTML = originalText;
 };
-    document.getElementById('btnCetakRekap').onclick = () => {
-      if (typeof window.cetakRekap === 'function') {
-          window.cetakRekap();
-      } else {
-          window.print();
-      }
-  };
   
   document.getElementById('btnExportRekap').onclick = window.exportRekap;
 
