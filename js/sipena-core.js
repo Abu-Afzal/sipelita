@@ -17,9 +17,8 @@ firebase.initializeApp(firebaseConfig);
 const firestore = firebase.firestore();
 
 // ══════════════════════════════════════════════
-// ADAPTER FIRESTORE v2 (Recursive)
-// Mendukung ROOT.child('x').push().set(...)
-// Semua data masuk ke collection 'sipena2' + penanda __folder
+// ADAPTER FIRESTORE v3 (FULL RTDB COMPATIBLE)
+// Meniru snapshot RTDB: val, forEach, child, exists, once, on, push
 // ══════════════════════════════════════════════
 function clean(obj) {
   const o = {};
@@ -29,83 +28,116 @@ function clean(obj) {
 
 const BASE_COL = 'sipena2';
 
+// ── Snapshot ala RTDB (recursive) ──
+function makeSnap(key, value) {
+  return {
+    key: key,
+    val: function () { return value === undefined ? null : value; },
+    exists: function () { return value !== null && value !== undefined; },
+    numChildren: function () {
+      return (value && typeof value === 'object') ? Object.keys(value).length : 0;
+    },
+    child: function (p) {
+      let v = value;
+      const parts = String(p).split('/');
+      for (let i = 0; i < parts.length; i++) {
+        v = (v && typeof v === 'object') ? v[parts[i]] : undefined;
+      }
+      return makeSnap(String(p), v);
+    },
+    forEach: function (cb) {
+      if (!value || typeof value !== 'object') return false;
+      const keys = Object.keys(value);
+      for (let i = 0; i < keys.length; i++) {
+        if (cb(makeSnap(keys[i], value[keys[i]])) === true) return true;
+      }
+      return false;
+    }
+  };
+}
+
+// ── Susun data Firestore jadi struktur bertingkat ala RTDB ──
+function buildResult(snap) {
+  const result = {};
+  snap.forEach(function (d) {
+    const data = d.data();
+    if (data && data.__folder) {
+      if (!result[data.__folder]) result[data.__folder] = {};
+      const copy = Object.assign({}, data);
+      delete copy.__folder;
+      result[data.__folder][d.id] = copy;
+    } else {
+      result[d.id] = data;
+    }
+  });
+  return result;
+}
+
+function normErr(err) {
+  const code = (err && err.code) || '';
+  if (code === 'permission-denied') return { code: 'PERMISSION_DENIED', message: err.message };
+  return err;
+}
+
+// ── Reference ala RTDB ──
 function createRef(path) {
   return {
     _path: path || '',
 
-    child(sub) {
+    get key() {
+      const parts = this._path.split('/');
+      return parts[parts.length - 1] || 'sipena2';
+    },
+
+    child: function (sub) {
       return createRef(this._path ? this._path + '/' + sub : String(sub));
     },
 
-    push() {
+    push: function () {
       const newId = firestore.collection(BASE_COL).doc().id;
       return createRef(this._path ? this._path + '/' + newId : newId);
     },
 
-    set(obj) {
+    set: function (obj) {
       const parts = this._path.split('/');
-      if (parts.length === 1) {
-        return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj));
-      }
-      const [folder, id] = parts;
-      return firestore.collection(BASE_COL).doc(id).set({ ...clean(obj), __folder: folder });
+      if (parts.length === 1) return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj));
+      return firestore.collection(BASE_COL).doc(parts[1])
+        .set(Object.assign({}, clean(obj), { __folder: parts[0] }));
     },
 
-    update(obj) {
+    update: function (obj) {
       const parts = this._path.split('/');
-      if (parts.length === 1) {
-        return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj), { merge: true });
-      }
-      const [folder, id] = parts;
-      return firestore.collection(BASE_COL).doc(id).set({ ...clean(obj), __folder: folder }, { merge: true });
+      if (parts.length === 1) return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj), { merge: true });
+      return firestore.collection(BASE_COL).doc(parts[1])
+        .set(Object.assign({}, clean(obj), { __folder: parts[0] }), { merge: true });
     },
 
-    remove() {
+    remove: function () {
       const parts = this._path.split('/');
-      const id = parts.length === 1 ? parts[0] : parts[1];
-      return firestore.collection(BASE_COL).doc(id).delete();
+      return firestore.collection(BASE_COL).doc(parts.length === 1 ? parts[0] : parts[1]).delete();
     },
 
-    on(event, cb, errCb) {
-      this._unsub = firestore.collection(BASE_COL).onSnapshot(snap => {
-        const result = {};
-        snap.forEach(d => {
-          const data = d.data();
-          if (data && data.__folder) {
-            if (!result[data.__folder]) result[data.__folder] = {};
-            const copy = { ...data };
-            delete copy.__folder;
-            result[data.__folder][d.id] = copy;
-          } else {
-            result[d.id] = data;
-          }
-        });
-        cb({ val: () => result });
-      }, err => { if (errCb) errCb(err); else console.error(err); });
+    on: function (event, cb, errCb) {
+      this._unsub = firestore.collection(BASE_COL).onSnapshot(function (snap) {
+        cb(makeSnap('', buildResult(snap)));
+      }, function (err) {
+        if (errCb) errCb(normErr(err)); else console.error(err);
+      });
     },
 
-        off() {
+    off: function () {
       if (this._unsub) { this._unsub(); this._unsub = null; }
     },
 
-    once(event, cb, errCb) {
-      return firestore.collection(BASE_COL).get().then(snap => {
-        const result = {};
-        snap.forEach(d => {
-          const data = d.data();
-          if (data && data.__folder) {
-            if (!result[data.__folder]) result[data.__folder] = {};
-            const copy = Object.assign({}, data);
-            delete copy.__folder;
-            result[data.__folder][d.id] = copy;
-          } else {
-            result[d.id] = data;
-          }
-        });
-        if (cb) cb({ val: () => result });
-        return { val: () => result };
-      }).catch(err => {
-        if (errCb) errCb(err); else console.error(err);
+    once: function (event, cb, errCb) {
+      return firestore.collection(BASE_COL).get().then(function (snap) {
+        const s = makeSnap('', buildResult(snap));
+        if (cb) cb(s);
+        return s;
+      }).catch(function (err) {
+        const e = normErr(err);
+        if (errCb) errCb(e); else console.error(e);
+        return null;
       });
     }
   };
