@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════
 // SIPENA: Rekap Kehadiran (Versi Netral & Anti-Rapuh)
+// ✅ CETAK LEWAT JENDELA BARU: hanya kop + tabel, tanpa konten layar
 // ══════════════════════════════════════════════
 
 window.renderRekap = () => {
@@ -97,7 +98,6 @@ window.generateRekap = () => {
     });
   });
 
-  // ✅ Tanpa blok statistik atas (tidak duplikat)
   let html = '<div class="tbl-wrap"><table id="rekapTable">' +
     '<thead><tr><th>No</th><th>Nama Siswa</th><th>H</th><th>I</th><th>S</th><th>A</th><th>B</th><th>Total</th><th>% Hadir</th><th>Rincian</th></tr></thead><tbody>';
 
@@ -121,7 +121,7 @@ window.generateRekap = () => {
 };
 
 // ══════════════════════════════════════════════
-// CETAK REKAP (NETRAL, tanpa identitas madrasah)
+// CETAK REKAP: JENDELA BARU (HANYA KOP + TABEL)
 // ══════════════════════════════════════════════
 window.cetakRekap = () => {
   const table = document.getElementById('rekapTable');
@@ -154,26 +154,35 @@ window.cetakRekap = () => {
     tahunText = new Date().getFullYear();
   }
 
-  const printHeader = document.createElement('div');
-  printHeader.className = 'print-header-rekap';
-  printHeader.style.cssText = 'text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:3px double #1e40af;';
-  printHeader.innerHTML =
-    '<h2 style="font-size:16pt;margin:0 0 5px 0;font-weight:bold;color:#1e40af;">REKAP KEHADIRAN SISWA</h2>' +
-    '<div style="display:flex;justify-content:center;gap:40px;margin-top:12px;font-size:11pt;">' +
+  const headerHtml =
+    '<div style="text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:3px double #1e40af;">' +
+    '<h2 style="font-size:16pt;margin:0 0 6px 0;font-weight:bold;color:#1e40af;">REKAP KEHADIRAN SISWA</h2>' +
+    '<div style="display:flex;justify-content:center;gap:40px;margin-top:10px;font-size:11pt;">' +
     '<div><strong>Kelas:</strong> ' + kelasName + '</div>' +
     '<div><strong>Periode:</strong> ' + periodeText + '</div>' +
     '<div><strong>Tahun:</strong> ' + tahunText + '</div>' +
-    '</div>';
+    '</div></div>';
 
-  const tblWrap = table.parentElement;
-  tblWrap.insertBefore(printHeader, table);
+  const w = window.open('', '_blank');
+  if (!w) {
+    window.toast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'err');
+    return;
+  }
 
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => {
-      if (printHeader.parentNode) printHeader.parentNode.removeChild(printHeader);
-    }, 500);
-  }, 300);
+  w.document.write(
+    '<html><head><title>Rekap Kehadiran</title><style>' +
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px;}' +
+    'table{width:100%;border-collapse:collapse;font-size:10pt;}' +
+    'th,td{border:1px solid #333;padding:6px 8px;text-align:left;}' +
+    'th{background:#f0f0f0;}' +
+    '</style></head><body>' +
+    headerHtml +
+    table.outerHTML +
+    '</body></html>'
+  );
+  w.document.close();
+  w.focus();
+  setTimeout(function () { w.print(); }, 400);
 };
 
 window.exportRekap = () => {
