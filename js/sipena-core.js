@@ -84,8 +84,29 @@ function createRef(path) {
       }, err => { if (errCb) errCb(err); else console.error(err); });
     },
 
-    off() {
+        off() {
       if (this._unsub) { this._unsub(); this._unsub = null; }
+    },
+
+    once(event, cb, errCb) {
+      return firestore.collection(BASE_COL).get().then(snap => {
+        const result = {};
+        snap.forEach(d => {
+          const data = d.data();
+          if (data && data.__folder) {
+            if (!result[data.__folder]) result[data.__folder] = {};
+            const copy = Object.assign({}, data);
+            delete copy.__folder;
+            result[data.__folder][d.id] = copy;
+          } else {
+            result[d.id] = data;
+          }
+        });
+        if (cb) cb({ val: () => result });
+        return { val: () => result };
+      }).catch(err => {
+        if (errCb) errCb(err); else console.error(err);
+      });
     }
   };
 }
