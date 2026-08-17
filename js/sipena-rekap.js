@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════
 // SIPENA: Rekap Kehadiran (Versi Final & Urut A-Z)
+// ✅ NETRAL: tanpa blok statistik ganda & tanpa identitas madrasah
 // ══════════════════════════════════════════════
 
 window.renderRekap = () => {
@@ -25,7 +26,7 @@ window.renderRekap = () => {
     filterHtml += `<div class="fg" style="margin:0;min-width:130px;"><label>Bulan</label><select id="rekapBulanSelect">${monthNames.map((m, i) => `<option value="${i + 1}" ${selectedMonth === i + 1 ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
     <div class="fg" style="margin:0;min-width:100px;"><label>Tahun</label><select id="rekapTahunSelect">${years.map(y => `<option value="${y}" ${selectedYear === y ? 'selected' : ''}>${y}</option>`).join('')}</select></div>`;
   } else if (currentRekapTab === 'semester') {
-    filterHtml += `<div class="fg" style="margin:0;min-width:160px;"><label>Semester</label><select id="rekapSemSelect"><option value="ganjil" ${selectedSemester === 'ganjil' ? 'selected' : ''}>Ganjil (Jul–Des)</option><option value="genap" ${selectedSemester === 'genap' ? 'selected' : ''}>Genap (Jan–Jun)</option></select></div>
+    filterHtml += `<div class="fg" style="margin:0;min-width:160px;"><label>Semester</label><select id="rekapSemSelect"><option value="ganjil" ${selectedSemester === 'ganjil' ? 'selected' : ''}>Ganjil (Jul–Des)</option><option value="genap" ${selectedSemester === 'genap' : ''}>Genap (Jan–Jun)</option></select></div>
     <div class="fg" style="margin:0;min-width:100px;"><label>Tahun</label><input type="number" id="rekapTahunSem" value="${selectedYear}" style="width:90px;"></div>`;
   }
   filterHtml += `<div class="fg" style="margin:0;align-self:flex-end;"><button class="btn btn-primary" id="btnTampilRekap"> Tampilkan</button></div></div>`;
@@ -49,7 +50,6 @@ window.renderRekap = () => {
 window.filterLog = (log) => {
   if (!log.date) return false;
   
-  // Ambil Tahun, Bulan, Tanggal langsung dari string "YYYY-MM-DD" (Aman Timezone)
   const parts = log.date.split('-');
   const y = parseInt(parts[0], 10);
   const m = parseInt(parts[1], 10);
@@ -88,20 +88,8 @@ window.generateRekap = () => {
     });
   });
 
-  const totalH = Object.values(stat).reduce((a, s) => a + s.H, 0);
-  const totalI = Object.values(stat).reduce((a, s) => a + s.I, 0);
-  const totalS = Object.values(stat).reduce((a, s) => a + s.S, 0);
-  const totalA = Object.values(stat).reduce((a, s) => a + s.A, 0);
-  const totalB = Object.values(stat).reduce((a, s) => a + s.B, 0);
-
-  let html = `<div class="stat-row">
-    <div class="stat-box sb-h"><h4>${totalH}</h4><p>Hadir</p></div>
-    <div class="stat-box sb-i"><h4>${totalI}</h4><p>Izin</p></div>
-    <div class="stat-box sb-s"><h4>${totalS}</h4><p>Sakit</p></div>
-    <div class="stat-box sb-a"><h4>${totalA}</h4><p>Alpa</p></div>
-    <div class="stat-box sb-b"><h4>${totalB}</h4><p>Bolos</p></div>
-  </div>
-  <div class="tbl-wrap"><table id="rekapTable">
+  // ✅ BLOK STATISTIK ATAS DIHAPUS (duplikat dengan total di tabel)
+  let html = `<div class="tbl-wrap"><table id="rekapTable">
     <thead><tr><th>No</th><th>Nama Siswa</th><th>H</th><th>I</th><th>S</th><th>A</th><th>B</th><th>Total</th><th>% Hadir</th><th>Rincian</th></tr></thead><tbody>`;
 
   // ✅ Mengurutkan ulang baris data berdasarkan nama siswa A-Z
@@ -125,7 +113,7 @@ window.generateRekap = () => {
 };
 
 // ══════════════════════════════════════════════
-// FITUR CETAK REKAP (PRINT CLEAN)
+// FITUR CETAK REKAP (PRINT CLEAN & NETRAL)
 // ══════════════════════════════════════════════
 window.cetakRekap = () => {
   const table = document.getElementById('rekapTable');
@@ -134,7 +122,6 @@ window.cetakRekap = () => {
     return; 
   }
 
-  // Ambil data filter saat ini untuk kop surat
   const kelasSelect = document.getElementById('rekapKelasSelect');
   const bulanSelect = document.getElementById('rekapBulanSelect');
   const tahunSelect = document.getElementById('rekapTahunSelect');
@@ -157,13 +144,12 @@ window.cetakRekap = () => {
     tahunText = tahunSemInput ? tahunSemInput.value : new Date().getFullYear();
     periodeText = `Semester ${semesterText} Tahun ${tahunText}`;
   } else {
-    // 📌 DISESUAIKAN: Menggunakan window.getLocalDate()
     periodeText = `Harian (Tanggal ${window.getLocalDate()})`;
     semesterText = '-';
     tahunText = new Date().getFullYear();
   }
 
-  // Buat elemen header print
+  // ✅ KOP CETAK NETRAL (tanpa identitas madrasah)
   const printHeader = document.createElement('div');
   printHeader.className = 'print-header-rekap';
   printHeader.style.cssText = `
@@ -174,19 +160,16 @@ window.cetakRekap = () => {
   `;
   printHeader.innerHTML = `
     <h2 style="font-size:16pt; margin:0 0 5px 0; font-weight:bold; color:#1e40af;">REKAP KEHADIRAN SISWA</h2>
-    <h3 style="font-size:14pt; margin:0 0 10px 0; font-weight:normal; color:#334155;">MAN BANTAENG</h3>
-    <div style="display: flex; justify-content: center; gap: 40px; margin-top: 15px; font-size: 11pt;">
+    <div style="display: flex; justify-content: center; gap: 40px; margin-top: 12px; font-size: 11pt;">
       <div><strong>Kelas:</strong> ${kelasName}</div>
-      <div><strong>Semester:</strong> ${currentRekapTab === 'semester' ? semesterText : (currentRekapTab === 'bulanan' ? '-' : 'Harian')}</div>
+      <div><strong>Periode:</strong> ${periodeText}</div>
       <div><strong>Tahun:</strong> ${tahunText}</div>
     </div>
   `;
 
-  // Sisipkan sebelum tabel
   const tblWrap = table.parentElement;
   tblWrap.insertBefore(printHeader, table);
 
-  // Panggil window.print()
   setTimeout(() => {
     window.print();
     setTimeout(() => {
@@ -204,12 +187,10 @@ window.exportRekap = () => {
     return; 
   }
 
-  // Konversi tabel HTML ke Excel menggunakan SheetJS
   const ws = XLSX.utils.table_to_sheet(table);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Rekap Kehadiran');
 
-  // Simpan sebagai file Excel
   XLSX.writeFile(wb, `Rekap_${currentRekapClass}_${currentRekapTab}.xlsx`);
   window.toast('✅ File Excel diekspor!', 'success');
 };
