@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="../css/style.css">
 <link rel="stylesheet" href="../css/sipena.css">
 
-<!-- Style Khusus Print -->
+<!-- Style Khusus Print untuk memastikan Header Rekap muncul -->
 <style>
 @media print {
     .print-header-rekap {
@@ -53,17 +53,17 @@
     }
 }
 </style>
-<!-- Library SheetJS untuk Export Excel -->
+<!-- Library SheetJS untuk Export Excel Format Tabel yang Rapi -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app-wrap">
-  <!-- HEADER -->
+  <!-- HEADER (NETRAL) -->
   <div class="header">
-    <img src="https://iili.io/KSGDE9s.jpg" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+    <img src="../assets/images/sipelita-app.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
     <div class="header-info">
-      <div class="header-title">MAN BANTAENG</div>
-      <div class="header-subtitle">Sistem Penilaian & Absensi Digital</div>
+      <div class="header-title">SIPENA</div>
+      <div class="header-subtitle">Sistem Penilaian & Absensi</div>
     </div>
     <div class="header-user">
       <div class="user-name" id="userDisplay">–</div>
@@ -90,11 +90,14 @@
     </div>
   </div>
 
-  <div id="presensi" class="content-area">
+    <div id="presensi" class="content-area">
     <div class="content-card">
       <div class="section-title">✅ Presensi Siswa</div>
+      
+      <!-- BIARKAN ID INI TETAP ADA (disembunyikan) agar script lama tidak error -->
       <div id="currentDate" style="display: none;"></div>
       
+      <!-- INPUT TANGGAL BARU -->
       <div class="date-bar" style="display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;">
           <span style="font-weight: 600; color: #854d0e;">📅 Tanggal Presensi:</span>
           <input type="date" id="inputTanggalPresensi" 
@@ -102,7 +105,7 @@
       </div>
 
       <div class="action-bar">
-        <button class="btn btn-success" id="btnHadirSemua">✅ Hadir Semua</button>
+          <button class="btn btn-success" id="btnHadirSemua">✅ Hadir Semua</button>
         <button class="btn btn-primary" id="btnKirimAbsen">💾 Simpan Absensi</button>
       </div>
       <div class="tabs" id="classTabs"></div>
@@ -128,10 +131,11 @@
     </div>
   </div>
 
-  <div id="penilaian" class="content-area">
+    <div id="penilaian" class="content-area">
     <div class="content-card">
       <div class="section-title">📝 Penilaian</div>
       
+      <!-- Informasi Kelas, Tahun Ajaran & Semester -->
       <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding:14px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
         <div class="fg" style="margin:0;flex:1;min-width:150px;">
           <label>Kelas</label>
@@ -151,6 +155,7 @@
         <div id="infoSiswaKelas" style="font-size:0.82rem;color:#64748b;align-self:flex-end;padding-bottom:2px;"></div>
       </div>
 
+      <!-- Identitas Penilaian (TP/KD) -->
       <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:16px;margin-bottom:18px;">
         <div style="font-weight:700;color:#92400e;margin-bottom:12px;">📋 Identitas Penilaian (TP/KD)</div>
         <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
@@ -169,7 +174,7 @@
         </div>
       </div>
 
-      <div class="tabs" id="nilaiTabs">
+                  <div class="tabs" id="nilaiTabs">
         <button class="tab active" data-ntab="pengetahuan">📘 Pengetahuan</button>
         <button class="tab" data-ntab="sikap">💚 Sikap</button>
         <button class="tab" data-ntab="keterampilan">🛠️ Keterampilan</button>
@@ -207,41 +212,48 @@
   </div>
 </div>
 
-<!-- Modal Kelola Siswa (Updated Input Foto ke File) -->
 <div class="modal" id="modalKelolaSwiswa">
   <div class="modal-box wide">
     <div class="modal-title" id="titleKelolaSwiswa">👥 Kelola Siswa</div>
     <div style="background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:18px;">
       <div style="font-weight:700;color:#334155;margin-bottom:12px;">➕ Tambah Siswa Baru (Manual)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg" style="margin:0;"><label>Nama Siswa *</label><input type="text" id="inputNamaSiswa" placeholder="Nama lengkap"></div>
         <div class="fg" style="margin:0;">
-          <label>Nama Siswa *</label>
-          <input type="text" id="inputNamaSiswa" placeholder="Nama lengkap">
-        </div>
-        <div class="fg" style="margin:0;">
-          <label>Upload Foto (opsional)</label>
-          <input type="file" id="inputFotoSiswa" accept="image/*" style="width:100%;padding:6px;border:1.5px solid #e2e8f0;border-radius:6px;background:white;font-size:0.85rem;">
+          <label>Foto Siswa (opsional)</label>
+          <input type="hidden" id="inputFotoSiswa">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img id="previewFotoSiswa" src="" alt="" style="width:46px;height:46px;border-radius:50%;object-fit:cover;background:#e2e8f0;display:none;">
+            <label for="fileFotoSiswa" style="cursor:pointer;background:#eef2ff;color:#4f46e5;font-weight:600;font-size:.82rem;padding:9px 14px;border-radius:8px;border:1.5px dashed #a5b4fc;">📷 Pilih Foto</label>
+            <input type="file" id="fileFotoSiswa" accept="image/*" style="display:none;">
+            <span id="labelFotoSiswa" style="font-size:.75rem;color:#94a3b8;">Otomatis dikompres</span>
+          </div>
         </div>
       </div>
-      <div style="margin-top:12px;"><button class="btn btn-success" id="btnSimpanSiswa">+ Tambah Siswa</button></div>
+      <div style="margin-top:10px;"><button class="btn btn-success" id="btnSimpanSiswa">+ Tambah Siswa</button></div>
     </div>
-    <div class="tbl-wrap"><table><thead><tr><th width="60">Foto</th><th>Nama Siswa</th><th width="120">Aksi</th></tr></thead><tbody id="siswaTableBody"></tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th width="50">Foto</th><th>Nama Siswa</th><th width="120">Aksi</th></tr></thead><tbody id="siswaTableBody"></tbody></table></div>
     <div class="modal-foot"><button class="btn btn-secondary" id="btnTutupKelolaSwiswa">Tutup</button></div>
   </div>
 </div>
 
-<!-- Modal Edit Siswa (Updated Input Foto ke File) -->
+    <!-- Modal Edit Siswa -->
 <div class="modal" id="modalEditSiswa">
   <div class="modal-box">
-    <div class="modal-title">✏️ Edit Data Siswa</div>
+    <div class="modal-title">️ Edit Data Siswa</div>
     <input type="hidden" id="editSiswaKey">
     <div class="fg">
       <label>Nama Siswa *</label>
       <input type="text" id="editNamaSiswa" placeholder="Nama lengkap">
     </div>
     <div class="fg">
-      <label>Ganti Foto (opsional)</label>
-      <input type="file" id="editFotoSiswa" accept="image/*" style="width:100%;padding:6px;border:1.5px solid #e2e8f0;border-radius:6px;background:white;font-size:0.85rem;">
+      <label>Foto Siswa (opsional)</label>
+      <input type="hidden" id="editFotoSiswa">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img id="previewFotoEdit" src="" alt="" style="width:46px;height:46px;border-radius:50%;object-fit:cover;background:#e2e8f0;opacity:.4;">
+        <label for="fileFotoEdit" style="cursor:pointer;background:#eef2ff;color:#4f46e5;font-weight:600;font-size:.82rem;padding:9px 14px;border-radius:8px;border:1.5px dashed #a5b4fc;">📷 Ganti Foto</label>
+        <input type="file" id="fileFotoEdit" accept="image/*" style="display:none;">
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" id="btnBatalEdit">Batal</button>
@@ -290,6 +302,7 @@
   </div>
 </div>
 
+<!-- Modal Hapus Rekap -->
 <div class="modal" id="modalHapusRekap">
     <div class="modal-box">
         <div class="modal-title" style="color:#ef4444;">🗑️ Hapus Data Rekap Absensi</div>
@@ -313,6 +326,7 @@
     </div>
 </div>
 
+            <!-- Modal Preview PDF -->
 <div class="modal" id="modalPreviewPDF">
   <div class="modal-box" style="max-width:900px;width:95%;">
     <div class="modal-title">👁️ Preview Analisis Soal Asesmen</div>
@@ -323,7 +337,6 @@
     </div>
   </div>
 </div>
-
 <!-- SCRIPT MODULAR -->
 <script src="../js/sipena-core.js"></script>
 <script src="../js/sipena-kelas.js"></script>
@@ -332,116 +345,32 @@
 <script src="../js/sipena-nilai.js"></script>
 <script src="../js/sipena-dokumen.js"></script>
 
-<!-- HELPER KOMPRESI FOTO SISWA -->
-<script>
-window.compressImage = function(file, maxWidth = 300, maxHeight = 300, quality = 0.75) {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith('image/')) {
-      resolve(null);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // Kompres ke Base64 JPEG
-        const base64Str = canvas.toDataURL('image/jpeg', quality);
-        resolve(base64Str);
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-</script>
-
 <!-- EVENT BINDING -->
 <script>
-function bindEvents() {
-  document.getElementById('btnDashboard').onclick = () => window.location.href = '../index.html';
-  document.querySelectorAll('.menu-card[data-target]').forEach(c => { 
-    c.onclick = () => window.showContent(c.dataset.target); 
-  });
+function bindEvents(){
+  document.getElementById('btnDashboard').onclick = () => window.location.href='../index.html';
+  document.querySelectorAll('.menu-card[data-target]').forEach(c => { c.onclick = () => window.showContent(c.dataset.target); });
+  document.getElementById('menuHapus').onclick = () => { document.getElementById('inputKonfirmasiHapus').value=''; window.openModal('modalHapus'); };
   
-  document.getElementById('menuHapus').onclick = () => { 
-    document.getElementById('inputKonfirmasiHapus').value = ''; 
-    window.openModal('modalHapus'); 
-  };
-  
-  document.getElementById('btnTambahKelas').onclick = () => { 
-    document.getElementById('inputNamaKelas').value = ''; 
-    window.openModal('modalTambahKelas'); 
-    setTimeout(() => document.getElementById('inputNamaKelas').focus(), 200); 
-  };
+  document.getElementById('btnTambahKelas').onclick = () => { document.getElementById('inputNamaKelas').value=''; window.openModal('modalTambahKelas'); setTimeout(()=>document.getElementById('inputNamaKelas').focus(),200); };
   document.getElementById('btnBatalTambahKelas').onclick = () => window.closeModal('modalTambahKelas');
   document.getElementById('btnSimpanKelas').onclick = window.simpanKelas;
-  document.getElementById('inputNamaKelas').addEventListener('keydown', e => { 
-    if (e.key === 'Enter') window.simpanKelas(); 
-  });
+  document.getElementById('inputNamaKelas').addEventListener('keydown', e=>{ if(e.key==='Enter') window.simpanKelas(); });
 
   document.getElementById('btnTutupKelolaSwiswa').onclick = () => window.closeModal('modalKelolaSwiswa');
-  
-  // Custom Handler Simpan Siswa dengan Kompresi Foto
-  document.getElementById('btnSimpanSiswa').onclick = async () => {
-    const fileInput = document.getElementById('inputFotoSiswa');
-    const file = fileInput.files[0];
-    
-    if (file) {
-      try {
-        window.toast('⏳ Memproses foto...', 'info');
-        const compressedBase64 = await window.compressImage(file);
-        window.currentPhotoBase64 = compressedBase64;
-      } catch (e) {
-        console.warn('Gagal kompresi foto:', e);
-      }
-    } else {
-      window.currentPhotoBase64 = '';
-    }
-
-    if (typeof window.simpanSiswa === 'function') {
-      await window.simpanSiswa();
-      fileInput.value = ''; // Reset input file
-      window.currentPhotoBase64 = null;
-    }
-  };
-
-  document.getElementById('inputNamaSiswa').addEventListener('keydown', e => { 
-    if (e.key === 'Enter') document.getElementById('btnSimpanSiswa').click(); 
-  });
+  document.getElementById('btnSimpanSiswa').onclick = window.simpanSiswa;
+  document.getElementById('inputNamaSiswa').addEventListener('keydown', e=>{ if(e.key==='Enter') window.simpanSiswa(); });
 
   document.getElementById('btnHadirSemua').onclick = window.hadirSemua;
   document.getElementById('btnKirimAbsen').onclick = window.simpanAbsensi;
 
-  document.querySelectorAll('#rekapTabs .tab').forEach(t => { 
-    t.onclick = () => { 
-      document.querySelectorAll('#rekapTabs .tab').forEach(x => x.classList.remove('active')); 
-      t.classList.add('active'); 
-      currentRekapTab = t.dataset.rtab; 
-      window.renderRekap(); 
-    }; 
+  document.querySelectorAll('#rekapTabs .tab').forEach(t=>{ 
+      t.onclick = () => { 
+          document.querySelectorAll('#rekapTabs .tab').forEach(x=>x.classList.remove('active')); 
+          t.classList.add('active'); 
+          currentRekapTab = t.dataset.rtab; 
+          window.renderRekap(); 
+      }; 
   });
 
   document.getElementById('btnExportAnalisisSoal').onclick = window.exportAnalisisAsesmenExcel;
@@ -449,184 +378,156 @@ function bindEvents() {
   document.getElementById('btnTutupPreview').onclick = () => window.closeModal('modalPreviewPDF');
   document.getElementById('btnCetakPDF').onclick = window.cetakAnalisisPDF;
     
-  // Modal Hapus Rekap
+  // Event untuk tombol Hapus Rekap
   document.getElementById('btnHapusRekap').onclick = () => {
-    const selectKelas = document.getElementById('selectKelasHapus');
-    selectKelas.innerHTML = '<option value="all">-- SEMUA KELAS --</option>';
-    
-    if (typeof allData !== 'undefined' && Array.isArray(allData)) {
-      const kelasList = allData.filter(d => d && d.type === 'class' && d.user_name === currentUser);
+      const selectKelas = document.getElementById('selectKelasHapus');
+      selectKelas.innerHTML = '<option value="all">-- SEMUA KELAS --</option>';
+      
+      const kelasList = allData.filter(d => d.type === 'class' && d.user_name === currentUser);
       kelasList.forEach(k => {
-        selectKelas.innerHTML += `<option value="${k.class_name}">${k.class_name}</option>`;
+          selectKelas.innerHTML += `<option value="${k.class_name}">${k.class_name}</option>`;
       });
-    }
-    
-    document.getElementById('inputKonfirmasiHapusRekap').value = '';
-    window.openModal('modalHapusRekap');
+      
+      document.getElementById('inputKonfirmasiHapusRekap').value = '';
+      window.openModal('modalHapusRekap');
   };
 
   document.getElementById('btnBatalHapusRekap').onclick = () => window.closeModal('modalHapusRekap');
 
-  // Hapus Rekap
   document.getElementById('btnKonfirmasiHapusRekap').onclick = async () => {
     const konfirmasi = document.getElementById('inputKonfirmasiHapusRekap').value.trim();
     const kelasDipilih = document.getElementById('selectKelasHapus').value;
     
     if (konfirmasi !== 'HAPUS') {
-      window.toast('❌ Konfirmasi tidak sesuai. Ketik HAPUS.', 'err');
-      return;
+        window.toast('❌ Konfirmasi tidak sesuai. Ketik HAPUS.', 'err');
+        return;
     }
     
     if (typeof ROOT === 'undefined' || typeof allData === 'undefined' || !allData) {
-      window.toast('❌ Error: Data belum siap. Refresh halaman.', 'err');
-      return;
+        window.toast('❌ Error: Data belum siap. Refresh halaman.', 'err');
+        return;
     }
     
     const btn = document.getElementById('btnKonfirmasiHapusRekap');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '⏳ Menghapus...';
+    btn.innerHTML = '<span class="spinner"></span> Menghapus...';
     
     try {
-      const semuaAbsensi = allData.filter(d => {
-        if (!d) return false;
-        const isAbsensiType = d.type === 'attendance_log' || d.type === 'absensi' || d.type === 'presensi';
-        const hasAttendanceFields = d.hadir !== undefined || d.izin !== undefined || d.sakit !== undefined || d.alpa !== undefined || d.bolos !== undefined;
-        const hasDateAndClass = (d.date || d.tanggal) && (d.class_name || d.className || d.kelas);
-        const hasStudentsArray = Array.isArray(d.students) && d.students.length > 0;
-        const isNotStudentData = !d.student_name && d.type !== 'student';
-        return (isAbsensiType || hasAttendanceFields || hasDateAndClass || hasStudentsArray) && isNotStudentData;
-      });
-      
-      let absensiData = (kelasDipilih === 'all') 
-        ? semuaAbsensi 
-        : semuaAbsensi.filter(d => (d.class_name || d.className || d.kelas) === kelasDipilih);
-      
-      if (absensiData.length === 0) {
-        window.toast('⚠️ Tidak ada data rekap untuk kelas "' + kelasDipilih + '".', 'warn');
-        return;
-      }
-      
-      if (!confirm(`Yakin ingin menghapus ${absensiData.length} data rekap absensi?\n\nData siswa TIDAK akan terhapus.`)) {
-        return;
-      }
-
-      let deletedCount = 0;
-      let snap = null;
-      try {
-        if (typeof ROOT.once === 'function') snap = await ROOT.once('value');
-      } catch (e) {}
-
-      const findByKey = (node, key) => {
-        if (!node || !key) return null;
-        if (node.key === key) return node;
-        let found = null;
-        if (typeof node.forEach === 'function') {
-          node.forEach(c => { if (!found) found = findByKey(c, key); });
+        // Ambil semua data absensi dari attendance_logs
+        const snap = await ROOT.once('value');
+        const rawData = (snap && snap.val()) || {};
+        const logs = rawData.attendance_logs || {};
+        
+        // Filter berdasarkan user & kelas
+        const targets = Object.keys(logs).filter(key => {
+            const log = logs[key];
+            const matchUser = log.user_name === currentUser;
+            const matchClass = (kelasDipilih === 'all') || (log.class_name === kelasDipilih);
+            return matchUser && matchClass;
+        });
+        
+        if (targets.length === 0) {
+            window.toast('⚠️ Tidak ada data rekap untuk dihapus.', 'err');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            return;
         }
-        return found;
-      };
-
-      for (const item of absensiData) {
-        const itemKey = item.__key || item.key || item.id;
-        if (!itemKey) continue;
-
-        let isDeleted = false;
-        if (snap) {
-          const node = findByKey(snap, itemKey);
-          if (node && node.ref && typeof node.ref.remove === 'function') {
-            await node.ref.remove();
-            isDeleted = true;
-          }
+        
+        // Konfirmasi
+        const confirmMsg = 'Yakin ingin menghapus ' + targets.length + ' data rekap absensi?\n\nData siswa TIDAK akan terhapus.';
+        if (!confirm(confirmMsg)) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            return;
         }
-
-        if (!isDeleted && typeof ROOT.child === 'function') {
-          try {
-            if (item._path) await ROOT.child(item._path).remove();
-            else if (item.type) await ROOT.child(item.type).child(String(itemKey)).remove();
-            else await ROOT.child(String(itemKey)).remove();
-            isDeleted = true;
-          } catch (errFallback) {}
+        
+        // Hapus satu per satu menggunakan adapter v3
+        for (let i = 0; i < targets.length; i++) {
+            await ROOT.child('attendance_logs').child(targets[i]).remove();
+            console.log('✅ Terhapus:', targets[i]);
         }
-
-        if (isDeleted) deletedCount++;
-      }
-      
-      window.closeModal('modalHapusRekap');
-      window.toast(`✅ Berhasil menghapus ${deletedCount} data rekap absensi!`, 'ok');
-      
-      setTimeout(() => {
-        if (typeof window.renderRekap === 'function') window.renderRekap();
-      }, 400);
-      
+        
+        window.closeModal('modalHapusRekap');
+        window.toast('✅ Berhasil menghapus ' + targets.length + ' data rekap absensi!', 'success');
+        
+        setTimeout(() => {
+            if (typeof window.renderRekap === 'function') {
+                window.renderRekap();
+            }
+        }, 500);
+        
     } catch (error) {
-      console.error('❌ Error di hapus rekap:', error);
-      window.toast('❌ Gagal menghapus: ' + (error.message || 'Terjadi kesalahan'), 'err');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
+        console.error('❌ Error di hapus rekap:', error);
+        window.toast('❌ Gagal menghapus: ' + error.message, 'err');
     }
+    
+    btn.disabled = false;
+    btn.innerHTML = originalText;
   };
 
   document.getElementById('btnCetakRekap').onclick = () => {
-    if (typeof window.cetakRekap === 'function') window.cetakRekap();
-    else window.print();
+      if (typeof window.cetakRekap === 'function') {
+          window.cetakRekap();
+      } else {
+          window.print();
+      }
   };
   
   document.getElementById('btnExportRekap').onclick = window.exportRekap;
 
-  document.querySelectorAll('#nilaiTabs .tab').forEach(t => { 
-    t.onclick = () => { 
-      document.querySelectorAll('#nilaiTabs .tab').forEach(x => x.classList.remove('active')); 
-      t.classList.add('active'); 
-      currentNilaiTab = t.dataset.ntab; 
-      window.renderPenilaian(); 
-    }; 
+  document.querySelectorAll('#nilaiTabs .tab').forEach(t=>{ 
+      t.onclick = () => { 
+          document.querySelectorAll('#nilaiTabs .tab').forEach(x=>x.classList.remove('active')); 
+          t.classList.add('active'); 
+          currentNilaiTab = t.dataset.ntab; 
+          window.renderPenilaian(); 
+      }; 
   });
   
   document.getElementById('nilaiKelasSelect').onchange = e => { 
-    currentNilaiClass = e.target.value; 
-    window.renderPenilaian(); 
+      currentNilaiClass = e.target.value; 
+      window.renderPenilaian(); 
   };
   
   document.getElementById('btnSimpanNilai').onclick = window.simpanNilai;
   document.getElementById('btnExportNilai').onclick = window.eksporNilai;
     
   document.getElementById('btnAddKolom').onclick = () => { 
-    document.getElementById('inputJenisKolom').value = 'PH'; 
-    document.getElementById('modalKolom').dataset.target = 'pengetahuan'; 
-    window.openModal('modalKolom'); 
+      document.getElementById('inputJenisKolom').value = 'PH'; 
+      document.getElementById('modalKolom').dataset.target = 'pengetahuan'; 
+      window.openModal('modalKolom'); 
   };
   
   document.getElementById('btnAddKolomKet').onclick = () => { 
-    document.getElementById('inputJenisKolom').value = 'Praktik'; 
-    document.getElementById('modalKolom').dataset.target = 'keterampilan'; 
-    window.openModal('modalKolom'); 
+      document.getElementById('inputJenisKolom').value = 'Praktik'; 
+      document.getElementById('modalKolom').dataset.target = 'keterampilan'; 
+      window.openModal('modalKolom'); 
   };
   
   document.getElementById('btnBatalKolom').onclick = () => window.closeModal('modalKolom');
   document.getElementById('btnSimpanKolom').onclick = async () => { 
-    try { 
-      await window.tambahKolom(document.getElementById('modalKolom').dataset.target); 
-    } catch(e) { 
-      window.toast('❌ Gagal: ' + e.message, 'err'); 
-    } 
+      try { 
+          await window.tambahKolom(document.getElementById('modalKolom').dataset.target); 
+      } catch(e) { 
+          window.toast('❌ Gagal: ' + e.message, 'err'); 
+      } 
   };
 
   document.getElementById('btnTambahDokumen').onclick = () => { 
-    selectedFileData = null; 
-    document.getElementById('inputNamaDokumen').value = ''; 
-    document.getElementById('inputFileDokumen').value = ''; 
-    document.getElementById('filePreview').style.display = 'none'; 
-    document.getElementById('dropZone').style.display = 'block'; 
-    document.getElementById('uploadProgress').style.display = 'none'; 
-    window.openModal('modalDokumen'); 
-    setTimeout(() => window.bindDropZone(), 100); 
+      selectedFileData = null; 
+      document.getElementById('inputNamaDokumen').value = ''; 
+      document.getElementById('inputFileDokumen').value = ''; 
+      document.getElementById('filePreview').style.display = 'none'; 
+      document.getElementById('dropZone').style.display = 'block'; 
+      document.getElementById('uploadProgress').style.display = 'none'; 
+      window.openModal('modalDokumen'); 
+      setTimeout(()=>window.bindDropZone(), 100); 
   };
   
   document.getElementById('btnBatalDokumen').onclick = () => { 
-    selectedFileData = null; 
-    window.closeModal('modalDokumen'); 
+      selectedFileData = null; 
+      window.closeModal('modalDokumen'); 
   };
   
   document.getElementById('btnSimpanDokumen').onclick = window.simpanDokumen;
@@ -634,14 +535,86 @@ function bindEvents() {
   document.getElementById('btnBatalHapus').onclick = () => window.closeModal('modalHapus');
   document.getElementById('btnKonfirmasiHapus').onclick = window.hapusSemuaData;
 
-  document.querySelectorAll('.modal').forEach(m => { 
-    m.addEventListener('click', e => { 
-      if (e.target === m) m.classList.remove('active'); 
-    }); 
+  document.querySelectorAll('.modal').forEach(m=>{ 
+      m.addEventListener('click', e=>{ 
+          if(e.target === m) m.classList.remove('active'); 
+      }); 
   });
 }
 
+// Jalankan bindEvents saat DOM siap
 document.addEventListener('DOMContentLoaded', bindEvents);
+</script>
+
+<!-- ══ UPLOAD FOTO SISWA DARI PERANGKAT (auto-compress) ══ -->
+<script>
+function prosesFotoSiswa(file, onDone) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { window.toast('File harus berupa gambar.', 'err'); return; }
+  if (file.size > 5 * 1024 * 1024) { window.toast('Ukuran foto maks 5 MB.', 'err'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const MAX = 300;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      onDone(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = function () { window.toast('Gagal membaca gambar.', 'err'); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Pilih foto saat TAMBAH siswa
+  const fileAdd = document.getElementById('fileFotoSiswa');
+  if (fileAdd) fileAdd.addEventListener('change', function () {
+    prosesFotoSiswa(fileAdd.files[0], function (dataUrl) {
+      document.getElementById('inputFotoSiswa').value = dataUrl;
+      const p = document.getElementById('previewFotoSiswa');
+      p.src = dataUrl; p.style.display = 'block';
+      const lbl = document.getElementById('labelFotoSiswa');
+      if (lbl) lbl.textContent = '✅ Foto siap disimpan';
+    });
+  });
+
+  // Pilih foto saat EDIT siswa
+  const fileEdit = document.getElementById('fileFotoEdit');
+  if (fileEdit) fileEdit.addEventListener('change', function () {
+    prosesFotoSiswa(fileEdit.files[0], function (dataUrl) {
+      document.getElementById('editFotoSiswa').value = dataUrl;
+      const p = document.getElementById('previewFotoEdit');
+      p.src = dataUrl; p.style.opacity = '1';
+    });
+  });
+
+  // Sinkronkan preview setiap kali modal dibuka
+  const obs = new MutationObserver(function () {
+    const mEdit = document.getElementById('modalEditSiswa');
+    if (mEdit && mEdit.classList.contains('active')) {
+      const val = document.getElementById('editFotoSiswa').value || '';
+      const p = document.getElementById('previewFotoEdit');
+      if (p) { p.src = val || ''; p.style.opacity = val ? '1' : '.4'; }
+    }
+    const mAdd = document.getElementById('modalKelolaSwiswa');
+    if (mAdd && mAdd.classList.contains('active')) {
+      const val = document.getElementById('inputFotoSiswa').value || '';
+      const p = document.getElementById('previewFotoSiswa');
+      if (p) { if (val) { p.src = val; p.style.display = 'block'; } else { p.style.display = 'none'; } }
+    }
+  });
+  ['modalEditSiswa', 'modalKelolaSwiswa'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+});
 </script>
 </body>
 </html>
