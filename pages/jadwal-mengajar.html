@@ -634,18 +634,27 @@ function sameOwner(d){
 }
 
 function initFirebaseListeners(){
-  // ✅ Baca kelas dari folder 'classes' (data SIPENA)
-  ROOT_SIPENA.child('classes').on('value', function (snap) {
-    var classesObj = snap.val() || {};
-    var semua = Object.keys(classesObj).map(function (k) {
-      return Object.assign({ __key: k }, classesObj[k]);
+  // ✅ 1. Baca data Kelas langsung dari Root Firestore SIPENA
+  ROOT_SIPENA.on('value', function (snap) {
+    var allDataObj = snap.val() || {};
+    
+    // Ubah object hasil Firestore adapter menjadi Array
+    var semua = Object.keys(allDataObj).map(function (k) {
+      return Object.assign({ __key: k }, allDataObj[k]);
     });
-    daftarKelas = semua.filter(sameOwner);
-    console.log('📚 Kelas di database:', semua.length, '| cocok milik Anda:', daftarKelas.length);
+
+    // Filter data yang bertipe 'class' dan sesuai pemilik akun yang login
+    daftarKelas = semua.filter(function (d) {
+      return d.type === 'class' && sameOwner(d);
+    });
+
+    console.log('📚 Firestore SIPENA - Total item:', semua.length, '| Kelas milik Anda:', daftarKelas.length);
+    
+    // Update dropdown pilihan kelas di modal tambah/edit jadwal
     populateKelasSelect();
   });
 
-  // ✅ Baca jadwal mengajar
+  // ✅ 2. Baca Jadwal Mengajar dari Firestore
   ROOT_JADWAL.on('value', function (snap) {
     var allData = toArr(snap.val());
     daftarJadwal = allData.filter(sameOwner);
