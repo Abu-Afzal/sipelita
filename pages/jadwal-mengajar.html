@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jadwal Mengajar & Alarm - SIPELITA</title>
-<link rel="icon" href="../assets/images/manbtg-app.png">
+<link rel="icon" href="../assets/images/sipelita-app.png">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -121,7 +121,7 @@ tr.row-recent td{background:#f1f5f9 !important;}
 <div class="app-wrap">
 
   <div class="header">
-    <img src="../assets/images/manbtg-app.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+    <img src="../assets/images/sipelita-app.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
     <div class="header-info">
       <div class="header-title">SIPELITA</div>
       <div class="header-subtitle">Jadwal Mengajar & Alarm Pengingat</div>
@@ -958,8 +958,8 @@ async function kirimNotifikasi(title, body, tag){
       if (reg && typeof reg.showNotification === 'function') {
         await reg.showNotification(title, {
           body: body,
-          icon: '/assets/images/manbtg-app.png',
-          badge: '/assets/images/manbtg-app.png',
+          icon: '/assets/images/sipelita-app.png',
+          badge: '/assets/images/sipelita-app.png',
           tag: tag || 'sipelita-alarm',
           requireInteraction: true,
           vibrate: [300, 150, 300]
