@@ -617,23 +617,38 @@ function initDragDrop(){
 }
 
 // ✅ INIT LISTENERS - DIPERBAIKI (fungsi ditutup dengan benar)
+// ✅ Pencocokan pemilik TOLERAN:
+// - user_email / user_name = email login  → cocok
+// - user_name = nama login               → cocok
+// - user_name sama tanpa gelar, beda kapital → tetap cocok
+function sameOwner(d){
+  var email = (window.currentUserEmail || '').toLowerCase();
+  var nama  = (currentUser || '').toLowerCase();
+  var un    = String(d.user_name || '').toLowerCase();
+  var ue    = String(d.user_email || '').toLowerCase();
+  if (email && (ue === email || un === email)) return true;
+  if (nama && un === nama) return true;
+  var strip = function (s) { return s.split(',')[0].trim(); };
+  if (nama && un && strip(un) === strip(nama)) return true;
+  return false;
+}
+
 function initFirebaseListeners(){
+  // ✅ Baca kelas dari folder 'classes' (data SIPENA)
   ROOT_SIPENA.child('classes').on('value', function (snap) {
     var classesObj = snap.val() || {};
-    var email = window.currentUserEmail;
-    daftarKelas = Object.keys(classesObj).map(function (k) { return Object.assign({ __key: k }, classesObj[k]); })
-      .filter(function (d) {
-        return d.user_email === email || d.user_name === email || d.user_name === currentUser;
-      });
+    var semua = Object.keys(classesObj).map(function (k) {
+      return Object.assign({ __key: k }, classesObj[k]);
+    });
+    daftarKelas = semua.filter(sameOwner);
+    console.log('📚 Kelas di database:', semua.length, '| cocok milik Anda:', daftarKelas.length);
     populateKelasSelect();
   });
-  
+
+  // ✅ Baca jadwal mengajar
   ROOT_JADWAL.on('value', function (snap) {
     var allData = toArr(snap.val());
-    var emailJ = window.currentUserEmail;
-    daftarJadwal = allData.filter(function (d) {
-      return d.user_email === emailJ || d.user_name === emailJ || d.user_name === currentUser;
-    });
+    daftarJadwal = allData.filter(sameOwner);
     renderJadwalTable();
     updatePeriodeInfo();
   });
