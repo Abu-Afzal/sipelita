@@ -1,8 +1,8 @@
 {
-  "name": "SIPELITA - MAN Bantaeng",
+  "name": "SIPELITA - SIPELITA",
   "short_name": "SIPELITA",
   "version": "2.0.5",
-  "description": "Sistem Pengelolaan Edukasi & Layanan Terpadu MAN Bantaeng",
+  "description": "Sistem Pengelolaan Edukasi & Layanan Terpadu SIPELITA",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fef9f3",

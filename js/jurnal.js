@@ -767,7 +767,7 @@ async function generatePDF(isPreview) {
     pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:20px 30px;width:1050px;background:white;box-sizing:border-box;">' +
         '<h2 style="text-align:center;font-size:16px;margin-bottom:5px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
         '<h3 style="text-align:center;font-size:13px;margin-bottom:3px;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
-        '<h3 style="text-align:center;font-size:13px;margin-bottom:20px;font-weight:bold;">MAN BANTAENG</h3>' +
+        '<h3 style="text-align:center;font-size:13px;margin-bottom:20px;font-weight:bold;">SIPELITA</h3>' +
         
         '<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; font-size: 11px;">' +
             '<div style="width: 45%;">' +

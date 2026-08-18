@@ -630,7 +630,7 @@ window.cetakRekapNilaiPDF = () => {
   const mapelUtama = filter.mapel || tpInfo[0].mapel || '-';
 
   const userData = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
-  const namaSekolah = userData.nama_sekolah || 'MAN BANTAENG';
+  const namaSekolah = userData.nama_sekolah || 'SIPELITA';
   const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG';
   const alamatSekolah = userData.alamat_sekolah || 'Jl. Parela Dampang Kel. Gantarangkeke Kab. Bantaeng';
   const namaKepala = userData.nama_kepala || 'MUHAMMAD ARIF PITHER, S.Ag.,MM.,M.Pd';
@@ -1432,7 +1432,7 @@ window.previewAnalisisPDF = () => {
     .sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
 
   const userData = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
-  const namaSekolah = userData.nama_sekolah || 'MAN BANTAENG';
+  const namaSekolah = userData.nama_sekolah || 'SIPELITA';
   const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG';
   const alamatSekolah = userData.alamat_sekolah || 'Jl. Parela Dampang Kel. Gantarangkeke Kab. Bantaeng';
   const namaKepala = userData.nama_kepala || 'MUHAMMAD ARIF PITHER, S.Ag.,MM.,M.Pd';
