@@ -42,7 +42,6 @@
     .dokumen-tanggal { font-size: 0.8rem; }
     .dokumen-ukuran { color: #64748b; font-size: 0.8rem; }
     .badge-visibilitas { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 600; }
-    .badge-public { background: #dcfce7; color: #166534; }
     .badge-private { background: #fef3c7; color: #92400e; }
     .btn-menu { background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: #64748b; padding: 4px 8px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
     .btn-menu:hover { background: #e2e8f0; color: #1e293b; }
@@ -66,6 +65,7 @@
     .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; }
     .error.show { display: block; }
     .info-text { font-size: 0.8rem; color: #555; background: #fff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #1e88e5; }
+    .privasi-notice { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
   </style>
 </head>
 <body>
@@ -80,7 +80,9 @@
     <div class="content">
       <div class="upload-box" id="uploadBox">
         <h3>📤 Upload Dokumen Baru</h3>
-        <div class="info-text">💡 <b>Tips:</b> Gunakan <b>Pribadi</b> untuk arsip pribadi, <b>Publik</b> untuk dibagikan ke seluruh warga madrasah.</div>
+        <div class="privasi-notice">
+          🔒 <span>Semua dokumen yang Anda upload bersifat <b>PRIBADI</b> — hanya Anda dan Administrator yang dapat melihatnya.</span>
+        </div>
         <div id="uploadTargetInfo" class="info-text" style="border-left-color:#2e7d32;">📂 Tujuan upload: <b>Beranda (Root)</b></div>
 
         <div class="form-row">
@@ -94,12 +96,6 @@
             <option value="Lainnya">Lainnya</option>
           </select>
           <input type="text" id="namaDokumen" placeholder="Nama Dokumen (contoh: SK Kepala Sekolah 2026)" required>
-        </div>
-
-        <div class="radio-group" style="margin-top: 10px;">
-          <span style="width: 100%; font-size: 0.9rem; margin-bottom: 5px; color: #1565c0;">👁️ Visibilitas Dokumen:</span>
-          <label class="radio-option"><input type="radio" name="visibilitas" value="public" checked> 🌐 Publik</label>
-          <label class="radio-option"><input type="radio" name="visibilitas" value="private"> 🔒 Pribadi</label>
         </div>
 
         <div class="radio-group" style="margin-top: 15px; border-top: 1px dashed #bbdefb; padding-top: 15px;">
@@ -121,7 +117,7 @@
       </div>
 
       <h3 style="margin-bottom: 15px; color: #1e88e5; display: flex; align-items: center; gap: 10px;">
-        📚 Daftar Dokumen
+        📚 Daftar Dokumen Saya
         <span id="userInfoBadge" style="font-size: 0.8rem; background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-weight: 500;"></span>
       </h3>
 
@@ -145,9 +141,8 @@
     <div style="background:white; border-radius:12px; padding:24px; width:90%; max-width:420px;">
       <h3 style="margin:0 0 15px; color:#1e88e5;">📁 Buat Folder Baru</h3>
       <input type="text" id="namaFolder" placeholder="Nama folder (contoh: SK Tahun 2026)">
-      <div class="radio-group" style="margin-top:12px;">
-        <label class="radio-option"><input type="radio" name="folderVis" value="public" checked> 🌐 Publik</label>
-        <label class="radio-option"><input type="radio" name="folderVis" value="private"> 🔒 Pribadi</label>
+      <div class="privasi-notice" style="margin-top:12px;">
+        🔒 <span>Folder ini bersifat <b>PRIBADI</b> (hanya Anda yang bisa melihat).</span>
       </div>
       <div style="display:flex; gap:10px; margin-top:15px;">
         <button id="btnBatalFolder" style="flex:1; padding:10px; border:1px solid #ccc; background:#f5f5f5; border-radius:8px; cursor:pointer;">Batal</button>
@@ -180,12 +175,12 @@
     } catch (err) { console.error("Gagal mendeteksi session:", err); }
 
     const userInfoBadge = document.getElementById('userInfoBadge');
-    if (userInfoBadge) userInfoBadge.textContent = currentRole === 'admin' ? '👑 Mode Admin' : `👤 Masuk sebagai: ${currentUserName}`;
+    if (userInfoBadge) userInfoBadge.textContent = currentRole === 'admin' ? '👑 Mode Admin (semua dokumen)' : `👤 ${currentUserName}`;
 
     // STATE NAVIGASI FOLDER
     let currentFolderId = '';
-    let folderTrail = [];      // [{id, nama}]
-    let allDokumen = [];       // cache semua dokumen
+    let folderTrail = [];
+    let allDokumen = [];
 
     const btnUpload = document.getElementById('btnUpload');
     const fileInput = document.getElementById('fileInput');
@@ -271,24 +266,29 @@
     // MODAL FOLDER
     document.getElementById('btnBuatFolder').onclick = () => {
       namaFolderInput.value = '';
-      document.querySelector('input[name="folderVis"][value="public"]').checked = true;
       modalFolder.style.display = 'flex';
     };
     document.getElementById('btnBatalFolder').onclick = () => modalFolder.style.display = 'none';
     document.getElementById('btnSimpanFolder').onclick = async () => {
       const nama = namaFolderInput.value.trim();
       if (!nama) { alert('⚠️ Nama folder wajib diisi!'); return; }
-      const vis = document.querySelector('input[name="folderVis"]:checked').value;
       try {
         await addDoc(collection(db, 'dokumen'), {
           type: 'folder', nama, parentId: currentFolderId, kategori: '-',
-          visibility: vis, uploader: currentUserName, size: 0, url: '',
+          visibility: 'private', // ✅ Selalu private
+          uploader: currentUserName, size: 0, url: '',
           uploadedAt: new Date().toISOString()
         });
         modalFolder.style.display = 'none';
         loadDokumen();
       } catch (e) { alert('❌ ' + e.message); }
     };
+
+    // ✅ FILTER: Hanya dokumen milik user login (atau admin lihat semua)
+    function isVisibleToUser(d) {
+      if (currentRole === 'admin') return true;
+      return (d.uploader === currentUserName);
+    }
 
     // LOAD DOKUMEN (FOLDER + FILE)
     async function loadDokumen() {
@@ -304,12 +304,8 @@
         querySnapshot.forEach(s => docs.push({ id: s.id, ...s.data() }));
         allDokumen = docs;
 
-        const visible = docs.filter(d => {
-          if (currentRole === 'admin') return true;
-          if (d.visibility === 'public') return true;
-          if (d.visibility === 'private' && d.uploader === currentUserName) return true;
-          return false;
-        });
+        // ✅ Filter hanya milik user ini (admin lihat semua)
+        const visible = docs.filter(isVisibleToUser);
 
         const items = visible.filter(d => (d.parentId || '') === currentFolderId);
         const folders = items.filter(d => (d.type || 'file') === 'folder').sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
@@ -323,12 +319,8 @@
         // RENDER FOLDER
         folders.forEach(d => {
           const date = new Date(d.uploadedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-          const isPrivate = d.visibility === 'private';
-          const badgeHTML = isPrivate ? `<span class="badge-visibilitas badge-private">🔒 Pribadi</span>` : `<span class="badge-visibilitas badge-public">🌐 Publik</span>`;
-          const canDelete = (currentRole === 'admin') || (d.uploader === currentUserName);
           const childCount = countChildren(d.id);
           const namaEsc = (d.nama||'Folder').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-          const hapusBtn = canDelete ? `<div class="menu-divider"></div><button class="menu-danger" onclick="event.stopPropagation(); hapusFolder('${d.id}','${namaEsc}'); closeAllDropdowns();">🗑️ Hapus</button>` : '';
 
           const item = document.createElement('div');
           item.className = 'dokumen-item folder';
@@ -339,13 +331,14 @@
             <div class="dokumen-kategori">Folder</div>
             <div class="dokumen-tanggal">${date}</div>
             <div class="dokumen-ukuran">${childCount} berkas</div>
-            <div>${badgeHTML}</div>
+            <div><span class="badge-visibilitas badge-private">🔒 Pribadi</span></div>
             <div class="dropdown-wrapper" onclick="event.stopPropagation()">
               <button class="btn-menu" onclick="toggleDropdown(event,'dd-${d.id}')">⋮</button>
               <div class="dropdown-menu" id="dd-${d.id}">
                 <button onclick="openFolder('${d.id}','${namaEsc}'); closeAllDropdowns();">📂 Buka</button>
                 <button onclick="renameFolder('${d.id}','${namaEsc}'); closeAllDropdowns();">✏️ Rename</button>
-                ${hapusBtn}
+                <div class="menu-divider"></div>
+                <button class="menu-danger" onclick="event.stopPropagation(); hapusFolder('${d.id}','${namaEsc}'); closeAllDropdowns();">🗑️ Hapus</button>
               </div>
             </div>`;
           container.appendChild(item);
@@ -356,36 +349,32 @@
           const sizeText = d.size === 0 ? "Link Drive" : `${(d.size/(1024*1024)).toFixed(2)} MB`;
           const date = new Date(d.uploadedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
           const isLink = d.url && d.url.startsWith('http');
-          const isPrivate = d.visibility === 'private';
           const fileIcon = isLink ? '🔗' : (
             d.fileName?.match(/\.(pdf)$/i) ? '📄' :
             d.fileName?.match(/\.(doc|docx)$/i) ? '📝' :
             d.fileName?.match(/\.(xls|xlsx)$/i) ? '📊' :
             d.fileName?.match(/\.(jpg|jpeg|png)$/i) ? '🖼️' : '📁');
-          const badgeHTML = isPrivate ? `<span class="badge-visibilitas badge-private">🔒 Pribadi</span>` : `<span class="badge-visibilitas badge-public">🌐 Publik</span>`;
-          const canDelete = (currentRole === 'admin') || (d.uploader === currentUserName);
-          const uploaderInfo = (d.uploader && d.uploader !== currentUserName) ? ` • 👤 ${d.uploader}` : '';
           const namaEsc = (d.nama||'Dokumen').replace(/'/g,"\\'").replace(/"/g,'&quot;');
           const urlEsc = (d.url||'').replace(/'/g,"\\'");
           const downloadAttr = isLink ? `target="_blank"` : `download="${(d.fileName||'dokumen').replace(/"/g,'&quot;')}"`;
           const btnText = isLink ? '🔗 Buka Link' : '⬇️ Unduh';
-          const hapusBtn = canDelete ? `<button class="menu-danger" onclick="hapusDokumen('${d.id}','${namaEsc}', this); closeAllDropdowns();">🗑️ Hapus</button>` : '';
 
           const item = document.createElement('div');
           item.className = 'dokumen-item';
           item.innerHTML = `
             <div class="dokumen-icon">${fileIcon}</div>
-            <div class="dokumen-info"><h4>${d.nama}</h4><div class="doc-subtitle">${d.kategori}${uploaderInfo}</div></div>
+            <div class="dokumen-info"><h4>${d.nama}</h4><div class="doc-subtitle">${d.kategori}</div></div>
             <div class="dokumen-kategori">${d.kategori}</div>
             <div class="dokumen-tanggal">${date}</div>
             <div class="dokumen-ukuran">${sizeText}</div>
-            <div>${badgeHTML}</div>
+            <div><span class="badge-visibilitas badge-private">🔒 Pribadi</span></div>
             <div class="dropdown-wrapper">
               <button class="btn-menu" onclick="toggleDropdown(event,'dd-${d.id}')">⋮</button>
               <div class="dropdown-menu" id="dd-${d.id}">
                 <button onclick="lihatDokumen('${urlEsc}'); closeAllDropdowns();">🖥️ Lihat</button>
                 <a href="${d.url}" ${downloadAttr} onclick="closeAllDropdowns();">${btnText}</a>
-                ${hapusBtn ? '<div class="menu-divider"></div>' + hapusBtn : ''}
+                <div class="menu-divider"></div>
+                <button class="menu-danger" onclick="hapusDokumen('${d.id}','${namaEsc}', this); closeAllDropdowns();">🗑️ Hapus</button>
               </div>
             </div>`;
           container.appendChild(item);
@@ -399,13 +388,12 @@
 
     const convertToBase64 = (file) => new Promise((res, rej) => { const r = new FileReader(); r.readAsDataURL(file); r.onload = () => res(r.result); r.onerror = e => rej(e); });
 
-    // UPLOAD (dengan parentId folder aktif)
+    // UPLOAD (selalu PRIVATE)
     btnUpload.addEventListener('click', async () => {
       errorMsg.classList.remove('show');
       if (!kategori.value || !namaDokumen.value) { errorMsg.textContent = '⚠️ Lengkapi Kategori dan Nama Dokumen!'; errorMsg.classList.add('show'); return; }
       let finalUrl='', finalFileName='', finalSize=0;
       const mode = document.querySelector('input[name="sumberDokumen"]:checked').value;
-      const visibilitas = document.querySelector('input[name="visibilitas"]:checked').value;
       if (mode === 'lokal') {
         if (!fileInput.files[0]) { errorMsg.textContent = '⚠️ Pilih file dulu!'; errorMsg.classList.add('show'); return; }
         const file = fileInput.files[0];
@@ -419,12 +407,13 @@
       try {
         await addDoc(collection(db, "dokumen"), {
           type: 'file', nama: namaDokumen.value.trim(), kategori: kategori.value, url: finalUrl,
-          fileName: finalFileName, size: finalSize, visibility: visibilitas, uploader: currentUserName,
+          fileName: finalFileName, size: finalSize,
+          visibility: 'private', // ✅ Selalu private
+          uploader: currentUserName,
           parentId: currentFolderId, uploadedAt: new Date().toISOString()
         });
-        alert('✅ Dokumen Berhasil Tersimpan');
+        alert('✅ Dokumen berhasil disimpan (Pribadi)');
         fileInput.value=''; linkInput.value=''; namaDokumen.value=''; kategori.value='';
-        document.querySelector('input[name="visibilitas"][value="public"]').checked = true;
         loadDokumen();
       } catch (err) { errorMsg.textContent = '❌ Gagal menyimpan: ' + err.message; errorMsg.classList.add('show'); }
       finally { btnUpload.disabled = false; btnUpload.textContent = 'Simpan Dokumen'; }
