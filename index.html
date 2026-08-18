@@ -2,39 +2,26 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#10b981">
+    <title>Portal Administrasi Sekolah Terintegrasi</title>
+
+    <!-- Manifest & Icons -->
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Administrasi Sekolah Terintegrasi</title>
     <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
+
+    <!-- CSS Stylesheets -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/chat-widget.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDK (Compat Version) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script> <!-- ✅ BARU -->
-    <script src="js/alarm-engine.js"></script>
-    <script src="js/fs-adapter.js"></script>
-    <script src="js/alarm-global.js"></script>
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman Dashboard) -->
-    <script>
-      (function() {
-        // Cek apakah ada data session user di localStorage
-        // (Sesuaikan 'sipelita_user' dengan key localStorage yang Anda gunakan)
-        const sessionData = localStorage.getItem('sipelita_user');
-        
-        if (!sessionData) {
-          // Jika TIDAK ADA data login, redirect INSTAN ke halaman login
-          // window.location.replace() mencegah user menekan tombol "Back" di browser
-          window.location.replace('home.html'); 
-        }
-      })();
-    </script>
-    
+
+    <!-- 🔒 ANTI-FLASH GUARD: Sembunyikan body sebelum status login terverifikasi -->
+    <style id="auth-guard-style">
+        body { display: none !important; }
+    </style>
+
+    <!-- Style Khusus Modal & Pengaturan Akun -->
     <style>
         /* Style Khusus untuk Tombol Pengaturan Akun */
         .btn-settings-akun {
@@ -76,7 +63,7 @@
             font-size: 0.9rem;
             outline: none;
             transition: border-color 0.2s;
-            box-sizing: border-box; /* Penting agar padding tidak merusak lebar */
+            box-sizing: border-box;
         }
         .form-group-modal input:focus {
             border-color: #10b981;
@@ -88,6 +75,40 @@
             margin-top: 4px;
         }
     </style>
+
+    <!-- ⚡ CEK SESI INSTAN (Mencegah Flash Tanpa Menunggu SDK Load) -->
+    <script>
+        (function() {
+            const sessionData = localStorage.getItem('sipelita_user');
+            if (!sessionData) {
+                window.location.replace('home.html'); 
+            }
+        })();
+    </script>
+
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <!-- Firestore Adapter -->
+    <script src="js/fs-adapter.js"></script>
+
+    <!-- 🔒 CEK KEAMANAN AUTHENTICATION FIREBASE -->
+    <script>
+        firebase.auth().onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.replace('home.html');
+            } else {
+                const guard = document.getElementById('auth-guard-style');
+                if (guard) guard.remove();
+            }
+        });
+    </script>
+
+    <!-- Script Logika & Alarm Aplikasi -->
+    <script src="js/alarm-engine.js"></script>
+    <script src="js/alarm-global.js"></script>
 </head>
 <body>
     <div class="container">
@@ -204,7 +225,7 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
-        const auth = firebase.auth(); // Inisialisasi Auth
+        const auth = firebase.auth();
 
         async function refreshUserDataFromFirestore(userEmail) {
             try {
@@ -219,12 +240,10 @@
             }
         }
 
-        // Fungsi helper untuk menampilkan toast/notifikasi sederhana
         function showToast(message, type = 'success') {
-            alert(message); // Bisa diganti dengan library toast Anda jika ada (misal: window.toast)
+            alert(message);
         }
 
-        // Fungsi helper untuk membuka/menutup modal
         window.closeModal = (modalId) => {
             document.getElementById(modalId).style.display = 'none';
         };
@@ -294,17 +313,14 @@
                         btnSimpanPengaturan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
                         try {
-                            // 1. Re-authenticate user (Keamanan Firebase)
                             const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, passLama);
                             await currentUser.reauthenticateWithCredential(credential);
 
-                            // 2. Update password
                             await currentUser.updatePassword(passBaru);
 
                             showToast('✅ Password berhasil diubah! Anda akan dialihkan ke halaman login.');
                             closeModal('modalPengaturanAkun');
 
-                            // 3. Logout otomatis setelah 2 detik
                             setTimeout(async () => {
                                 localStorage.removeItem('sipelita_user');
                                 sessionStorage.removeItem('sipelita_user');
@@ -328,7 +344,7 @@
                 }
                 
                 // ══════════════════════════════════════════════
-                // LOGIKA LOGOUT (DIPERBAIKI & DIOPTIMALKAN UNTUK MOBILE)
+                // LOGIKA LOGOUT
                 // ══════════════════════════════════════════════
                 const btnLogout = document.getElementById('btnLogout');
                 if (btnLogout) {
@@ -336,16 +352,13 @@
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        // 1. Tampilkan loading state agar user tahu sedang diproses
                         btnLogout.disabled = true;
                         btnLogout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Keluar...';
                         
                         try {
-                            // 2. Clear SEMUA storage (lebih aman dan bersih)
                             localStorage.clear();
                             sessionStorage.clear();
                             
-                            // 3. Clear Firebase Auth jika tersedia
                             if (typeof AuthService !== 'undefined' && AuthService.logout) {
                                 try {
                                     await AuthService.logout();
@@ -354,25 +367,20 @@
                                 }
                             }
                             
-                            // 4. Force redirect menggunakan replace (mencegah tombol Back browser)
                             window.location.replace('home.html');
                             
                         } catch (error) {
                             console.error('Logout error:', error);
-                            // Fallback redirect jika terjadi error tak terduga
                             window.location.replace('home.html');
                         }
                     });
                 }
-                // ══════════════════════════════════════════════
 
             } else {
-                // Jika tidak ada data user di AuthService, lempar ke login
                 window.location.replace('home.html');
             }
 
         } catch (error) {
-            // Fallback jika terjadi error kritis di seluruh script module
             console.error('❌ Error di script module:', error);
             const btnLogoutFallback = document.getElementById('btnLogout');
             if (btnLogoutFallback) {
@@ -383,6 +391,5 @@
             }
         }
     </script>
-    <script type="module" src="js/chat-widget.js"></script>
 </body>
 </html>
