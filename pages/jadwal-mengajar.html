@@ -9,9 +9,13 @@
 <title>Jadwal Mengajar & Alarm - SIPELITA</title>
 <link rel="icon" href="../assets/images/sipelita-app.png">
 
+<!-- Firebase CDN (Firestore version - no RTDB) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<!-- ✅ FIRESTORE ADAPTER (Firestore berperilaku seperti RTDB) -->
+<script src="../js/fs-adapter.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -168,7 +172,7 @@ tr.row-recent td{background:#f1f5f9 !important;}
       </div>
       <div class="alarm-row" style="background:#dbeafe;border-radius:8px;padding:10px;margin-top:8px;">
         <div style="flex:1;">
-          <div style="font-weight:700;color:#1e40af;margin-bottom:3px;"> Status Voice</div>
+          <div style="font-weight:700;color:#1e40af;margin-bottom:3px;">🔊 Status Voice</div>
           <div class="alarm-desc" id="voiceStatusText">Memeriksa voice...</div>
         </div>
       </div>
@@ -209,7 +213,7 @@ tr.row-recent td{background:#f1f5f9 !important;}
         <div class="jadwal-info" id="jadwalInfoText"></div>
       </div>
       <div style="margin-top:12px;padding:12px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
-        <strong style="color:#92400e;"> Tips:</strong>
+        <strong style="color:#92400e;">💡 Tips:</strong>
         <span style="color:#78350f;font-size:0.9rem;">Gunakan jadwal ini sebagai referensi saat membuat alarm. Klik gambar untuk memperbesar.</span>
       </div>
     </div>
@@ -319,29 +323,24 @@ tr.row-recent td{background:#f1f5f9 !important;}
 const firebaseConfig = {
   apiKey:"AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
   authDomain:"sipelita-guru.firebaseapp.com",
-  databaseURL:"https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId:"sipelita-guru",
   storageBucket:"sipelita-guru.firebasestorage.app",
   messagingSenderId:"595996765157",
   appId:"1:595996765157:web:88f7f03489e1d1248e9d0c"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
 const auth = firebase.auth();
 
-// ✅ Pulihkan sesi login yang tersimpan (dari login.html)
-//    sehingga rules "auth != null" lolos di halaman ini
+// ✅ Pulihkan sesi login
 auth.onAuthStateChanged(user => {
-  if (user) {
-    console.log('✅ Firebase Auth aktif di halaman jadwal:', user.email);
-  } else {
-    console.warn('⚠️ Sesi Firebase Auth tidak ditemukan. Silakan login ulang via Dashboard.');
-  }
+  if (user) console.log('✅ Firebase Auth aktif:', user.email);
+  else console.warn('⚠️ Sesi Auth tidak ditemukan.');
 });
 
-const ROOT_JADWAL = db.ref("jadwal_alarm");
-const ROOT_SIPENA = db.ref("sipena2");
-const ROOT_JADWAL_GAMBAR = db.ref("jadwal_gambar");
+// ✅ Semua ref sekarang pakai FS adapter (Firestore)
+const ROOT_JADWAL = ROOT.child('jadwal_mengajar');
+const ROOT_SIPENA = ROOT;  // Akses ke sipena2
+const ROOT_JADWAL_GAMBAR = ROOT.child('jadwal_gambar');
 
 let currentUser = '';
 let daftarKelas = [];
@@ -349,9 +348,6 @@ let daftarJadwal = [];
 let alarmEnabled = false;
 let _alarmAudioCtx = null;
 let cachedIndonesianVoice = null;
-
-// ✅ SIMPEL TRACKING: Gunakan Set untuk track alarm yang sudah bunyi
-// Format: "YYYY-MM-DD_HH:MM" (tanggal + jam)
 let alarmFiredToday = new Set();
 
 function toArr(val){ return val ? Object.keys(val).map(k=>({__key:k,...val[k]})) : []; }
@@ -500,13 +496,12 @@ function initVoiceSystem(){
       null;
     
     if(cachedIndonesianVoice){
-      console.log(`✅ Voice Indonesia: ${cachedIndonesianVoice.name} (${cachedIndonesianVoice.lang})`);
+      console.log(`✅ Voice Indonesia: ${cachedIndonesianVoice.name}`);
       if(voiceStatus){
         voiceStatus.innerHTML = `✅ <strong>Voice Indonesia aktif:</strong> ${cachedIndonesianVoice.name}`;
         voiceStatus.style.color = '#166534';
       }
     } else {
-      console.warn('⚠️ Voice Indonesia tidak ditemukan!');
       if(voiceStatus){
         voiceStatus.innerHTML = `⚠️ <strong>Voice Indonesia tidak tersedia.</strong> <a href="#" onclick="showVoiceHelp();return false;" style="color:#1e40af;">Cara install</a>`;
         voiceStatus.style.color = '#92400e';
@@ -526,13 +521,17 @@ window.showVoiceHelp = function(){
   alert('🔊 Cara Install Voice Indonesia di Chrome:\n\n📱 WINDOWS 10/11:\n1. Settings → Time & Language → Language\n2. Add a language → Bahasa Indonesia\n3. Download language pack\n4. Restart Chrome\n\n💻 MAC:\n1. System Preferences → Accessibility → Spoken Content\n2. System voice → Manage Voices\n3. Download "Damayanti"\n4. Restart Chrome');
 };
 
+function sanitizeEmail(email){
+  if (!email) return 'guest';
+  return String(email).replace(/[.#$\[\]]/g, '_');
+}
+
 function loadJadwalGambar(){
   const uploadArea = document.getElementById('uploadJadwalArea');
   const previewArea = document.getElementById('previewJadwalArea');
   const previewImg = document.getElementById('jadwalPreviewImg');
   const infoText = document.getElementById('jadwalInfoText');
 
-  // ✅ PERBAIKAN: Gunakan email yang di-sanitize sebagai kunci
   ROOT_JADWAL_GAMBAR.child(sanitizeEmail(window.currentUserEmail)).on('value', snap => {
     const data = snap.val();
     if(data && data.base64){
@@ -540,19 +539,14 @@ function loadJadwalGambar(){
       uploadArea.style.display = 'none';
       previewArea.style.display = 'block';
       const uploadedAt = data.uploadedAt ? new Date(data.uploadedAt).toLocaleString('id-ID') : '-';
-            const sizeKB = data.sizeKB ? parseFloat(data.sizeKB).toFixed(1) : '?';
+      const sizeKB = data.sizeKB ? parseFloat(data.sizeKB).toFixed(1) : '?';
       const originalKB = data.originalSizeKB ? parseFloat(data.originalSizeKB).toFixed(1) : '?';
-      infoText.innerHTML = `📤 Diupload: <strong>${uploadedAt}</strong> • 📦 Ukuran: <strong>${sizeKB} KB</strong> (asli ${originalKB} KB, sudah dikompres)`;
+      infoText.innerHTML = `📤 Diupload: <strong>${uploadedAt}</strong> • 📦 Ukuran: <strong>${sizeKB} KB</strong> (asli ${originalKB} KB)`;
     } else {
       uploadArea.style.display = 'block';
       previewArea.style.display = 'none';
     }
   });
-}
-
-function sanitizeEmail(email){
-  if (!email) return 'guest';  // ✅ Fallback aman jika email kosong
-  return String(email).replace(/[.#$\[\]]/g, '_');
 }
 
 function compressImage(file, maxWidth = 1000, quality = 0.75){
@@ -589,14 +583,13 @@ async function handleJadwalFile(file){
   try {
     const base64 = await compressImage(file, 1000, 0.75);
     const sizeKB = (base64.length * 0.75) / 1024;
-    if(sizeKB > 5000){ toast('❌ Gambar terlalu besar setelah kompresi','err'); progressDiv.style.display = 'none'; return; }
+    if(sizeKB > 5000){ toast('❌ Gambar terlalu besar','err'); progressDiv.style.display = 'none'; return; }
     
-       // ✅ PERBAIKAN: Simpan sizeKB sebagai ANGKA (bukan string) agar aman dibaca
     await ROOT_JADWAL_GAMBAR.child(sanitizeEmail(window.currentUserEmail)).set({
       base64: base64, 
       fileName: file.name, 
-      originalSizeKB: Math.round(file.size / 1024),   // ✅ ANGKA bulat
-      sizeKB: Math.round(sizeKB),                      // ✅ ANGKA bulat
+      originalSizeKB: Math.round(file.size / 1024),
+      sizeKB: Math.round(sizeKB),
       uploadedAt: nowISO(), 
       uploadedBy: currentUser
     });
@@ -611,7 +604,6 @@ async function handleJadwalFile(file){
 window.hapusJadwalMengajar = async function(){
   if(!confirm('⚠️ Hapus gambar jadwal mengajar Anda?')) return;
   try { 
-    // ✅ PERBAIKAN: Gunakan email
     await ROOT_JADWAL_GAMBAR.child(sanitizeEmail(window.currentUserEmail)).remove(); 
     toast('✅ Gambar jadwal dihapus'); 
   } catch(err){ toast('❌ Gagal menghapus: ' + err.message,'err'); }
@@ -629,53 +621,20 @@ function initDragDrop(){
 }
 
 function initFirebaseListeners(){
-  ROOT_SIPENA.on('value', snap=>{
-    const allData = toArr(snap.val());
-    
-    // ✅ DUAL FILTER: Support email DAN nama (untuk masa transisi)
-    daftarKelas = allData.filter(d => {
-      if (d.type !== 'class') return false;
-      
-      // Prioritas: cocokkan dengan email
-      if (d.user_email === window.currentUserEmail) return true;
-      
-      // Fallback: cocokkan dengan nama (untuk data lama)
-      if (d.user_name === currentUser) return true;
-      
-      // Fallback extra: cocokkan nama depan (jika ada perbedaan gelar)
-      if (d.user_name && currentUser) {
-        const namaDepanDatabase = d.user_name.split(',')[0].trim().toLowerCase();
-        const namaDepanSekarang = currentUser.split(',')[0].trim().toLowerCase();
-        if (namaDepanDatabase === namaDepanSekarang) return true;
-      }
-      
-      return false;
-    });
-    
+  // ✅ Baca kelas dari Firestore folder 'classes' (data SIPENA)
+  ROOT_SIPENA.child('classes').on('value', snap => {
+    const classesObj = snap.val() || {};
+    daftarKelas = Object.keys(classesObj).map(k => ({__key: k, ...classesObj[k]}))
+      .filter(d => d.user_email === window.currentUserEmail || d.user_name === currentUser);
     populateKelasSelect();
   });
   
-  ROOT_JADWAL.on('value', snap=>{
+  // ✅ Baca jadwal mengajar
+  ROOT_JADWAL.on('value', snap => {
     const allData = toArr(snap.val());
-    
-    // ✅ DUAL FILTER: Support email DAN nama (untuk masa transisi)
-    daftarJadwal = allData.filter(d => {
-      // Prioritas: cocokkan dengan email
-      if (d.user_email === window.currentUserEmail) return true;
-      
-      // Fallback: cocokkan dengan nama (untuk data lama)
-      if (d.user_name === currentUser) return true;
-      
-      // Fallback extra: cocokkan nama depan (jika ada perbedaan gelar)
-      if (d.user_name && currentUser) {
-        const namaDepanDatabase = d.user_name.split(',')[0].trim().toLowerCase();
-        const namaDepanSekarang = currentUser.split(',')[0].trim().toLowerCase();
-        if (namaDepanDatabase === namaDepanSekarang) return true;
-      }
-      
-      return false;
-    });
-    
+    daftarJadwal = allData.filter(d => 
+      d.user_email === window.currentUserEmail || d.user_name === currentUser
+    );
     renderJadwalTable();
     updatePeriodeInfo();
   });
@@ -724,11 +683,11 @@ function bindEvents(){
   document.getElementById('toggleAlarm').onchange = e => setAlarmEnabled(e.target.checked);
   document.getElementById('btnNotifPerm').onclick = requestNotifPermission;
   document.getElementById('btnTestAlarm').onclick = () => { 
-  prewarmVoice(); // ✅ pastikan voice diizinkan
-  if (_alarmAudioCtx && _alarmAudioCtx.state === 'suspended') _alarmAudioCtx.resume();
-  playAlarmSound('X.1', 'Matematika'); 
-  toast('🔊 Mencoba bunyi alarm...'); 
-};
+    prewarmVoice();
+    if (_alarmAudioCtx && _alarmAudioCtx.state === 'suspended') _alarmAudioCtx.resume();
+    playAlarmSound('X.1', 'Matematika'); 
+    toast('🔊 Mencoba bunyi alarm...'); 
+  };
 
   document.getElementById('inputJadwalFile').onchange = e => { const file = e.target.files[0]; if(file) handleJadwalFile(file); };
 
@@ -757,9 +716,13 @@ async function terapkanKeSemua(){
   const btn = document.getElementById('btnConfirmTerapkan');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menerapkan...';
   try {
-    const updates = {};
-    daftarJadwal.forEach(j => { updates[j.__key + '/periode_mulai'] = mulai; updates[j.__key + '/periode_sampai'] = sampai; updates[j.__key + '/updated_at'] = nowISO(); });
-    await ROOT_JADWAL.update(updates);
+    for (const j of daftarJadwal) {
+      await ROOT_JADWAL.child(j.__key).update({
+        periode_mulai: mulai,
+        periode_sampai: sampai,
+        updated_at: nowISO()
+      });
+    }
     closeModal('modalTerapkanSemua');
     toast(`✅ Periode diterapkan ke ${daftarJadwal.length} jadwal!`);
   } catch(e){ toast('Gagal menerapkan: ' + e.message,'err'); }
@@ -784,8 +747,8 @@ async function simpanJadwal(){
     hari: document.getElementById('inputHari').value, kelas: kelas, mulai: jamMulai,
     selesai: document.getElementById('inputJamSelesai').value, mapel: document.getElementById('inputMapel').value.trim(),
     ruang: document.getElementById('inputRuang').value.trim(), materi: document.getElementById('inputMateri').value.trim(),
-    user_email: window.currentUserEmail, // ✅ Selalu simpan email
-    user_name: currentUser, // ✅ Tetap simpan nama untuk backward compatibility
+    user_email: window.currentUserEmail,
+    user_name: currentUser,
     periode_mulai: periodeMulai, periode_sampai: periodeSampai, updated_at: nowISO()
   };
 
@@ -795,7 +758,7 @@ async function simpanJadwal(){
     if(editKey){ 
       await ROOT_JADWAL.child(editKey).update(payload); 
     } else { 
-      await ROOT_JADWAL.push().set({...payload, created_at: nowISO()}); 
+      await ROOT_JADWAL.push().set(Object.assign({}, payload, { created_at: nowISO() })); 
     }
     closeModal('modalJadwal');
     toast(editKey ? '✅ Jadwal berhasil diperbarui!' : '✅ Jadwal berhasil ditambahkan!');
@@ -900,10 +863,7 @@ function setAlarmEnabled(val){
   if(val) { 
     updateAlarmMonitor('🟢 Alarm aktif + layar tetap menyala...'); 
     requestWakeLock(); 
-    // ✅ PRE-WARM: "panaskan" voice saat user klik toggle (user gesture)
-    //    Ini memberi izin browser untuk bunyikan audio di kemudian hari
     prewarmVoice();
-    // Juga panaskan AudioContext untuk beep
     if (!_alarmAudioCtx) {
       try { _alarmAudioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {}
     }
@@ -914,16 +874,14 @@ function setAlarmEnabled(val){
   else { updateAlarmMonitor('🔴 Alarm nonaktif'); releaseWakeLock(); }
 }
 
-// ✅ PRE-WARM VOICE: ucapkan teks sunyi agar browser "mengizinkan" speech
 function prewarmVoice(){
   if (!('speechSynthesis' in window)) return;
   try {
     const utter = new SpeechSynthesisUtterance(' ');
-    utter.volume = 0.01; // sangat pelan (hampir tak terdengar)
+    utter.volume = 0.01;
     if (cachedIndonesianVoice) utter.voice = cachedIndonesianVoice;
     utter.lang = 'id-ID';
     window.speechSynthesis.speak(utter);
-    console.log('✅ Voice pre-warmed via user gesture');
   } catch(e) { console.warn('Pre-warm gagal:', e); }
 }
 
@@ -946,20 +904,17 @@ function requestNotifPermission(){
     else if(perm==='denied') toast('❌ Notifikasi ditolak. Aktifkan manual di pengaturan browser.','err');
   });
 }
-// ══════════════════════════════════════════════
-// ✅ NOTIFIKASI VIA SERVICE WORKER (WAJIB di Android)
-// ══════════════════════════════════════════════
+
 async function kirimNotifikasi(title, body, tag){
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
-    // Android Chrome: new Notification() TIDAK didukung → pakai Service Worker
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg && typeof reg.showNotification === 'function') {
         await reg.showNotification(title, {
           body: body,
-          icon: '/assets/images/sipelita-app.png',
-          badge: '/assets/images/sipelita-app.png',
+          icon: '/sipelita/assets/images/sipelita-app.png',
+          badge: '/sipelita/assets/images/sipelita-app.png',
           tag: tag || 'sipelita-alarm',
           requireInteraction: true,
           vibrate: [300, 150, 300]
@@ -967,31 +922,27 @@ async function kirimNotifikasi(title, body, tag){
         return;
       }
     }
-    // Fallback desktop
     new Notification(title, { body: body, tag: tag, requireInteraction: true });
   } catch(e) { console.error('❌ Notifikasi error:', e); }
 }
 
-// ══════════════════════════════════════════════
-// ✅ WAKE LOCK: cegah layar HP tidur agar alarm & voice tetap jalan
-// ══════════════════════════════════════════════
 let _wakeLock = null;
 async function requestWakeLock(){
   try {
     if ('wakeLock' in navigator) {
       _wakeLock = await navigator.wakeLock.request('screen');
       _wakeLock.addEventListener('release', () => { _wakeLock = null; });
-      console.log('✅ Wake Lock aktif — layar tetap menyala');
-    } else { console.warn('⚠️ Browser tidak mendukung Wake Lock'); }
+      console.log('✅ Wake Lock aktif');
+    }
   } catch(e) { console.warn('Wake Lock gagal:', e); }
 }
 async function releaseWakeLock(){
   try { if (_wakeLock) { await _wakeLock.release(); _wakeLock = null; } } catch(e) {}
 }
-// Ambil ulang wake lock saat aplikasi kembali terlihat
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && alarmEnabled) requestWakeLock();
 });
+
 function playAlarmBeep(){
   return new Promise((resolve)=>{
     try{
@@ -1019,10 +970,7 @@ function playAlarmBeep(){
         playBeep(now+i*0.55+0.25, 660); 
       }
       setTimeout(resolve, 1800);
-    } catch(e){ 
-      console.error('Gagal memutar beep:', e); 
-      resolve(); 
-    }
+    } catch(e){ resolve(); }
   });
 }
 
@@ -1033,9 +981,6 @@ function speakAlarmMessage(kelasNama, mapel) {
   const mapelText = mapel ? `, mata pelajaran ${mapel},` : '';
   const kalimat = `Perhatian! Sekarang saatnya Anda mengajar di kelas ${kelasDibaca}${mapelText}. Selamat, mengajar...`;
   
-  console.log(`🔊 Teks: "${kalimat}"`);
-  
-  // ✅ Fungsi internal: coba speak dengan retry
   function trySpeak(attempt = 1) {
     try {
       const utter = new SpeechSynthesisUtterance(kalimat);
@@ -1044,30 +989,19 @@ function speakAlarmMessage(kelasNama, mapel) {
       utter.pitch = 1.0;
       utter.volume = 1.0;
       
-      if (cachedIndonesianVoice) {
-        utter.voice = cachedIndonesianVoice;
-      } else {
+      if (cachedIndonesianVoice) utter.voice = cachedIndonesianVoice;
+      else {
         const voices = window.speechSynthesis.getVoices();
-        const idVoice = voices.find(v => v.lang === 'id-ID') 
-                     || voices.find(v => v.lang === 'id')
-                     || voices.find(v => v.lang.startsWith('id'));
+        const idVoice = voices.find(v => v.lang === 'id-ID') || voices.find(v => v.lang === 'id');
         if (idVoice) utter.voice = idVoice;
       }
       
-      utter.onstart = () => console.log('🔊 Speech dimulai');
-      utter.onend = () => console.log('🔊 Speech selesai');
       utter.onerror = (e) => {
-        console.error('❌ Speech error:', e);
-        // Retry sekali jika error (Chrome Android sering error di attempt pertama)
-        if (attempt < 2) {
-          console.log('🔄 Retry speak...');
-          setTimeout(() => trySpeak(attempt + 1), 300);
-        }
+        if (attempt < 2) setTimeout(() => trySpeak(attempt + 1), 300);
       };
       
       window.speechSynthesis.speak(utter);
       
-      // Chrome Android bug workaround: pause/resume agar tidak macet
       setTimeout(() => {
         if (window.speechSynthesis.speaking) {
           window.speechSynthesis.pause();
@@ -1075,18 +1009,13 @@ function speakAlarmMessage(kelasNama, mapel) {
         }
       }, 5000);
       
-    } catch (e) {
-      console.error('❌ Gagal memutar suara:', e);
-    }
+    } catch (e) {}
   }
   
-  // ✅ JANGAN panggil cancel() — ini yang bikin bug di Chrome Android
-  //    Langsung speak saja. Jika ada speak lain, akan otomatis ditimpa.
   setTimeout(() => trySpeak(1), 100);
 }
 
 function playAlarmSound(kelasNama, mapel){
-  console.log(`🔔 Memutar alarm: ${kelasNama} - ${mapel}`);
   playAlarmBeep();
   speakAlarmMessage(kelasNama || 'Anda', mapel || '');
 }
@@ -1095,14 +1024,10 @@ function fireScheduleAlarm(jadwalItem){
   const kelasDibaca = konversiKelas(jadwalItem.kelas);
   playAlarmSound(jadwalItem.kelas, jadwalItem.mapel);
   toast(`🔔 WAKTUNYA MENGAJAR! Kelas ${kelasDibaca} - ${jadwalItem.mapel||''} (${jadwalItem.mulai})`,'err');
-  updateAlarmMonitor(` ALARM FIRED: Kelas ${kelasDibaca} - ${jadwalItem.mapel||'-'} (${jadwalItem.mulai})`);
-  
-    kirimNotifikasi('⏰ Waktunya Mengajar!', `Kelas ${kelasDibaca} · ${jadwalItem.mapel||''} · ${jadwalItem.mulai}${jadwalItem.ruang?' · '+jadwalItem.ruang:''}`, 'sipelita-jadwal-alarm');
+  updateAlarmMonitor(`🔔 ALARM FIRED: Kelas ${kelasDibaca} - ${jadwalItem.mapel||'-'} (${jadwalItem.mulai})`);
+  kirimNotifikasi('⏰ Waktunya Mengajar!', `Kelas ${kelasDibaca} · ${jadwalItem.mapel||''} · ${jadwalItem.mulai}${jadwalItem.ruang?' · '+jadwalItem.ruang:''}`, 'sipelita-jadwal-alarm');
 }
 
-// ══════════════════════════════════════════════
-// ✅ CHECK ALARM - TRACKING SEDERHANA (TANGGAL + JAM)
-// ══════════════════════════════════════════════
 function checkScheduleAlarms(){
   if(!alarmEnabled) return;
   
@@ -1110,31 +1035,18 @@ function checkScheduleAlarms(){
   const hariMap = {0:'Minggu',1:'Senin',2:'Selasa',3:'Rabu',4:'Kamis',5:'Jumat',6:'Sabtu'};
   const hariIni = hariMap[now.getDay()];
   
-  // Format waktu sekarang: "YYYY-MM-DD_HH:MM"
   const todayStr = now.toISOString().slice(0,10);
   const jamSekarang = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  const waktuSekarang = todayStr + '_' + jamSekarang;
   
   daftarJadwal.forEach(j=>{
-    // Skip jika bukan hari ini atau tidak aktif
     if(j.hari !== hariIni || !isJadwalActive(j)) return;
-    
-    // Skip jika jam tidak cocok
     if(j.mulai !== jamSekarang) return;
     
-    // ✅ TRACKING KEY: Tanggal + Jam (bukan ID database)
-    // Ini memungkinkan kelas sama di jam berbeda tetap berbunyi
     const trackingKey = todayStr + '_' + j.mulai;
-    
-    // Skip jika sudah bunyi di jam ini hari ini
     if(alarmFiredToday.has(trackingKey)) return;
     
-    // Mark sebagai sudah bunyi
     alarmFiredToday.add(trackingKey);
-    
-    // Fire alarm!
     fireScheduleAlarm(j);
-    console.log(`✅ Alarm fired: ${j.kelas} at ${j.mulai} (tracking: ${trackingKey})`);
   });
 }
 
@@ -1161,9 +1073,8 @@ function checkUpcomingSchedules(){
       alarmFiredToday.add(notifKey);
       const kelasDibaca = konversiKelas(j.kelas);
       toast(`⏰ 10 menit lagi mengajar: Kelas ${kelasDibaca} (${j.mulai})`, 'warn');
-      updateAlarmMonitor(` UPCOMING: Kelas ${kelasDibaca} dalam 10 menit (${j.mulai})`);
-      
-            kirimNotifikasi('⏰ Siap-siap Mengajar!', `Kelas ${kelasDibaca} dalam 10 menit · ${j.mapel||''}`, 'sipelita-upcoming');
+      updateAlarmMonitor(`⏰ UPCOMING: Kelas ${kelasDibaca} dalam 10 menit`);
+      kirimNotifikasi('⏰ Siap-siap Mengajar!', `Kelas ${kelasDibaca} dalam 10 menit · ${j.mapel||''}`, 'sipelita-upcoming');
     }
   });
 }
@@ -1190,38 +1101,24 @@ function scheduleDailyReset(){
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 1, 0, 0);
   
-  const delay = tomorrow - now;
-  
   setTimeout(() => {
     alarmFiredToday.clear();
-    console.log('✅ Alarm fired list direset untuk hari baru');
-    updateAlarmMonitor('🔄 Reset harian - siap untuk hari baru');
+    updateAlarmMonitor('🔄 Reset harian');
     scheduleDailyReset();
-  }, delay);
+  }, tomorrow - now);
 }
 
 function initAlarmEngine(){
   renderNotifPermStatus();
-  
-  // ✅ CHECK ALARM SETIAP 1 DETIK
   setInterval(checkScheduleAlarms, 1000);
-  
-  // Cek upcoming setiap 30 detik
   setInterval(checkUpcomingSchedules, 30000);
-  
-  // Update live clock setiap 1 detik
   setInterval(updateLiveClock, 1000);
-  
-  // Refresh tabel setiap 60 detik
   setInterval(renderJadwalTable, 60000);
   
   updateLiveClock();
   checkScheduleAlarms();
   checkUpcomingSchedules();
-  
   scheduleDailyReset();
-  
-  console.log('🔔 Alarm engine initialized - checking every 1 SECOND');
 }
 
 window.addEventListener('load', initApp);
@@ -1232,7 +1129,6 @@ window.addEventListener('focus', () => {
   if(lastResetDate !== todayStr){
     alarmFiredToday.clear();
     localStorage.setItem('sipelita_alarm_last_reset', todayStr);
-    console.log('✅ Alarm fired list direset saat halaman difokuskan');
   }
 });
 </script>
