@@ -1,11 +1,18 @@
 // ══════════════════════════════════════════════
-// FS-ADAPTER v3.1: Firestore berperilaku seperti RTDB
-// Untuk halaman non-SIPENA (jadwal, jurnal, dll)
+// FS-ADAPTER v3.2 (LAZY INIT)
+// Firestore berperilaku seperti RTDB.
+// Koneksi Firestore dibuat SAAT DIPAKAI (aman dimuat di <head>)
 // ══════════════════════════════════════════════
 (function () {
   if (typeof firebase === 'undefined') { console.error('FS-Adapter: firebase belum dimuat'); return; }
-  const firestore = firebase.firestore();
   const BASE_COL = 'sipena2';
+
+  // ✅ LAZY: baru inisialisasi saat method pertama dipanggil
+  let _fs = null;
+  function fs() {
+    if (!_fs) _fs = firebase.firestore();
+    return _fs;
+  }
 
   function clean(obj) {
     const o = {};
@@ -69,36 +76,45 @@
   function createRef(path) {
     return {
       _path: path || '',
+
       get key() { const p = this._path.split('/'); return p[p.length - 1] || BASE_COL; },
+
       child: function (s) { return createRef(this._path ? this._path + '/' + s : String(s)); },
+
       push: function () {
-        const id = firestore.collection(BASE_COL).doc().id;
+        const id = fs().collection(BASE_COL).doc().id;
         return createRef(this._path ? this._path + '/' + id : id);
       },
+
       set: function (obj) {
         const parts = this._path.split('/');
-        if (parts.length === 1) return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj));
-        return firestore.collection(BASE_COL).doc(parts[1]).set(Object.assign({}, clean(obj), { __folder: parts[0] }));
+        if (parts.length === 1) return fs().collection(BASE_COL).doc(parts[0]).set(clean(obj));
+        return fs().collection(BASE_COL).doc(parts[1]).set(Object.assign({}, clean(obj), { __folder: parts[0] }));
       },
+
       update: function (obj) {
         const parts = this._path.split('/');
-        if (parts.length === 1) return firestore.collection(BASE_COL).doc(parts[0]).set(clean(obj), { merge: true });
-        return firestore.collection(BASE_COL).doc(parts[1]).set(Object.assign({}, clean(obj), { __folder: parts[0] }), { merge: true });
+        if (parts.length === 1) return fs().collection(BASE_COL).doc(parts[0]).set(clean(obj), { merge: true });
+        return fs().collection(BASE_COL).doc(parts[1]).set(Object.assign({}, clean(obj), { __folder: parts[0] }), { merge: true });
       },
+
       remove: function () {
         const parts = this._path.split('/');
-        return firestore.collection(BASE_COL).doc(parts.length === 1 ? parts[0] : parts[1]).delete();
+        return fs().collection(BASE_COL).doc(parts.length === 1 ? parts[0] : parts[1]).delete();
       },
+
       on: function (event, cb, errCb) {
         const self = this;
-        this._unsub = firestore.collection(BASE_COL).onSnapshot(function (snap) {
+        this._unsub = fs().collection(BASE_COL).onSnapshot(function (snap) {
           cb(makeSnap(self._path, navigate(buildResult(snap), self._path)));
         }, function (err) { if (errCb) errCb(normErr(err)); else console.error(err); });
       },
+
       off: function () { if (this._unsub) { this._unsub(); this._unsub = null; } },
+
       once: function (event, cb, errCb) {
         const self = this;
-        return firestore.collection(BASE_COL).get().then(function (snap) {
+        return fs().collection(BASE_COL).get().then(function (snap) {
           const s = makeSnap(self._path, navigate(buildResult(snap), self._path));
           if (cb) cb(s);
           return s;
