@@ -3,40 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="theme-color" content="#10b981">
-    <link rel="manifest" href="../manifest.json">
-    <link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/images/sipelita-app.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Administrasi Sekolah Terintegrasi</title>
+    <title>Portal Administrasi Sekolah Terintegrasi - SIPELITA</title>
     <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/chat-widget.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK (Compat Version) -->
+    <!-- Firebase SDK (Compat Version) - HANYA yang dibutuhkan -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script> <!-- ✅ BARU -->
+    <!-- ❌ RTDB SDK dihapus (tidak dipakai, hanya memunculkan warning) -->
+    
     <script src="js/alarm-engine.js"></script>
     <script src="js/fs-adapter.js"></script>
     <script src="js/alarm-global.js"></script>
+    
     <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman Dashboard) -->
     <script>
       (function() {
-        // Cek apakah ada data session user di localStorage
-        // (Sesuaikan 'sipelita_user' dengan key localStorage yang Anda gunakan)
         const sessionData = localStorage.getItem('sipelita_user');
-        
         if (!sessionData) {
-          // Jika TIDAK ADA data login, redirect INSTAN ke halaman login
-          // window.location.replace() mencegah user menekan tombol "Back" di browser
-          window.location.replace('home.html'); 
+          window.location.replace('home.html');
         }
       })();
     </script>
     
     <style>
-        /* Style Khusus untuk Tombol Pengaturan Akun */
+        /* Loading Screen */
+        #authLoading {
+            position: fixed;
+            inset: 0;
+            background: #f8fafc;
+            z-index: 99998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        #authLoading .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        #authLoading .loading-text {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Tombol Pengaturan Akun */
         .btn-settings-akun {
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
@@ -57,7 +82,7 @@
             transform: rotate(45deg);
         }
         
-        /* Style Form di dalam Modal */
+        /* Form di dalam Modal */
         .form-group-modal {
             margin-bottom: 16px;
         }
@@ -76,7 +101,8 @@
             font-size: 0.9rem;
             outline: none;
             transition: border-color 0.2s;
-            box-sizing: border-box; /* Penting agar padding tidak merusak lebar */
+            box-sizing: border-box;
+            font-family: inherit;
         }
         .form-group-modal input:focus {
             border-color: #10b981;
@@ -87,10 +113,25 @@
             color: #64748b;
             margin-top: 4px;
         }
+
+        /* Container utama - sembunyikan sampai auth siap */
+        .container.hidden-until-auth {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .container.hidden-until-auth.ready {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- LOADING SCREEN -->
+    <div id="authLoading">
+        <div class="spinner"></div>
+        <div class="loading-text">Memuat dashboard...</div>
+    </div>
+
+    <div class="container hidden-until-auth">
         <header>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <img src="assets/images/sipelita-app.png" alt="Logo SIPELITA" class="header-logo">
@@ -105,12 +146,13 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span id="userRole" style="background: #ffd700; color: #1a237e; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;"></span>
                     
-                    <!-- TOMBOL PENGATURAN AKUN (GERIGI) -->
                     <button id="btnPengaturanAkun" class="btn-settings-akun" title="Pengaturan Akun">
                         <i class="fas fa-cog"></i>
                     </button>
                     
-                    <button id="btnLogout" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">Logout</button>
+                    <button id="btnLogout" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
                 
                 <!-- Baris 2: Sapaan Nama User -->
@@ -128,27 +170,27 @@
         <div class="grid" id="layanan-madrasah"></div>
     </div>
     
-    <!-- Modal Konfigurasi Internal (Existing) -->
+    <!-- Modal Konfigurasi Internal -->
     <div class="modal" id="integrationModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">Konfigurasi Internal</h3>
-                <button class="close-btn" onclick="closeModal('integrationModal')">&times;</button>
+                <button class="close-btn" data-close="integrationModal">&times;</button>
             </div>
             <div class="form-group">
                 <label>Catatan Administrator</label>
                 <input type="text" placeholder="Fitur ini untuk pengembangan internal...">
             </div>
-            <button class="btn" onclick="closeModal('integrationModal')">Tutup</button>
+            <button class="btn" data-close="integrationModal">Tutup</button>
         </div>
     </div>
 
-    <!-- MODAL PENGATURAN AKUN (BARU) -->
+    <!-- MODAL PENGATURAN AKUN -->
     <div class="modal" id="modalPengaturanAkun">
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
                 <h3>⚙️ Pengaturan Akun</h3>
-                <button class="close-btn" onclick="closeModal('modalPengaturanAkun')">&times;</button>
+                <button class="close-btn" data-close="modalPengaturanAkun">&times;</button>
             </div>
             
             <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:20px;">
@@ -159,29 +201,29 @@
 
             <div class="form-group-modal">
                 <label>🔒 Password Saat Ini *</label>
-                <input type="password" id="settingPasswordLama" placeholder="Masukkan password lama Anda">
+                <input type="password" id="settingPasswordLama" placeholder="Masukkan password lama Anda" autocomplete="current-password">
             </div>
             
             <div class="form-group-modal">
                 <label>🔑 Password Baru *</label>
-                <input type="password" id="settingPasswordBaru" placeholder="Minimal 6 karakter">
+                <input type="password" id="settingPasswordBaru" placeholder="Minimal 6 karakter" autocomplete="new-password">
                 <div class="password-hint">Password harus berbeda dengan password lama.</div>
             </div>
             
             <div class="form-group-modal">
                 <label>✅ Konfirmasi Password Baru *</label>
-                <input type="password" id="settingPasswordKonfirmasi" placeholder="Ulangi password baru">
+                <input type="password" id="settingPasswordKonfirmasi" placeholder="Ulangi password baru" autocomplete="new-password">
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 24px;">
-                <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569;" onclick="closeModal('modalPengaturanAkun')">Batal</button>
+                <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569;" data-close="modalPengaturanAkun">Batal</button>
                 <button class="btn" id="btnSimpanPengaturan" style="flex: 1; background: #10b981; color: white;">💾 Simpan Perubahan</button>
             </div>
         </div>
     </div>
 
     <footer>
-        &copy; 2026 Portal Administrasi Sekolah Terintegrasi. Dibuat untuk efisiensi manajemen madrasah modern.
+        &copy; 2026 SIPELITA - Portal Administrasi Sekolah Terintegrasi. Dibuat untuk efisiensi manajemen madrasah modern.
     </footer>
 
     <script src="js/config.js"></script>
@@ -193,7 +235,6 @@
         const firebaseConfig = {
             apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
             authDomain: "sipelita-guru.firebaseapp.com",
-            databaseURL: "https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "sipelita-guru",
             storageBucket: "sipelita-guru.firebasestorage.app",
             messagingSenderId: "595996765157",
@@ -204,14 +245,51 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
-        const auth = firebase.auth(); // Inisialisasi Auth
+        const auth = firebase.auth();
 
+        // ══════════════════════════════════════════════
+        // HELPER: TOAST (non-blocking, UX friendly)
+        // ══════════════════════════════════════════════
+        function showToast(message, type = 'success') {
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            const t = document.createElement('div');
+            t.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;border-radius:10px;font-weight:600;font-size:0.9rem;color:#fff;background:${colors[type]||colors.info};box-shadow:0 6px 20px rgba(0,0,0,.2);transition:opacity .3s;max-width:360px;`;
+            t.textContent = (icons[type] || '') + ' ' + message;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; }, 2500);
+            setTimeout(() => { t.remove(); }, 2900);
+        }
+
+        window.closeModal = (modalId) => {
+            const m = document.getElementById(modalId);
+            if (m) m.style.display = 'none';
+        };
+
+        // Event listener universal untuk tombol close modal
+        document.querySelectorAll('[data-close]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.close) window.closeModal(btn.dataset.close);
+            });
+        });
+
+        // ══════════════════════════════════════════════
+        // REFRESH DATA USER DARI FIRESTORE
+        // ══════════════════════════════════════════════
         async function refreshUserDataFromFirestore(userEmail) {
             try {
                 const snapshot = await db.collection('users').where('email', '==', userEmail).limit(1).get();
-                if (!snapshot.empty) {
-                    return snapshot.docs[0].data();
-                }
+                if (!snapshot.empty) return snapshot.docs[0].data();
                 return null;
             } catch (error) {
                 console.error('❌ Error refresh user data:', error);
@@ -219,34 +297,38 @@
             }
         }
 
-        // Fungsi helper untuk menampilkan toast/notifikasi sederhana
-        function showToast(message, type = 'success') {
-            alert(message); // Bisa diganti dengan library toast Anda jika ada (misal: window.toast)
-        }
-
-        // Fungsi helper untuk membuka/menutup modal
-        window.closeModal = (modalId) => {
-            document.getElementById(modalId).style.display = 'none';
-        };
-
+        // ══════════════════════════════════════════════
+        // MAIN AUTH CHECK
+        // ══════════════════════════════════════════════
         try {
             const user = AuthService.checkAuth();
 
             if (user) {
                 const userNameEl = document.getElementById('userName');
-                if (userNameEl) userNameEl.textContent = `Hi, ${user.nama || 'User'}`;
-                
                 const userRoleEl = document.getElementById('userRole');
+                const userNipEl = document.getElementById('userNip');
+                const containerEl = document.querySelector('.container');
+                const loadingEl = document.getElementById('authLoading');
+
+                // Render awal
+                if (userNameEl) userNameEl.textContent = `Hi, ${user.nama || 'User'}`;
                 if (userRoleEl) {
-                    const roleMap = { 'admin': '👑 Admin', 'kepala': '👑 Kepala Madrasah', 'wakil': '⭐ Wakil Kepala' };
+                    const roleMap = {
+                        'admin': '👑 Admin',
+                        'kepala': '👑 Kepala Madrasah',
+                        'wakil': '⭐ Wakil Kepala'
+                    };
                     userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
                 }
-
-                const userNipEl = document.getElementById('userNip');
                 if (userNipEl) {
                     userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
                 }
 
+                // Tampilkan container
+                if (containerEl) containerEl.classList.add('ready');
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                // Refresh data dari Firestore
                 if (user.email) {
                     refreshUserDataFromFirestore(user.email).then(freshData => {
                         if (freshData) {
@@ -256,7 +338,12 @@
                             if (userNameEl) userNameEl.textContent = `Hi, ${updatedUser.nama || 'User'}`;
                             if (userNipEl) {
                                 userNipEl.textContent = updatedUser.nip ? 'NIP: ' + updatedUser.nip : 'NIP: Belum diisi';
-                                userNipEl.style.color = updatedUser.nip ? '#64748b' : '#ef4444';
+                                userNipEl.style.color = updatedUser.nip ? '#64748b' : '#94a3b8';
+                            }
+                        } else {
+                            if (userNipEl) {
+                                userNipEl.textContent = 'NIP: Belum diisi';
+                                userNipEl.style.color = '#94a3b8';
                             }
                         }
                     });
@@ -285,40 +372,36 @@
                         const passKonfirmasi = document.getElementById('settingPasswordKonfirmasi').value.trim();
                         const currentUser = auth.currentUser;
 
-                        if (!passLama) return showToast('❌ Password saat ini wajib diisi!', 'error');
-                        if (passBaru.length < 6) return showToast('❌ Password baru minimal 6 karakter!', 'error');
-                        if (passBaru !== passKonfirmasi) return showToast('❌ Konfirmasi password tidak cocok!', 'error');
-                        if (passLama === passBaru) return showToast('❌ Password baru harus berbeda dengan yang lama!', 'error');
+                        if (!passLama) return showToast('Password saat ini wajib diisi!', 'error');
+                        if (passBaru.length < 6) return showToast('Password baru minimal 6 karakter!', 'error');
+                        if (passBaru !== passKonfirmasi) return showToast('Konfirmasi password tidak cocok!', 'error');
+                        if (passLama === passBaru) return showToast('Password baru harus berbeda dengan yang lama!', 'error');
 
                         btnSimpanPengaturan.disabled = true;
                         btnSimpanPengaturan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
                         try {
-                            // 1. Re-authenticate user (Keamanan Firebase)
                             const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, passLama);
                             await currentUser.reauthenticateWithCredential(credential);
-
-                            // 2. Update password
                             await currentUser.updatePassword(passBaru);
 
-                            showToast('✅ Password berhasil diubah! Anda akan dialihkan ke halaman login.');
-                            closeModal('modalPengaturanAkun');
+                            showToast('Password berhasil diubah! Anda akan dialihkan ke halaman login.', 'success');
+                            window.closeModal('modalPengaturanAkun');
 
-                            // 3. Logout otomatis setelah 2 detik
                             setTimeout(async () => {
                                 localStorage.removeItem('sipelita_user');
                                 sessionStorage.removeItem('sipelita_user');
                                 await auth.signOut();
-                                window.location.href = 'home.html';
+                                window.location.replace('home.html');
                             }, 2000);
 
                         } catch (error) {
                             console.error('Error ubah password:', error);
                             let msg = 'Gagal mengubah password.';
-                            if (error.code === 'auth/wrong-password') msg = '❌ Password saat ini salah!';
-                            else if (error.code === 'auth/weak-password') msg = '❌ Password terlalu lemah!';
-                            else if (error.code === 'auth/requires-recent-login') msg = '❌ Silakan logout dan login ulang terlebih dahulu!';
-                            else msg = '❌ ' + error.message;
+                            if (error.code === 'auth/wrong-password') msg = 'Password saat ini salah!';
+                            else if (error.code === 'auth/weak-password') msg = 'Password terlalu lemah!';
+                            else if (error.code === 'auth/requires-recent-login') msg = 'Silakan logout dan login ulang terlebih dahulu!';
+                            else msg = error.message;
                             
                             showToast(msg, 'error');
                             btnSimpanPengaturan.disabled = false;
@@ -328,7 +411,7 @@
                 }
                 
                 // ══════════════════════════════════════════════
-                // LOGIKA LOGOUT (DIPERBAIKI & DIOPTIMALKAN UNTUK MOBILE)
+                // LOGIKA LOGOUT
                 // ══════════════════════════════════════════════
                 const btnLogout = document.getElementById('btnLogout');
                 if (btnLogout) {
@@ -336,16 +419,13 @@
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        // 1. Tampilkan loading state agar user tahu sedang diproses
                         btnLogout.disabled = true;
                         btnLogout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Keluar...';
                         
                         try {
-                            // 2. Clear SEMUA storage (lebih aman dan bersih)
                             localStorage.clear();
                             sessionStorage.clear();
                             
-                            // 3. Clear Firebase Auth jika tersedia
                             if (typeof AuthService !== 'undefined' && AuthService.logout) {
                                 try {
                                     await AuthService.logout();
@@ -354,25 +434,19 @@
                                 }
                             }
                             
-                            // 4. Force redirect menggunakan replace (mencegah tombol Back browser)
                             window.location.replace('home.html');
-                            
                         } catch (error) {
                             console.error('Logout error:', error);
-                            // Fallback redirect jika terjadi error tak terduga
                             window.location.replace('home.html');
                         }
                     });
                 }
-                // ══════════════════════════════════════════════
 
             } else {
-                // Jika tidak ada data user di AuthService, lempar ke login
                 window.location.replace('home.html');
             }
 
         } catch (error) {
-            // Fallback jika terjadi error kritis di seluruh script module
             console.error('❌ Error di script module:', error);
             const btnLogoutFallback = document.getElementById('btnLogout');
             if (btnLogoutFallback) {
