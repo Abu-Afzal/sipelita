@@ -258,18 +258,15 @@ window.initApp = () => {
       if (s) userData = JSON.parse(s);
     } catch (e) {}
 
-    if (userData && userData.nama) {
-      currentUser = userData.nama;
-      currentUserRole = userData.role || 'guru';
-    } else {
-      currentUser = user.email;
-      currentUserRole = 'guru';
+        // ✅ KUNCI DATA = EMAIL (tahan ganti nama, kapital, typo, gelar)
+    currentUser = user.email;
+    window.displayName = (userData && userData.nama) ? userData.nama : user.email;
+    currentUserRole = (userData && userData.role) ? userData.role : 'guru';
     }
-
     const userDisplay = document.getElementById('userDisplay');
     if (userDisplay) {
       const roleIcon = { 'admin': '👑', 'kepala': '👑', 'wakil': '⭐', 'guru': '👨‍🏫' }[currentUserRole] || '👨‍🏫';
-      userDisplay.innerHTML = `<div style="font-weight:700;color:#334155;font-size:0.95rem;">${roleIcon} Hi, ${currentUser}</div>`;
+      userDisplay.innerHTML = `<div style="font-weight:700;color:#334155;font-size:0.95rem;">${roleIcon} Hi, ${window.displayName}</div>`;
     }
 
     const currentDateEl = document.getElementById('currentDate');
