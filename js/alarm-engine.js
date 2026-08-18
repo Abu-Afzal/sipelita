@@ -86,6 +86,14 @@
     return false;
   }
 
+    // ====== PARSE TANGGAL LOKAL (bebas bug UTC) ======
+  function parseLocalDate(ds){
+    if (!ds) return null;
+    const p = String(ds).split('-').map(Number);
+    if (p.length !== 3) return null;
+    return new Date(p[0], p[1]-1, p[2]);
+  }
+
   // ====== START ENGINE ======
   function startEngine(){
     if (started) return;
@@ -172,10 +180,13 @@
         const mulai = j.mulai || j.jam_mulai;
         if (!mulai || j.hari !== hari) return;
 
-        // Cek periode berlaku
+        // Cek periode berlaku (parse LOKAL, bukan UTC)
         if (j.periode_mulai && j.periode_sampai) {
           const t = new Date(); t.setHours(0,0,0,0);
-          if (t < new Date(j.periode_mulai) || t > new Date(j.periode_sampai)) return;
+          const pm = parseLocalDate(j.periode_mulai);
+          const ps = parseLocalDate(j.periode_sampai);
+          if (pm && t < pm) return;
+          if (ps && t > ps) return;
         }
 
         // 1) Alarm tepat waktu
