@@ -1,8 +1,8 @@
 {
-  "name": "SIPELITA - SIPELITA",
+  "name": "SIPELITA - Sistem Pengelolaan Edukasi & Layanan Terpadu",
   "short_name": "SIPELITA",
   "version": "2.0.5",
-  "description": "Sistem Pengelolaan Edukasi & Layanan Terpadu SIPELITA",
+  "description": "Portal Personal Guru Untuk Manajemen Kelas, Penilaian, dan Absensi",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fef9f3",
