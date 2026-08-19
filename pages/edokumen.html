@@ -64,15 +64,36 @@
     .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; }
     .error.show { display: block; }
     .privasi-notice { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+      /* HEADER konsisten dengan Jadwal Mengajar */
+    .header { background: #3b82f6; color: white; padding: 20px 24px; border-radius: 0 0 16px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 15px rgba(59,130,246,0.2); }
+    .header-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); background: white; }
+    .header-info { flex: 1; }
+    .header-title { font-size: 1.6rem; font-weight: 800; color: white; margin-bottom: 2px; }
+    .header-subtitle { font-size: 0.9rem; color: rgba(255,255,255,0.9); }
+    .header-user { text-align: right; }
+    .user-name { font-size: 0.95rem; font-weight: 700; color: white; margin-bottom: 6px; }
+    .btn-dashboard { padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 600; transition: background .2s; text-decoration: none; display: inline-block; }
+    .btn-dashboard:hover { background: rgba(255,255,255,0.3); }
+    @media (max-width: 768px) {
+      .header { flex-wrap: wrap; padding: 16px; }
+      .header-title { font-size: 1.3rem; }
+      .header-user { width: 100%; text-align: left; margin-top: 10px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="page-header">
-      <div style="font-size: 3rem; margin-bottom: 10px;">📁</div>
-      <h1>E-Dokumen Madrasah</h1>
-      <p>Arsip digital & berkas administratif</p>
-      <a href="../index.html" class="back-btn">← Kembali ke Dashboard</a>
+        <!-- HEADER (konsisten dengan Jadwal Mengajar) -->
+    <div class="header">
+      <img src="../assets/images/sipelita-app.png" alt="Logo SIPELITA" class="header-logo" onerror="this.style.display='none'">
+      <div class="header-info">
+        <div class="header-title">SIPELITA</div>
+        <div class="header-subtitle">E-Dokumen Madrasah</div>
+      </div>
+      <div class="header-user">
+        <div class="user-name" id="userDisplay">–</div>
+        <a href="../index.html" class="btn-dashboard">← Dashboard SIPELITA</a>
+      </div>
     </div>
 
     <div class="content">
@@ -171,7 +192,12 @@
 
     const userInfoBadge = document.getElementById('userInfoBadge');
     if (userInfoBadge) userInfoBadge.textContent = currentRole === 'admin' ? '👑 Mode Admin (semua dokumen)' : `👤 ${currentUserName}`;
-
+        const userDisplayEl = document.getElementById('userDisplay');
+    if (userDisplayEl) {
+      const roleIcon = { 'admin': '👑', 'kepala': '👑', 'wakil': '⭐', 'guru': '👨‍' }[currentRole] || '👨‍';
+      userDisplayEl.textContent = roleIcon + ' Hi, ' + currentUserName;
+    }
+    
     let currentFolderId = '';
     let folderTrail = [];
     let allDokumen = [];
