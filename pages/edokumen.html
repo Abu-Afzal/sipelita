@@ -194,10 +194,10 @@
     if (userInfoBadge) userInfoBadge.textContent = currentRole === 'admin' ? '👑 Mode Admin (semua dokumen)' : `👤 ${currentUserName}`;
         const userDisplayEl = document.getElementById('userDisplay');
     if (userDisplayEl) {
-      const roleIcon = { 'admin': '👑', 'kepala': '👑', 'wakil': '⭐', 'guru': '👨‍' }[currentRole] || '👨‍';
+      const roleIcon = { 'admin': '👑', 'kepala': '👑', 'wakil': '⭐', 'guru': '👨‍🏫' }[currentRole] || '👨‍🏫';
       userDisplayEl.textContent = roleIcon + ' Hi, ' + currentUserName;
     }
-    
+
     let currentFolderId = '';
     let folderTrail = [];
     let allDokumen = [];
