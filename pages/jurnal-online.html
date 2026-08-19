@@ -13,21 +13,15 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; }
         
-        .header {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            color: white; padding: 24px 30px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.2);
-        }
-        .header h1 { font-size: 1.5rem; margin-bottom: 4px; }
-        .header p { opacity: 0.9; font-size: 0.88rem; }
-        .header-actions { display: flex; gap: 10px; align-items: center; }
-        .btn-dashboard {
-            background: rgba(255,255,255,0.2); color: white;
-            padding: 10px 20px; border-radius: 8px; text-decoration: none;
-            font-weight: 600; border: 1px solid rgba(255,255,255,0.3);
-            font-size: 0.88rem;
-        }
+                .header { background: #3b82f6; color: white; padding: 20px 24px; border-radius: 0 0 16px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 15px rgba(59,130,246,0.2); }
+        .header-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); background: white; }
+        .header-info { flex: 1; }
+        .header-title { font-size: 1.6rem; font-weight: 800; color: white; margin-bottom: 2px; }
+        .header-subtitle { font-size: 0.9rem; color: rgba(255,255,255,0.9); }
+        .header-user { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        .user-name { font-size: 0.95rem; font-weight: 700; color: white; }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .btn-dashboard { padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 600; transition: background .2s; text-decoration: none; display: inline-block; }
         .btn-dashboard:hover { background: rgba(255,255,255,0.3); }
         
         .container { max-width: 900px; margin: 0 auto; padding: 20px; }
@@ -151,8 +145,9 @@
         }
         
         @media (max-width: 768px) {
-            .header { flex-direction: column; text-align: center; gap: 12px; padding: 16px; }
-            .header h1 { font-size: 1.2rem; }
+            .header { flex-wrap: wrap; padding: 16px; }
+            .header-title { font-size: 1.3rem; }
+            .header-user { width: 100%; align-items: flex-start; text-align: left; }
             .form-row, .form-row-3 { grid-template-columns: 1fr; }
             .jam-range-container { grid-template-columns: 1fr; }
             .jam-separator { 
@@ -168,15 +163,31 @@
 <body>
 
 <div class="header">
-    <div style="flex: 1;">
-        <h1>📝 JURNAL KELAS</h1>
-        <p>SIPELITA - TA. 2025/2026 SEMESTER GENAP</p>
+    <img src="../assets/images/sipelita-app.png" alt="Logo SIPELITA" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-info">
+        <div class="header-title">SIPELITA</div>
+        <div class="header-subtitle">Jurnal Mengajar — TA. 2026/2027 Semester Ganjil</div>
     </div>
-    <div class="header-actions">
-        <a href="jurnal-rekap.html" class="btn-dashboard">📊 Rekap Jurnal</a>
-        <a href="../index.html" class="btn-dashboard">← Dashboard</a>
+    <div class="header-user">
+        <div class="user-name" id="userDisplay">–</div>
+        <div class="header-actions">
+            <a href="jurnal-rekap.html" class="btn-dashboard">📊 Rekap Jurnal</a>
+            <a href="../index.html" class="btn-dashboard">← Dashboard SIPELITA</a>
+        </div>
     </div>
 </div>
+<script>
+  (function () {
+    try {
+      var s = JSON.parse(localStorage.getItem('sipelita_user') || 'null');
+      var el = document.getElementById('userDisplay');
+      if (s && el) {
+        var icon = { admin: '👑', kepala: '👑', wakil: '⭐', guru: '👨‍' }[s.role] || '👨‍';
+        el.textContent = icon + ' Hi, ' + (s.nama || s.email || 'Guru');
+      }
+    } catch (e) {}
+  })();
+</script>
 
 <div class="container">
     
