@@ -57,12 +57,12 @@ const CONFIG = {
     layananMadrasah: [
         { icon: '👨‍💼', title: 'Admin Users', desc: '', color: '#dc3309', page: 'admin-users.html' },
         { icon: '📖', title: 'SIPENA', desc: 'Sistem Penilaian dan Absensi', color: '#3949ab', page: 'pages/sipena.html' },
-        { icon: '⏱️', title: 'Jadwal Mengajar', desc: '', color: '#a704c8', page: 'pages/jadwal-mengajar.html' },
+        { icon: '⏱️', title: 'JADWAL MENGAJAR', desc: 'Upload & Setting Jadwal', color: '#a704c8', page: 'pages/jadwal-mengajar.html' },
         { icon: '🎓', title: 'SIBEL', desc: 'Sistem Belajar Digital', color: '#d8b580', page: 'pages/elearning.html' },
-        { icon: '📁', title: 'Bank Dokumen', desc: '', color: '#1e88e5', page: 'pages/edokumen.html' },
+        { icon: '📁', title: 'E-DOKUMEN', desc: 'Brankas Dokumen & Arsip', color: '#1e88e5', page: 'pages/edokumen.html' },
         { icon: '🏥', title: 'SEHAT', desc: 'Sistem Informasi Kesehatan', color: '#e91e63', page: 'pages/sehat.html' },
-        { icon: '📚', title: 'Jurnal Mengajar', desc: '', color: '#6d4c41', page: 'pages/jurnal-online.html' },
-        { icon: '🏆', title: 'EKSKUL', desc: '', color: '#d64413', page: 'pages/ekskul.html' },
+        { icon: '📚', title: 'JURNAL KELAS', desc: 'Catatan & Laporan PBM', color: '#2cc0c0', page: 'pages/jurnal-online.html' },
+        { icon: '🏆', title: 'EKSKUL', desc: 'Laporan Ekstrakurikuler', color: '#d64413', page: 'pages/ekskul.html' },
         { 
             icon: '📗',  // ← Tetap tambahkan icon sebagai fallback
             title: 'RDM', 
