@@ -84,7 +84,6 @@
         <div class="privasi-notice">
           🔒 <span>Semua dokumen yang Anda upload bersifat <b>PRIBADI</b>
         </div>
-        <div id="uploadTargetInfo" class="info-text" style="border-left-color:#2e7d32;">📂 Tujuan upload: <b>Beranda (Root)</b></div>
 
         <div class="form-row">
           <select id="kategori" required>
@@ -237,13 +236,15 @@
       loadDokumen();
     };
 
-    function renderBreadcrumb() {
+        function renderBreadcrumb() {
       const bc = document.getElementById('breadcrumb');
-      let html = `<span style="cursor:pointer; color:#1e88e5; font-weight:600;" onclick="goToCrumb(-1)">🏠 Beranda</span>`;
+      if (!bc) return;
+      let html = '<span style="cursor:pointer; color:#1e88e5; font-weight:600;" onclick="goToCrumb(-1)">🏠 Beranda</span>';
       folderTrail.forEach((f, i) => {
-        html += ` <span style="color:#bbb;">›</span> <span style="cursor:pointer; color:#1e88e5; font-weight:600;" onclick="goToCrumb(${i})">📁 ${f.nama}</span>`;
+        html += ' <span style="color:#bbb;">›</span> <span style="cursor:pointer; color:#1e88e5; font-weight:600;" onclick="goToCrumb(' + i + ')">📁 ' + f.nama + '</span>';
       });
       bc.innerHTML = html;
+    }
       const target = folderTrail.length ? folderTrail.map(f => f.nama).join(' / ') : 'Beranda (Root)';
       document.getElementById('uploadTargetInfo').innerHTML = `📂 Tujuan upload: <b>${target}</b>`;
     }
