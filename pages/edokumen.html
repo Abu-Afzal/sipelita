@@ -27,11 +27,11 @@
     .btn-upload:hover { background: #1565c0; }
     .btn-upload:disabled { background: #90caf9; cursor: not-allowed; }
 
-    /* LIST ALA GOOGLE DRIVE */
-    .dokumen-list { display: flex; flex-direction: column; gap: 0; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; background: white; }
-    .dokumen-header { display: grid; grid-template-columns: 60px 1fr 140px 110px 90px 80px 40px; padding: 12px 16px; background: #f5f7fa; border-bottom: 2px solid #e0e0e0; font-weight: 600; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
+    /* LIST ALA GOOGLE DRIVE (✅ overflow:hidden DIHAPUS agar dropdown tidak terpotong) */
+    .dokumen-list { display: flex; flex-direction: column; gap: 0; border: 1px solid #e0e0e0; border-radius: 10px; background: white; }
+    .dokumen-header { display: grid; grid-template-columns: 60px 1fr 140px 110px 90px 80px 40px; padding: 12px 16px; background: #f5f7fa; border-bottom: 2px solid #e0e0e0; font-weight: 600; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; border-radius: 10px 10px 0 0; }
     .dokumen-item { display: grid; grid-template-columns: 60px 1fr 140px 110px 90px 80px 40px; align-items: center; padding: 14px 16px; background: white; border-bottom: 1px solid #f0f0f0; transition: background 0.15s; position: relative; }
-    .dokumen-item:last-child { border-bottom: none; }
+    .dokumen-item:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
     .dokumen-item:hover { background: #f8fafc; }
     .dokumen-item.folder { cursor: pointer; background: #fbfdff; }
     .dokumen-item.folder:hover { background: #eef6ff; }
@@ -46,7 +46,8 @@
     .btn-menu { background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: #64748b; padding: 4px 8px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
     .btn-menu:hover { background: #e2e8f0; color: #1e293b; }
     .dropdown-wrapper { position: relative; }
-    .dropdown-menu { position: absolute; right: 0; top: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); min-width: 160px; z-index: 100; padding: 6px 0; display: none; margin-top: 4px; }
+    /* ✅ DROPDOWN: z-index besar + posisi dinamis (bisa buka ke atas) */
+    .dropdown-menu { position: absolute; right: 0; top: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); min-width: 170px; z-index: 1000; padding: 6px 0; display: none; margin-top: 4px; }
     .dropdown-menu.show { display: block; animation: dropdownFade 0.15s ease; }
     @keyframes dropdownFade { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     .dropdown-menu button, .dropdown-menu a { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; border: none; background: none; text-align: left; font-size: 0.88rem; color: #334155; cursor: pointer; text-decoration: none; transition: background 0.15s; }
@@ -57,7 +58,7 @@
     @media (max-width: 768px) {
       .dokumen-header { display: none; }
       .dokumen-item { grid-template-columns: 40px 1fr 40px; padding: 12px; gap: 8px; }
-      .dokumen-kategori, .dokumen-tanggal, .dokumen-ukuran { display: none; }
+      .dokumen-kategori, .dokumen-tanggal, .dokumen-ukuran, .dokumen-status { display: none; }
       .dokumen-info h4 { font-size: 0.88rem; }
       .dokumen-info .doc-subtitle { display: block; margin-top: 4px; }
     }
@@ -73,7 +74,7 @@
     <div class="page-header">
       <div style="font-size: 3rem; margin-bottom: 10px;">📁</div>
       <h1>E-Dokumen Madrasah</h1>
-      <p>Arsip digital & berkas administratif terpusat</p>
+      <p>Arsip digital & berkas administratif</p>
       <a href="../index.html" class="back-btn">← Kembali ke Dashboard</a>
     </div>
 
@@ -81,9 +82,8 @@
       <div class="upload-box" id="uploadBox">
         <h3>📤 Upload Dokumen Baru</h3>
         <div class="privasi-notice">
-          🔒 <span>Semua dokumen yang anda upload bersifat <b>PRIBADI</b> — hanya Anda dan Administrator yang dapat melihatnya.</span>
+          🔒 <span>Semua dokumen yang Anda upload bersifat <b>PRIBADI</b>
         </div>
-        <div id="uploadTargetInfo" class="info-text" style="border-left-color:#2e7d32;">📂 Tujuan upload: <b>Beranda (Root)</b></div>
 
         <div class="form-row">
           <select id="kategori" required>
@@ -121,7 +121,6 @@
         <span id="userInfoBadge" style="font-size: 0.8rem; background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-weight: 500;"></span>
       </h3>
 
-      <!-- Toolbar: Breadcrumb + Buat Folder -->
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
         <div id="breadcrumb" style="font-size:0.85rem; color:#64748b; display:flex; align-items:center; gap:6px; flex-wrap:wrap;"></div>
         <button id="btnBuatFolder" style="padding:8px 16px; background:#1e88e5; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;">➕ Folder Baru</button>
@@ -177,7 +176,6 @@
     const userInfoBadge = document.getElementById('userInfoBadge');
     if (userInfoBadge) userInfoBadge.textContent = currentRole === 'admin' ? '👑 Mode Admin (semua dokumen)' : `👤 ${currentUserName}`;
 
-    // STATE NAVIGASI FOLDER
     let currentFolderId = '';
     let folderTrail = [];
     let allDokumen = [];
@@ -201,16 +199,33 @@
     radioLokal.addEventListener('change', () => { inputLokalContainer.style.display = 'block'; inputLinkContainer.style.display = 'none'; errorMsg.classList.remove('show'); });
     radioLink.addEventListener('change', () => { inputLokalContainer.style.display = 'none'; inputLinkContainer.style.display = 'block'; errorMsg.classList.remove('show'); });
 
-    // DROPDOWN
+    // ✅ DROPDOWN ala Google Drive (dengan auto-flip agar tidak terpotong layar)
     window.toggleDropdown = (event, id) => {
       event.stopPropagation();
       const menu = document.getElementById(id);
       if (!menu) return;
       const isOpen = menu.classList.contains('show');
       closeAllDropdowns();
-      if (!isOpen) menu.classList.add('show');
+      if (!isOpen) {
+        menu.classList.add('show');
+        // Jika menu akan terpotong tepi bawah layar → buka ke ATAS
+        requestAnimationFrame(() => {
+          const r = menu.getBoundingClientRect();
+          if (r.bottom > window.innerHeight - 8) {
+            menu.style.top = 'auto';
+            menu.style.bottom = '100%';
+            menu.style.marginTop = '0';
+            menu.style.marginBottom = '4px';
+          }
+        });
+      }
     };
-    window.closeAllDropdowns = () => document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    window.closeAllDropdowns = () => {
+      document.querySelectorAll('.dropdown-menu.show').forEach(m => {
+        m.classList.remove('show');
+        m.style.top = ''; m.style.bottom = ''; m.style.marginTop = ''; m.style.marginBottom = '';
+      });
+    };
     document.addEventListener('click', (e) => { if (!e.target.closest('.dropdown-wrapper')) closeAllDropdowns(); });
 
     // NAVIGASI FOLDER
@@ -275,8 +290,7 @@
       try {
         await addDoc(collection(db, 'dokumen'), {
           type: 'folder', nama, parentId: currentFolderId, kategori: '-',
-          visibility: 'private', // ✅ Selalu private
-          uploader: currentUserName, size: 0, url: '',
+          visibility: 'private', uploader: currentUserName, size: 0, url: '',
           uploadedAt: new Date().toISOString()
         });
         modalFolder.style.display = 'none';
@@ -284,13 +298,13 @@
       } catch (e) { alert('❌ ' + e.message); }
     };
 
-    // ✅ FILTER: Hanya dokumen milik user login (atau admin lihat semua)
+    // ✅ FILTER: hanya milik user login (admin lihat semua)
     function isVisibleToUser(d) {
       if (currentRole === 'admin') return true;
       return (d.uploader === currentUserName);
     }
 
-    // LOAD DOKUMEN (FOLDER + FILE)
+    // LOAD DOKUMEN
     async function loadDokumen() {
       loadingState.style.display = 'block';
       const header = container.querySelector('.dokumen-header');
@@ -304,9 +318,7 @@
         querySnapshot.forEach(s => docs.push({ id: s.id, ...s.data() }));
         allDokumen = docs;
 
-        // ✅ Filter hanya milik user ini (admin lihat semua)
         const visible = docs.filter(isVisibleToUser);
-
         const items = visible.filter(d => (d.parentId || '') === currentFolderId);
         const folders = items.filter(d => (d.type || 'file') === 'folder').sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
         const files = items.filter(d => (d.type || 'file') !== 'folder').sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
@@ -316,7 +328,7 @@
           return;
         }
 
-        // RENDER FOLDER
+        // RENDER FOLDER (⋮ dropdown ala Google Drive)
         folders.forEach(d => {
           const date = new Date(d.uploadedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
           const childCount = countChildren(d.id);
@@ -331,9 +343,9 @@
             <div class="dokumen-kategori">Folder</div>
             <div class="dokumen-tanggal">${date}</div>
             <div class="dokumen-ukuran">${childCount} berkas</div>
-            <div><span class="badge-visibilitas badge-private">🔒 Pribadi</span></div>
+            <div class="dokumen-status"><span class="badge-visibilitas badge-private">🔒 Pribadi</span></div>
             <div class="dropdown-wrapper" onclick="event.stopPropagation()">
-              <button class="btn-menu" onclick="toggleDropdown(event,'dd-${d.id}')">⋮</button>
+              <button class="btn-menu" title="Aksi" onclick="toggleDropdown(event,'dd-${d.id}')">⋮</button>
               <div class="dropdown-menu" id="dd-${d.id}">
                 <button onclick="openFolder('${d.id}','${namaEsc}'); closeAllDropdowns();">📂 Buka</button>
                 <button onclick="renameFolder('${d.id}','${namaEsc}'); closeAllDropdowns();">✏️ Rename</button>
@@ -344,7 +356,7 @@
           container.appendChild(item);
         });
 
-        // RENDER FILE
+        // RENDER FILE (⋮ dropdown ala Google Drive)
         files.forEach(d => {
           const sizeText = d.size === 0 ? "Link Drive" : `${(d.size/(1024*1024)).toFixed(2)} MB`;
           const date = new Date(d.uploadedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -367,9 +379,9 @@
             <div class="dokumen-kategori">${d.kategori}</div>
             <div class="dokumen-tanggal">${date}</div>
             <div class="dokumen-ukuran">${sizeText}</div>
-            <div><span class="badge-visibilitas badge-private">🔒 Pribadi</span></div>
+            <div class="dokumen-status"><span class="badge-visibilitas badge-private">🔒 Pribadi</span></div>
             <div class="dropdown-wrapper">
-              <button class="btn-menu" onclick="toggleDropdown(event,'dd-${d.id}')">⋮</button>
+              <button class="btn-menu" title="Aksi" onclick="toggleDropdown(event,'dd-${d.id}')">⋮</button>
               <div class="dropdown-menu" id="dd-${d.id}">
                 <button onclick="lihatDokumen('${urlEsc}'); closeAllDropdowns();">🖥️ Lihat</button>
                 <a href="${d.url}" ${downloadAttr} onclick="closeAllDropdowns();">${btnText}</a>
@@ -407,9 +419,7 @@
       try {
         await addDoc(collection(db, "dokumen"), {
           type: 'file', nama: namaDokumen.value.trim(), kategori: kategori.value, url: finalUrl,
-          fileName: finalFileName, size: finalSize,
-          visibility: 'private', // ✅ Selalu private
-          uploader: currentUserName,
+          fileName: finalFileName, size: finalSize, visibility: 'private', uploader: currentUserName,
           parentId: currentFolderId, uploadedAt: new Date().toISOString()
         });
         alert('✅ Dokumen berhasil disimpan (Pribadi)');
