@@ -6,15 +6,16 @@
     <title>Jurnal Mengajar Online - SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
     
+    <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; }
         
-                .header { background: #3b82f6; color: white; padding: 20px 24px; border-radius: 0 0 16px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 15px rgba(59,130,246,0.2); }
+        .header { background: #3b82f6; color: white; padding: 20px 24px; border-radius: 0 0 16px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 15px rgba(59,130,246,0.2); }
         .header-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); background: white; }
         .header-info { flex: 1; }
         .header-title { font-size: 1.6rem; font-weight: 800; color: white; margin-bottom: 2px; }
@@ -73,7 +74,6 @@
             display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
         }
         
-        /* 🆕 Style untuk range jam */
         .jam-range-container {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -170,25 +170,13 @@
         <div class="header-subtitle">Jurnal Mengajar — TA. 2026/2027 Semester Ganjil</div>
     </div>
     <div class="header-user">
-        <div class="user-name" id="userDisplay">–</div>
+        <div class="user-name" id="userDisplay">Memuat status login...</div>
         <div class="header-actions">
             <a href="jurnal-rekap.html" class="btn-dashboard">📊 Rekap Jurnal</a>
             <a href="../index.html" class="btn-dashboard">← Dashboard SIPELITA</a>
         </div>
     </div>
 </div>
-<script>
-  (function () {
-    try {
-      var s = JSON.parse(localStorage.getItem('sipelita_user') || 'null');
-      var el = document.getElementById('userDisplay');
-      if (s && el) {
-        var icon = { admin: '👑', kepala: '👑', wakil: '⭐', guru: '👨‍' }[s.role] || '👨‍';
-        el.textContent = icon + ' Hi, ' + (s.nama || s.email || 'Guru');
-      }
-    } catch (e) {}
-  })();
-</script>
 
 <div class="container">
     
@@ -201,13 +189,13 @@
         
         <!-- Info Guru (Auto-fill) -->
         <div class="card">
-            <h2>‍🏫 Data Guru</h2>
+            <h2>👨‍🏫 Data Guru</h2>
             <div id="alertInfo" class="alert"></div>
             
             <div class="form-row">
                 <div class="form-group">
                     <label>Nama Guru <span class="required">*</span></label>
-                    <input type="text" id="namaGuru" readonly placeholder="Otomatis dari login">
+                    <input type="text" id="namaGuru" readonly placeholder="Memuat dari Firebase Auth...">
                 </div>
                 <div class="form-group">
                     <label>NIP <span class="required">*</span></label>
@@ -227,7 +215,7 @@
                     <input type="date" id="tanggal" required>
                 </div>
                 
-                <!-- 🆕 RENTANG JAM MENGAJAR (Dua Dropdown) -->
+                <!-- RENTANG JAM MENGAJAR -->
                 <div class="form-group">
                     <label>Jam Mengajar <span class="required">*</span></label>
                     <div class="jam-range-container">
@@ -320,7 +308,33 @@
     
 </div>
 
+<!-- Skrip Aplikasi -->
 <script src="../js/jurnal-online.js"></script>
+
+<!-- Skrip Firebase Authentication Listener -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged(function(user) {
+                const elDisplay = document.getElementById('userDisplay');
+                const elNamaGuru = document.getElementById('namaGuru');
+
+                if (user) {
+                    const displayName = user.displayName || user.email.split('@')[0];
+                    if (elDisplay) {
+                        elDisplay.textContent = '👨‍🏫 Hi, ' + displayName;
+                    }
+                    if (elNamaGuru) {
+                        elNamaGuru.value = displayName;
+                    }
+                } else {
+                    alert('Sesi login tidak ditemukan. Silakan login terlebih dahulu.');
+                    window.location.href = '../login.html';
+                }
+            });
+        }
+    });
+</script>
 
 </body>
 </html>
