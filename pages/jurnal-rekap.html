@@ -450,13 +450,11 @@ window.loadRekapJurnal = async function() {
         if (isEvaluator) {
             console.log('📊 Loading semua jurnal untuk evaluator...');
             snapshot = await db.collection('jurnal_online')
-                .orderBy('tanggal', 'desc')
                 .get();
         } else {
             console.log('📊 Loading jurnal untuk guru:', currentUser);
             snapshot = await db.collection('jurnal_online')
                 .where('guruNama', '==', currentUser)
-                .orderBy('tanggal', 'desc')
                 .get();
         }
         
@@ -470,6 +468,9 @@ window.loadRekapJurnal = async function() {
             if (data.guruNama) guruSet.add(data.guruNama);
             if (data.kelas) kelasSet.add(data.kelas);
         });
+
+        // Urutkan berdasarkan tanggal terbaru di browser
+allJurnal.sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0));
         
         console.log(`✅ Loaded ${allJurnal.length} jurnal`);
         
