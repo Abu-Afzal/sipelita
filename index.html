@@ -457,7 +457,7 @@
                                 // ══════════════════════════════════════════════
                 // LOGIKA SIMPAN IDENTITAS MADRASAH (SIG)
                 // ══════════════════════════════════════════════
-                const btnSimpanIdentitas = document.getElementById('btnSimpanIdentitas');
+                                const btnSimpanIdentitas = document.getElementById('btnSimpanIdentitas');
                 if (btnSimpanIdentitas) {
                     btnSimpanIdentitas.addEventListener('click', () => {
                         if (!window.SIG) {
@@ -465,27 +465,26 @@
                             return;
                         }
                         
-                                                const identitas = {
+                        const identitas = {
                             tempat: document.getElementById('sigTempat').value.trim(),
                             kamadNama: document.getElementById('sigKamadNama').value.trim(),
                             kamadNip: document.getElementById('sigKamadNip').value.trim(),
                             rdmLink: document.getElementById('sigRdmLink').value.trim()
                         };
                         
-                        // ✅ Admin → sekaligus jadi DEFAULT semua guru
-                        window.SIG.save(identitas, user.role === 'admin');
-                        showToast(user.role === 'admin'
-                            ? '✅ Tersimpan & dijadikan default semua guru!'
-                            : '✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
-                        
-                        // Validasi minimal satu field terisi
-                        if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip) {
-                            showToast('Isi minimal salah satu kolom identitas!', 'warning');
+                        // ✅ Validasi DULU — minimal satu field terisi
+                        if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip && !identitas.rdmLink) {
+                            showToast('⚠️ Isi minimal salah satu kolom!', 'warning');
                             return;
                         }
                         
-                        window.SIG.save(identitas);
-                        showToast('✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
+                        // ✅ Simpan SEKALI — Admin otomatis jadi default semua guru
+                        const isAdmin = user.role === 'admin';
+                        window.SIG.save(identitas, isAdmin);
+                        
+                        showToast(isAdmin
+                            ? '✅ Tersimpan & dijadikan default semua guru!'
+                            : '✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
                     });
                 }
                 
