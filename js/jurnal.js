@@ -736,6 +736,9 @@ async function exportPDF(e) {
 window.exportPDF = exportPDF;
 
 async function generatePDF(isPreview) {
+    // ✅ Muat identitas madrasah (SIG) untuk tanda tangan
+    const SET = window.SIG ? window.SIG.get() : { ttdTempat: '....................', ttdKamad: '( .................................................... )', ttdNip: 'NIP. ....................' };
+    
     const blnEl = document.getElementById('filterBulan');
     const thnEl = document.getElementById('filterTahun');
     const filterBulan = blnEl ? blnEl.value : (new Date().getMonth() + 1);
@@ -834,17 +837,17 @@ async function generatePDF(isPreview) {
             }).join('') +
         '</tbody></table>' +
         
-        '<div style="margin-top:40px; display:flex; justify-content:space-between; font-size:11px; width:100%; line-height: 1.5;">' +
+                '<div style="margin-top:40px; display:flex; justify-content:space-between; font-size:11px; width:100%; line-height: 1.5;">' +
             '<div style="width: 350px; text-align:left;">' +
                 '<div style="height: 18px;"></div>' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">Mengetahui,</p>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Kepala Madrasah</p>' +
                 '<div style="height: 75px;"></div>' +
-                '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">Muhammad Arif Pither, S.Ag.,M.M.,M.Pd</p>' +
-                '<p style="margin: 0; padding: 0;">NIP. 19710930 200710 1 001</p>' +
+                '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + SET.ttdKamad + '</p>' +
+                '<p style="margin: 0; padding: 0;">' + SET.ttdNip + '</p>' +
             '</div>' +
             '<div style="width: 350px; text-align:left; margin-left: auto; padding-left: 460px;">' +
-                '<p style="margin: 0 0 4px 0; padding: 0;">Bantaeng, ' + new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) + '</p>' +
+                '<p style="margin: 0 0 4px 0; padding: 0;">' + SET.ttdTempat + ', ' + new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) + '</p>' +
                 '<div style="height: 18px;"></div>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Guru Mata Pelajaran</p>' +
                 '<div style="height: 75px;"></div>' +
