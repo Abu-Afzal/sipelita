@@ -1,3 +1,22 @@
+// ══════════════════════════════════════════════
+// RDM: buka link sesuai madrasah masing-masing
+// ══════════════════════════════════════════════
+window.openRDM = function () {
+    var SET = window.SIG ? window.SIG.get() : {};
+    if (SET.rdmLink) {
+        window.open(SET.rdmLink, '_blank');
+    } else {
+        alert('🔗 Link RDM madrasah Anda belum diatur.\nSilakan buka ⚙️ Pengaturan Akun → isi "Link RDM Madrasah".');
+    }
+};
+
+// ══════════════════════════════════════════════
+// RENDER CARDS
+// ══════════════════════════════════════════════
+function renderCards() {
+    // ... kode yang sudah ada ...
+}
+
 function renderCards() {
     const umumContainer = document.getElementById('layanan-umum');
     const madrasahContainer = document.getElementById('layanan-madrasah');
@@ -97,10 +116,15 @@ function renderCards() {
                     </div>
                 `;
                 
-                const link = item.url || item.page;
+                                const link = item.url || item.page;
                 const isExternal = link && (link.startsWith('http://') || link.startsWith('https://'));
+                const onclickAttr = item.onclick ? `onclick="${item.onclick}; return false;"` : '';
                 
-                if (isExternal) {
+                // ✅ Prioritas: onclick → external → internal → div
+                if (item.onclick) {
+                    // Jika ada onclick, pakai <a> dengan href + onclick
+                    return `<a href="${link || 'javascript:void(0)'}" ${onclickAttr} class="card-link">${cardContent}</a>`;
+                } else if (isExternal) {
                     return `<a href="${link}" target="_blank" rel="noopener noreferrer" class="card-link">${cardContent}</a>`;
                 } else if (link) {
                     return `<a href="${link}" class="card-link">${cardContent}</a>`;
