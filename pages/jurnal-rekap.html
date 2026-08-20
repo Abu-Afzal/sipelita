@@ -560,18 +560,26 @@ function renderTabel() {
                 <td>${tanggal}</td>
                 <td>${j.jamDisplay || (j.jamKe ? 'Jam ke-' + j.jamKe : '-')}</td>
                 <td><strong>${j.kelas || '-'}</strong></td>
-                ${isEvaluator ? `<td>${j.guruNama || '-'}</td>` : ''}
+                ${isEvaluator ? `<td>${escapeHtml(j.guruNama || '-')}</td>` : ''}
                 <td><span class="badge badge-hadir">${j.muridHadir || 0}</span></td>
                 <td><span class="badge badge-tidak">${j.muridTidakHadir || 0}</span></td>
                 <td class="materi-cell">${materi}${(j.materi || '').length > 100 ? '...' : ''}</td>
                 <td class="keterangan-cell">${keterangan}${(j.keterangan || '').length > 80 ? '...' : ''}</td>
-                <td>
-                    <button class="btn btn-primary btn-sm" onclick="lihatDetail('${j.id}')">👁️</button>
-                    <button class="btn btn-danger btn-sm" onclick="hapusJurnal('${j.id}')">️</button>
+                <td style="white-space:nowrap;">
+                    <button class="btn btn-primary btn-sm btn-detail" data-id="${j.id}">👁️</button>
+                    <button class="btn btn-danger btn-sm btn-hapus" data-id="${j.id}">🗑️</button>
                 </td>
             </tr>
         `;
     }).join('');
+
+    // ✅ AMAN: Pasang event listener setelah HTML di-render (menghindari bug karakter khusus ID)
+    tbody.querySelectorAll('.btn-detail').forEach(btn => {
+        btn.onclick = () => lihatDetail(btn.dataset.id);
+    });
+    tbody.querySelectorAll('.btn-hapus').forEach(btn => {
+        btn.onclick = () => hapusJurnal(btn.dataset.id);
+    });
 }
 
 function updateStatistik() {
