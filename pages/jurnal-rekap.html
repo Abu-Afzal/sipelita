@@ -3,22 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekap Jurnal Online</title>
+  <title>Rekap Jurnal Online - SIPELITA</title>
   
-  <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Firebase SDK v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- ✅ Firebase SDK compat + AUTH (wajib untuk rules) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   
-  <!-- SheetJS untuk Ekspor Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
 
-  <!-- Header / Navigation -->
   <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
       <div class="flex items-center space-x-3">
@@ -32,8 +30,11 @@
         <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center shadow">
           <i class="fa-solid fa-file-excel mr-2"></i> Ekspor Excel
         </button>
-        <button onclick="window.history.back()" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
-          <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
+        <button onclick="window.location.href='jurnal-online.html'" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+          <i class="fa-solid fa-pen mr-1"></i> Input Jurnal
+        </button>
+        <button onclick="window.location.href='../index.html'" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Dashboard
         </button>
       </div>
     </div>
@@ -41,30 +42,23 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- Ringkasan Statistik -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
-        <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
-          <i class="fa-solid fa-list-check text-2xl"></i>
-        </div>
+        <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg"><i class="fa-solid fa-list-check text-2xl"></i></div>
         <div>
           <p class="text-xs text-slate-500 font-medium">Total Jurnal</p>
           <h3 class="text-2xl font-bold text-slate-800" id="statTotal">0</h3>
         </div>
       </div>
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
-        <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
-          <i class="fa-solid fa-filter text-2xl"></i>
-        </div>
+        <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i class="fa-solid fa-filter text-2xl"></i></div>
         <div>
           <p class="text-xs text-slate-500 font-medium">Tersaring</p>
           <h3 class="text-2xl font-bold text-slate-800" id="statFiltered">0</h3>
         </div>
       </div>
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
-        <div class="p-3 bg-amber-100 text-amber-600 rounded-lg">
-          <i class="fa-solid fa-user-graduate text-2xl"></i>
-        </div>
+        <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-user-graduate text-2xl"></i></div>
         <div>
           <p class="text-xs text-slate-500 font-medium">Total Kelas Terekam</p>
           <h3 class="text-2xl font-bold text-slate-800" id="statKelas">0</h3>
@@ -72,42 +66,32 @@
       </div>
     </div>
 
-    <!-- Panel Filter -->
     <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
       <div class="flex items-center justify-between border-b pb-3">
         <h2 class="font-semibold text-slate-700 flex items-center">
           <i class="fa-solid fa-sliders mr-2 text-indigo-600"></i> Filter Data Jurnal
         </h2>
-        <button onclick="resetFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-          Reset Filter
-        </button>
+        <button onclick="resetFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Reset Filter</button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Pencarian Kata Kunci -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Cari Kata Kunci</label>
           <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Cari materi / mapel..." 
                  class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
-
-        <!-- Filter Guru (Diaktifkan jika role Evaluator/Admin) -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Guru</label>
           <select id="filterGuru" onchange="applyFilters()" class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option value="">-- Semua Guru --</option>
           </select>
         </div>
-
-        <!-- Filter Kelas -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Kelas</label>
           <select id="filterKelas" onchange="applyFilters()" class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option value="">-- Semua Kelas --</option>
           </select>
         </div>
-
-        <!-- Filter Tanggal -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
           <input type="date" id="filterTanggal" onchange="applyFilters()" 
@@ -116,7 +100,6 @@
       </div>
     </div>
 
-    <!-- Tabel Rekap -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-slate-600">
@@ -125,7 +108,7 @@
               <th class="p-4 w-12 text-center">No</th>
               <th class="p-4">Tanggal / Jam</th>
               <th class="p-4">Guru</th>
-              <th class="p-4">Mapel & Kelas</th>
+              <th class="p-4">Kelas</th>
               <th class="p-4">Materi / Kegiatan</th>
               <th class="p-4 text-center">Absensi</th>
               <th class="p-4 text-center">Aksi</th>
@@ -145,58 +128,50 @@
 
   </main>
 
-  <!-- Modal Detail Jurnal -->
   <div id="detailModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3">
         <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Detail Jurnal</h3>
-        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-xl"></i>
-        </button>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
-      <div id="modalContent" class="space-y-3 text-sm text-slate-700">
-        <!-- Konten detail akan diisi oleh JavaScript -->
-      </div>
+      <div id="modalContent" class="space-y-3 text-sm text-slate-700"></div>
       <div class="border-t pt-3 text-right">
-        <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm">
-          Tutup
-        </button>
+        <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm">Tutup</button>
       </div>
     </div>
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // 1. Konfigurasi Firebase
-    // -------------------------------------------------------------
+    // ✅ CONFIG BENAR (project sipelita-guru)
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+      authDomain: "sipelita-guru.firebaseapp.com",
+      projectId: "sipelita-guru",
+      storageBucket: "sipelita-guru.firebasestorage.app",
+      messagingSenderId: "595996765157",
+      appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
     };
 
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
-    // -------------------------------------------------------------
-    // 2. Data & Status Global
-    // -------------------------------------------------------------
     let allJurnal = [];
     let filteredJurnal = [];
     let currentUser = null;
     let isEvaluator = false;
 
-    // -------------------------------------------------------------
-    // 3. Inisialisasi Sesi & Load Data
-    // -------------------------------------------------------------
     document.addEventListener("DOMContentLoaded", () => {
-      initSession();
-      loadRekapJurnal();
+      // ✅ TUNGGU AUTH SIAP (rules butuh request.auth != null)
+      auth.onAuthStateChanged(user => {
+        if (!user) {
+          alert('Sesi login tidak ditemukan. Silakan login terlebih dahulu.');
+          window.location.href = '../index.html';
+          return;
+        }
+        initSession();
+        loadRekapJurnal();
+      });
     });
 
     function initSession() {
@@ -205,17 +180,12 @@
         try {
           const userObj = JSON.parse(userRaw);
           currentUser = userObj.nama || userObj.username || "Pengguna";
-          isEvaluator = userObj.role === 'evaluator' || userObj.role === 'admin';
-        } catch (e) {
-          currentUser = userRaw;
-        }
-      } else {
-        currentUser = "Tamu";
-      }
+          isEvaluator = userObj.role === 'evaluator' || userObj.role === 'admin' || userObj.role === 'kepala' || userObj.role === 'wakil';
+        } catch (e) { currentUser = "Pengguna"; }
+      } else { currentUser = "Pengguna"; }
 
       document.getElementById('userDisplay').innerText = `${currentUser} (${isEvaluator ? 'Evaluator' : 'Guru'})`;
       
-      // Sembunyikan/tampilkan filter guru berdasarkan peran
       const filterGuruElem = document.getElementById('filterGuru');
       if (!isEvaluator) {
         filterGuruElem.disabled = true;
@@ -223,15 +193,11 @@
       }
     }
 
-    // -------------------------------------------------------------
-    // 4. Pengambilan Data dari Firestore (Tanpa Index Error)
-    // -------------------------------------------------------------
     async function loadRekapJurnal() {
       const tbody = document.getElementById('tableBody');
       try {
         let snapshot;
         
-        // Membaca data berdasarkan otorisasi peran
         if (isEvaluator) {
           snapshot = await db.collection('jurnal_online').get();
         } else {
@@ -247,19 +213,15 @@
         snapshot.forEach(doc => {
           const data = { id: doc.id, ...doc.data() };
           allJurnal.push(data);
-          
           if (data.guruNama) guruSet.add(data.guruNama);
           if (data.kelas) kelasSet.add(data.kelas);
         });
 
-        // Urutkan tanggal secara manual di JS (Terbaru -> Terlama)
         allJurnal.sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0));
 
-        // Isi dropdown filter
         populateDropdown('filterGuru', Array.from(guruSet));
         populateDropdown('filterKelas', Array.from(kelasSet));
 
-        // Tampilkan statistik & tabel
         document.getElementById('statTotal').innerText = allJurnal.length;
         document.getElementById('statKelas').innerText = kelasSet.size;
 
@@ -282,10 +244,7 @@
     function populateDropdown(elemId, options) {
       const select = document.getElementById(elemId);
       const currentVal = select.value;
-      
-      // Pertahankan opsi pertama (-- Semua --)
       select.innerHTML = select.options[0].outerHTML;
-      
       options.sort().forEach(opt => {
         const el = document.createElement('option');
         el.value = opt;
@@ -295,9 +254,6 @@
       select.value = currentVal;
     }
 
-    // -------------------------------------------------------------
-    // 5. Logika Penyaringan (Filtering)
-    // -------------------------------------------------------------
     function applyFilters() {
       const search = document.getElementById('filterSearch').value.toLowerCase();
       const guru = document.getElementById('filterGuru').value;
@@ -308,11 +264,9 @@
         const matchSearch = !search || 
           (item.materi && item.materi.toLowerCase().includes(search)) ||
           (item.mapel && item.mapel.toLowerCase().includes(search));
-        
         const matchGuru = !guru || item.guruNama === guru;
         const matchKelas = !kelas || item.kelas === kelas;
         const matchTanggal = !tanggal || item.tanggal === tanggal;
-
         return matchSearch && matchGuru && matchKelas && matchTanggal;
       });
 
@@ -328,21 +282,18 @@
       applyFilters();
     }
 
-    // -------------------------------------------------------------
-    // 6. Render Tabel
-    // -------------------------------------------------------------
+    // ✅ FIELD DISINKRONKAN dengan jurnal-online.js
+    function getJam(item) { return item.jamDisplay || (item.jamRange ? 'Jam ' + item.jamRange : ('Jam ke-' + (item.jamKe || '-'))); }
+    function getHadir(item) { return item.muridHadir ?? item.hadir ?? 0; }
+    function getTidakHadir(item) { return item.muridTidakHadir ?? ((item.sakit||0)+(item.izin||0)+(item.alpa||0)); }
+    function getKeterangan(item) { return item.keterangan || item.catatan || ''; }
+
     function renderTable(data) {
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = '';
 
       if (data.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="p-8 text-center text-slate-400">
-              Tidak ada data jurnal yang sesuai filter.
-            </td>
-          </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">Tidak ada data jurnal yang sesuai filter.</td></tr>`;
         return;
       }
 
@@ -350,32 +301,21 @@
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
         
-        const absensiSummary = `
-          <span class="text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">H: ${item.hadir || 0}</span>
-          <span class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">S: ${item.sakit || 0}</span>
-          <span class="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">I: ${item.izin || 0}</span>
-          <span class="text-xs bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded">A: ${item.alpa || 0}</span>
-        `;
-
         tr.innerHTML = `
           <td class="p-4 text-center font-medium text-slate-400">${index + 1}</td>
           <td class="p-4 whitespace-nowrap">
             <div class="font-medium text-slate-800">${item.tanggal || '-'}</div>
-            <div class="text-xs text-slate-400">Jam ke: ${item.jamKe || '-'}</div>
+            <div class="text-xs text-slate-400">${getJam(item)}</div>
           </td>
           <td class="p-4 font-medium text-slate-700">${item.guruNama || '-'}</td>
           <td class="p-4 whitespace-nowrap">
-            <span class="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded text-xs mb-1">
-              ${item.mapel || '-'}
-            </span>
-            <div class="text-xs text-slate-500">Kelas: ${item.kelas || '-'}</div>
+            <span class="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded text-xs">${item.kelas || '-'}</span>
           </td>
-          <td class="p-4 max-w-xs truncate" title="${item.materi || ''}">
-            ${item.materi || '-'}
-          </td>
+          <td class="p-4 max-w-xs truncate" title="${(item.materi || '').replace(/"/g, '&quot;')}">${item.materi || '-'}</td>
           <td class="p-4 text-center whitespace-nowrap">
             <div class="flex items-center justify-center space-x-1">
-              ${absensiSummary}
+              <span class="text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">H: ${getHadir(item)}</span>
+              <span class="text-xs bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded">TH: ${getTidakHadir(item)}</span>
             </div>
           </td>
           <td class="p-4 text-center">
@@ -388,22 +328,20 @@
       });
     }
 
-    // -------------------------------------------------------------
-    // 7. Modal Detail
-    // -------------------------------------------------------------
     function openModal(id) {
       const item = allJurnal.find(j => j.id === id);
       if (!item) return;
 
       document.getElementById('modalTitle').innerText = `Detail Jurnal - ${item.tanggal || ''}`;
       
-      const content = document.getElementById('modalContent');
-      content.innerHTML = `
+      document.getElementById('modalContent').innerHTML = `
         <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg text-xs border border-slate-200">
           <div><strong class="text-slate-500">Guru:</strong> <p class="text-sm font-semibold">${item.guruNama || '-'}</p></div>
-          <div><strong class="text-slate-500">Kelas & Mapel:</strong> <p class="text-sm font-semibold">${item.kelas || '-'} / ${item.mapel || '-'}</p></div>
+          <div><strong class="text-slate-500">NIP:</strong> <p class="text-sm font-semibold">${item.nip || '-'}</p></div>
+          <div><strong class="text-slate-500">Kelas:</strong> <p class="text-sm font-semibold">${item.kelas || '-'}</p></div>
+          <div><strong class="text-slate-500">Jam Mengajar:</strong> <p class="text-sm font-semibold">${getJam(item)}</p></div>
           <div><strong class="text-slate-500">Tanggal:</strong> <p>${item.tanggal || '-'}</p></div>
-          <div><strong class="text-slate-500">Jam Ke:</strong> <p>${item.jamKe || '-'}</p></div>
+          <div><strong class="text-slate-500">Email:</strong> <p>${item.userEmail || '-'}</p></div>
         </div>
 
         <div>
@@ -412,17 +350,15 @@
         </div>
 
         <div>
-          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Catatan / Hambatan</h4>
-          <p class="p-3 bg-white border rounded-lg text-slate-700 whitespace-pre-line">${item.catatan || 'Tidak ada catatan.'}</p>
+          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Keterangan</h4>
+          <p class="p-3 bg-white border rounded-lg text-slate-700 whitespace-pre-line">${getKeterangan(item) || 'Tidak ada keterangan.'}</p>
         </div>
 
         <div>
-          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Rincian Kehadiran Siswa</h4>
-          <div class="grid grid-cols-4 gap-2 text-center text-xs">
-            <div class="bg-emerald-50 text-emerald-700 p-2 rounded border border-emerald-200"><span class="block font-bold text-lg">${item.hadir || 0}</span> Hadir</div>
-            <div class="bg-amber-50 text-amber-700 p-2 rounded border border-amber-200"><span class="block font-bold text-lg">${item.sakit || 0}</span> Sakit</div>
-            <div class="bg-blue-50 text-blue-700 p-2 rounded border border-blue-200"><span class="block font-bold text-lg">${item.izin || 0}</span> Izin</div>
-            <div class="bg-rose-50 text-rose-700 p-2 rounded border border-rose-200"><span class="block font-bold text-lg">${item.alpa || 0}</span> Alpa</div>
+          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Kehadiran Siswa</h4>
+          <div class="grid grid-cols-2 gap-2 text-center text-xs">
+            <div class="bg-emerald-50 text-emerald-700 p-2 rounded border border-emerald-200"><span class="block font-bold text-lg">${getHadir(item)}</span> Hadir</div>
+            <div class="bg-rose-50 text-rose-700 p-2 rounded border border-rose-200"><span class="block font-bold text-lg">${getTidakHadir(item)}</span> Tidak Hadir</div>
           </div>
         </div>
       `;
@@ -438,28 +374,21 @@
       modal.classList.remove('flex');
     }
 
-    // -------------------------------------------------------------
-    // 8. Ekspor Data ke Excel
-    // -------------------------------------------------------------
+    // ✅ EKSPOR DENGAN FIELD TERSINKRON
     function exportToExcel() {
-      if (filteredJurnal.length === 0) {
-        alert("Tidak ada data untuk diekspor!");
-        return;
-      }
+      if (filteredJurnal.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
 
       const exportData = filteredJurnal.map((item, index) => ({
         "No": index + 1,
         "Tanggal": item.tanggal || '',
-        "Jam Ke": item.jamKe || '',
+        "Jam Mengajar": getJam(item),
         "Nama Guru": item.guruNama || '',
-        "Mata Pelajaran": item.mapel || '',
+        "NIP": item.nip || '',
         "Kelas": item.kelas || '',
         "Materi Pembelajaran": item.materi || '',
-        "Catatan": item.catatan || '',
-        "Hadir": item.hadir || 0,
-        "Sakit": item.sakit || 0,
-        "Izin": item.izin || 0,
-        "Alpa": item.alpa || 0
+        "Keterangan": getKeterangan(item),
+        "Murid Hadir": getHadir(item),
+        "Murid Tidak Hadir": getTidakHadir(item)
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
