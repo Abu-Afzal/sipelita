@@ -6,10 +6,9 @@
     <title>Jurnal Mengajar Online - SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
     
-    <!-- Firebase SDK (Compat Version) -->
+    <!-- Firebase SDK (Compat Version) - LENGKAP dengan Auth -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     
     <style>
@@ -78,13 +77,21 @@
             align-items: end;
         }
         .jam-separator {
-            text-align: center; font-weight: 700; color: #047857;
-            padding-bottom: 11px; font-size: 1.1rem;
+            text-align: center;
+            font-weight: 700;
+            color: #047857;
+            padding-bottom: 11px;
+            font-size: 1.1rem;
         }
         .jam-preview {
-            background: #d1fae5; color: #047857; padding: 8px 12px;
-            border-radius: 6px; font-weight: 600; margin-top: 8px;
-            text-align: center; font-size: 0.9rem;
+            background: #d1fae5;
+            color: #047857;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 0.9rem;
         }
         
         .btn {
@@ -170,7 +177,6 @@
     
     <form id="formJurnal">
         
-        <!-- Info Guru -->
         <div class="card">
             <h2>👨‍🏫 Data Guru</h2>
             <div id="alertInfo" class="alert"></div>
@@ -178,7 +184,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Nama Guru <span class="required">*</span></label>
-                    <input type="text" id="namaGuru" readonly placeholder="Memuat nama guru...">
+                    <input type="text" id="namaGuru" readonly placeholder="Memuat dari Firebase Auth...">
                 </div>
                 <div class="form-group">
                     <label>NIP <span class="required">*</span></label>
@@ -188,7 +194,6 @@
             </div>
         </div>
         
-        <!-- Info Mengajar -->
         <div class="card">
             <h2>📅 Informasi Mengajar</h2>
             
@@ -203,36 +208,24 @@
                     <div class="jam-range-container">
                         <select id="jamMulai" required>
                             <option value="">Jam Mulai</option>
-                            <option value="1">Jam ke-1</option>
-                            <option value="2">Jam ke-2</option>
-                            <option value="3">Jam ke-3</option>
-                            <option value="4">Jam ke-4</option>
-                            <option value="5">Jam ke-5</option>
-                            <option value="6">Jam ke-6</option>
-                            <option value="7">Jam ke-7</option>
-                            <option value="8">Jam ke-8</option>
-                            <option value="9">Jam ke-9</option>
-                            <option value="10">Jam ke-10</option>
+                            <option value="1">Jam ke-1</option><option value="2">Jam ke-2</option>
+                            <option value="3">Jam ke-3</option><option value="4">Jam ke-4</option>
+                            <option value="5">Jam ke-5</option><option value="6">Jam ke-6</option>
+                            <option value="7">Jam ke-7</option><option value="8">Jam ke-8</option>
+                            <option value="9">Jam ke-9</option><option value="10">Jam ke-10</option>
                         </select>
-                        
                         <div class="jam-separator">s/d</div>
-                        
                         <select id="jamSelesai" required>
                             <option value="">Jam Selesai</option>
-                            <option value="1">Jam ke-1</option>
-                            <option value="2">Jam ke-2</option>
-                            <option value="3">Jam ke-3</option>
-                            <option value="4">Jam ke-4</option>
-                            <option value="5">Jam ke-5</option>
-                            <option value="6">Jam ke-6</option>
-                            <option value="7">Jam ke-7</option>
-                            <option value="8">Jam ke-8</option>
-                            <option value="9">Jam ke-9</option>
-                            <option value="10">Jam ke-10</option>
+                            <option value="1">Jam ke-1</option><option value="2">Jam ke-2</option>
+                            <option value="3">Jam ke-3</option><option value="4">Jam ke-4</option>
+                            <option value="5">Jam ke-5</option><option value="6">Jam ke-6</option>
+                            <option value="7">Jam ke-7</option><option value="8">Jam ke-8</option>
+                            <option value="9">Jam ke-9</option><option value="10">Jam ke-10</option>
                         </select>
                     </div>
                     <div id="jamPreview" class="jam-preview" style="display: none;"></div>
-                    <div class="helper-text">Pilih rentang jam mengajar (contoh: Jam 1-2 berarti mengajar 2 jam)</div>
+                    <div class="helper-text">Pilih rentang jam mengajar (contoh: Jam 1-2)</div>
                 </div>
                 
                 <div class="form-group">
@@ -256,17 +249,20 @@
             </div>
         </div>
         
-        <!-- Materi -->
         <div class="card">
-            <h2>📖 Materi</h2>
+            <h2>📖 Materi & Keterangan</h2>
             
             <div class="form-group">
                 <label>Materi / Tugas <span class="required">*</span></label>
-                <textarea id="materi" required placeholder="Tuliskan materi yang diajarkan atau tugas yang diberikan..." rows="5"></textarea>
+                <textarea id="materi" required placeholder="Tuliskan materi yang diajarkan..." rows="5"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Keterangan <span class="required">*</span></label>
+                <textarea id="keterangan" required placeholder="Catatan tambahan, kendala, atau hal penting lainnya..." rows="4"></textarea>
             </div>
         </div>
         
-        <!-- Tombol Submit -->
         <div class="card" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-primary" id="btnSimpan" style="flex: 1;">
@@ -285,7 +281,7 @@
     
 </div>
 
-<!-- Skrip Utama Aplikasi -->
+<!-- SATU-SATUNYA sumber logika - TIDAK ADA script inline Auth lagi -->
 <script src="../js/jurnal-online.js"></script>
 
 </body>
