@@ -263,8 +263,31 @@
         &copy; 2026 SIPELITA - Portal Administrasi Sekolah Terintegrasi. Dibuat untuk efisiensi manajemen madrasah modern.
     </footer>
 
-    <script src="js/config.js"></script>
+        <script src="js/config.js"></script>
     <script src="js/main.js"></script>
+    
+    <!-- ✅ FALLBACK RDM: bekerja apa pun versi main.js -->
+    <script>
+        // Pastikan openRDM ada (bila main.js versi lama belum punya)
+        if (!window.openRDM) {
+            window.openRDM = function () {
+                var SET = window.SIG ? window.SIG.get() : {};
+                if (SET.rdmLink) window.open(SET.rdmLink, '_blank');
+                else alert('🔗 Link RDM madrasah Anda belum diatur.\nSilakan buka ⚙️ Pengaturan Akun → isi "Link RDM Madrasah".');
+            };
+        }
+        // Tangkap klik pada kartu RDM → panggil openRDM()
+        document.addEventListener('click', function (e) {
+            var link = e.target.closest ? e.target.closest('a.card-link') : null;
+            if (!link) return;
+            var t = link.querySelector('.card-title');
+            if (t && t.textContent.trim() === 'RDM') {
+                e.preventDefault();
+                window.openRDM();
+            }
+        });
+    </script>
+
     
     <script type="module">
         import { AuthService } from './js/auth-service.js';
