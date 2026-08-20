@@ -68,7 +68,7 @@ const CONFIG = {
             title: 'RDM', 
             desc: 'Raport Digital Madrasah', 
             color: '#15c151', 
-            url: 'https://manbantaeng.rdmnet.my.id/',
+            url: 'javascript:void(0)',
             logo: 'assets/images/rapor-app.png'  // ← Path ke logo
         },
         { icon: '📈', title: 'LCKH', desc: 'Laporan Capaian Kinerja Harian', color: '#c62828', page: 'pages/jurnal.html' }
