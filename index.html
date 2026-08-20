@@ -184,39 +184,71 @@
         </div>
     </div>
 
-    <!-- MODAL PENGATURAN AKUN -->
+        <!-- MODAL PENGATURAN AKUN -->
     <div class="modal" id="modalPengaturanAkun">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3>⚙️ Pengaturan Akun</h3>
                 <button class="close-btn" data-close="modalPengaturanAkun">&times;</button>
             </div>
             
+            <!-- SECTION 1: Info Email -->
             <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:20px;">
                 <div style="font-size:0.85rem; color:#0369a1;">
                     <strong>📧 Email:</strong> <span id="settingUserEmail">-</span>
                 </div>
             </div>
 
+            <!-- SECTION 2: Ubah Password -->
+            <h4 style="margin: 0 0 12px; color: #1e293b; font-size: 1rem;">🔒 Ubah Password</h4>
             <div class="form-group-modal">
-                <label>🔒 Password Saat Ini *</label>
+                <label>Password Saat Ini *</label>
                 <input type="password" id="settingPasswordLama" placeholder="Masukkan password lama Anda" autocomplete="current-password">
             </div>
             
             <div class="form-group-modal">
-                <label>🔑 Password Baru *</label>
+                <label>Password Baru *</label>
                 <input type="password" id="settingPasswordBaru" placeholder="Minimal 6 karakter" autocomplete="new-password">
                 <div class="password-hint">Password harus berbeda dengan password lama.</div>
             </div>
             
             <div class="form-group-modal">
-                <label>✅ Konfirmasi Password Baru *</label>
+                <label>Konfirmasi Password Baru *</label>
                 <input type="password" id="settingPasswordKonfirmasi" placeholder="Ulangi password baru" autocomplete="new-password">
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 24px;">
-                <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569;" data-close="modalPengaturanAkun">Batal</button>
-                <button class="btn" id="btnSimpanPengaturan" style="flex: 1; background: #10b981; color: white;">💾 Simpan Perubahan</button>
+            <button class="btn" id="btnSimpanPengaturan" style="width:100%; background:#10b981; color:white; margin-bottom:20px;">💾 Ubah Password</button>
+
+            <!-- SECTION 3: Identitas Madrasah (BARU) -->
+            <div style="border-top:2px solid #e2e8f0; padding-top:20px;">
+                <h4 style="margin: 0 0 8px; color: #059669; font-size: 1rem;">🏫 Identitas Madrasah</h4>
+                <div class="password-hint" style="margin-bottom: 14px;">
+                    Diisi sekali oleh masing-masing guru. Otomatis dipakai di <b>LCKH, Jurnal, Rekap & Laporan Ekskul</b>.
+                </div>
+
+                <div class="form-group-modal">
+                    <label>🏙️ Kota / Tempat (tanggal tanda tangan)</label>
+                    <input type="text" id="sigTempat" placeholder="Contoh: Bantaeng">
+                </div>
+
+                <div class="form-group-modal">
+                    <label>👑 Nama Kepala Madrasah</label>
+                    <input type="text" id="sigKamadNama" placeholder="Nama lengkap dengan gelar">
+                </div>
+
+                <div class="form-group-modal">
+                    <label>🔢 NIP Kepala Madrasah</label>
+                    <input type="text" id="sigKamadNip" placeholder="Kosongkan bila tidak ada">
+                </div>
+
+                <button class="btn" id="btnSimpanIdentitas" style="width: 100%; background: #059669; color: white;">
+                    💾 Simpan Identitas Madrasah
+                </button>
+            </div>
+
+            <!-- Tombol Batal -->
+            <div style="margin-top: 16px;">
+                <button class="btn" style="width: 100%; background: #e2e8f0; color: #475569;" data-close="modalPengaturanAkun">Batal</button>
             </div>
         </div>
     </div>
@@ -360,6 +392,11 @@
                         document.getElementById('settingPasswordLama').value = '';
                         document.getElementById('settingPasswordBaru').value = '';
                         document.getElementById('settingPasswordKonfirmasi').value = '';
+                                                // ✅ Isi form identitas dari setelan tersimpan
+                        const s = window.SIG ? window.SIG.get() : {};
+                        document.getElementById('sigTempat').value = s.tempat || '';
+                        document.getElementById('sigKamadNama').value = s.kamadNama || '';
+                        document.getElementById('sigKamadNip').value = s.kamadNip || '';
                         document.getElementById('modalPengaturanAkun').style.display = 'flex';
                     });
                 }
@@ -406,6 +443,34 @@
                             btnSimpanPengaturan.disabled = false;
                             btnSimpanPengaturan.innerHTML = '💾 Simpan Perubahan';
                         }
+                    });
+                }
+
+                                // ══════════════════════════════════════════════
+                // LOGIKA SIMPAN IDENTITAS MADRASAH (SIG)
+                // ══════════════════════════════════════════════
+                const btnSimpanIdentitas = document.getElementById('btnSimpanIdentitas');
+                if (btnSimpanIdentitas) {
+                    btnSimpanIdentitas.addEventListener('click', () => {
+                        if (!window.SIG) {
+                            showToast('Modul identitas belum siap, coba refresh halaman.', 'error');
+                            return;
+                        }
+                        
+                        const identitas = {
+                            tempat: document.getElementById('sigTempat').value.trim(),
+                            kamadNama: document.getElementById('sigKamadNama').value.trim(),
+                            kamadNip: document.getElementById('sigKamadNip').value.trim()
+                        };
+                        
+                        // Validasi minimal satu field terisi
+                        if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip) {
+                            showToast('Isi minimal salah satu kolom identitas!', 'warning');
+                            return;
+                        }
+                        
+                        window.SIG.save(identitas);
+                        showToast('✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
                     });
                 }
                 
