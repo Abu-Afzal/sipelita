@@ -1,776 +1,474 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekap Jurnal Mengajar - SIPELITA</title>
-    <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
-    
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; }
-        
-        .header {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            color: white; padding: 24px 30px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.2);
-        }
-        .header h1 { font-size: 1.5rem; margin-bottom: 4px; }
-        .header p { opacity: 0.9; font-size: 0.88rem; }
-        .role-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-left: 10px;
-        }
-        .btn-dashboard {
-            background: rgba(255,255,255,0.2); color: white;
-            padding: 10px 20px; border-radius: 8px; text-decoration: none;
-            font-weight: 600; border: 1px solid rgba(255,255,255,0.3);
-            font-size: 0.88rem;
-        }
-        .btn-dashboard:hover { background: rgba(255,255,255,0.3); }
-        
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 14px; margin-bottom: 20px;
-        }
-        .stat-card {
-            background: white; padding: 18px; border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            border-left: 4px solid #059669;
-        }
-        .stat-card h3 { color: #64748b; font-size: 0.82rem; margin-bottom: 6px; }
-        .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #047857; }
-        
-        .card {
-            background: white; border-radius: 12px; padding: 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.07); margin-bottom: 20px;
-        }
-        .card h2 {
-            color: #047857; font-size: 1.2rem; margin-bottom: 16px;
-            padding-bottom: 12px; border-bottom: 2px solid #d1fae5;
-            display: flex; align-items: center; gap: 8px;
-        }
-        
-        .filter-bar {
-            display: flex; gap: 10px; flex-wrap: wrap;
-            margin-bottom: 16px; padding: 14px;
-            background: #f8fafc; border-radius: 8px;
-            align-items: center;
-        }
-        .filter-bar input, .filter-bar select {
-            padding: 9px 12px; border: 1.5px solid #e2e8f0;
-            border-radius: 6px; font-size: 0.88rem;
-            outline: none; font-family: inherit;
-        }
-        .filter-bar input:focus, .filter-bar select:focus {
-            border-color: #059669;
-        }
-        
-        .btn {
-            padding: 9px 18px; border: none; border-radius: 8px;
-            cursor: pointer; font-weight: 700; font-size: 0.88rem;
-            display: inline-flex; align-items: center; gap: 6px;
-            text-decoration: none; transition: all 0.2s;
-        }
-        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .btn-primary { background: #059669; color: white; }
-        .btn-primary:hover { background: #047857; }
-        .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-secondary { background: #64748b; color: white; }
-        .btn-secondary:hover { background: #475569; }
-        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-        
-        .tbl-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-        th {
-            background: #ecfdf5; color: #047857;
-            padding: 12px; text-align: left;
-            border-bottom: 2px solid #a7f3d0;
-            font-weight: 700; font-size: 0.82rem;
-            white-space: nowrap;
-        }
-        td {
-            padding: 12px; border-bottom: 1px solid #e2e8f0;
-            vertical-align: top;
-        }
-        tr:hover td { background: #f0fdf4; }
-        
-        .materi-cell {
-            max-width: 300px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-        .keterangan-cell {
-            max-width: 250px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            color: #64748b;
-        }
-        
-        .badge {
-            display: inline-block; padding: 3px 10px;
-            border-radius: 12px; font-size: 0.72rem; font-weight: 700;
-        }
-        .badge-hadir { background: #dcfce7; color: #166534; }
-        .badge-tidak { background: #fee2e2; color: #991b1b; }
-        
-        .empty {
-            text-align: center; padding: 50px 20px; color: #94a3b8;
-        }
-        .empty .icon { font-size: 3rem; margin-bottom: 10px; }
-        
-        .spinner {
-            display: inline-block; width: 20px; height: 20px;
-            border: 3px solid #f3f3f3; border-top: 3px solid #059669;
-            border-radius: 50%; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.5); z-index: 9999;
-            align-items: center; justify-content: center; padding: 20px;
-        }
-        .modal.active { display: flex; }
-        .modal-box {
-            background: white; border-radius: 12px; padding: 24px;
-            max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto;
-        }
-        .modal-box h3 {
-            color: #047857; margin-bottom: 16px;
-            padding-bottom: 10px; border-bottom: 2px solid #d1fae5;
-        }
-        .detail-row {
-            display: grid; grid-template-columns: 180px 1fr;
-            gap: 10px; padding: 10px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .detail-label { font-weight: 700; color: #475569; }
-        .detail-value { color: #1e293b; white-space: pre-wrap; }
-        
-        /* Statistik Per Guru */
-        .guru-stats {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 14px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .guru-stats:hover {
-            background: #f0fdf4;
-            border-color: #059669;
-            transform: translateX(4px);
-        }
-        .guru-stats-info h4 {
-            color: #1e293b;
-            margin-bottom: 4px;
-        }
-        .guru-stats-info p {
-            color: #64748b;
-            font-size: 0.82rem;
-        }
-        .guru-stats-numbers {
-            text-align: right;
-        }
-        .guru-stats-numbers .total {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #047857;
-        }
-        
-        @media print {
-            @page {
-                size: A4 landscape;
-                margin: 15mm;
-            }
-            
-            body { background: white !important; font-size: 10pt; }
-            .header, .filter-bar, .btn, .modal, .stats-grid, #loading, #emptyState {
-                display: none !important;
-            }
-            .container { max-width: 100%; padding: 0; margin: 0; }
-            .card { box-shadow: none !important; border: none !important; padding: 0 !important; }
-            table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-            th, td { border: 1px solid #cbd5e1 !important; padding: 6px !important; }
-            th { background-color: #059669 !important; color: white !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-        
-        @media (max-width: 768px) {
-            .header { flex-direction: column; text-align: center; gap: 12px; padding: 16px; }
-            .header h1 { font-size: 1.2rem; }
-            .container { padding: 12px; }
-            .card { padding: 16px; }
-            .filter-bar { flex-direction: column; align-items: stretch; }
-            .detail-row { grid-template-columns: 1fr; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekap Jurnal Online</title>
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- SheetJS untuk Ekspor Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
 
-<div class="header">
-    <div style="flex: 1;">
-        <h1> Rekap Jurnal Mengajar</h1>
-        <p>SIPELITA - TA. 2025/2026 SEMESTER GENAP</p>
+  <!-- Header / Navigation -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid me-2 fa-book-open text-2xl text-indigo-200"></i>
+        <div>
+          <h1 class="text-xl font-bold leading-tight">Rekap Jurnal Mengajar</h1>
+          <p class="text-xs text-indigo-200" id="userDisplay">Memuat pengguna...</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center shadow">
+          <i class="fa-solid fa-file-excel mr-2"></i> Ekspor Excel
+        </button>
+        <button onclick="window.history.back()" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
+        </button>
+      </div>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <span id="roleBadge" class="role-badge">GURU</span>
-        <a href="jurnal-online.html" class="btn-dashboard">➕ Isi Jurnal</a>
-        <a href="../index.html" class="btn-dashboard">← Dashboard</a>
-    </div>
-</div>
+  </header>
 
-<div class="container">
-    
-    <!-- Statistik -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Total Jurnal</h3>
-            <div class="value" id="statTotal">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Bulan Ini</h3>
-            <div class="value" id="statBulanIni">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Total Hadir</h3>
-            <div class="value" id="statHadir" style="color: #10b981;">0</div>
-        </div>
-        <div class="stat-card">
-            <h3>Total Tidak Hadir</h3>
-            <div class="value" id="statTidakHadir" style="color: #ef4444;">0</div>
-        </div>
-        <div class="stat-card" id="statGuruCard" style="display: none;">
-            <h3>Jumlah Guru</h3>
-            <div class="value" id="statGuru" style="color: #8b5cf6;">0</div>
-        </div>
-    </div>
-    
-    <!-- Statistik Per Guru (Hanya untuk Wakamad/Kamad) -->
-    <div class="card" id="guruStatsCard" style="display: none;">
-        <h2>👨‍🏫 Statistik Per Guru</h2>
-        <div id="guruStatsContainer"></div>
-    </div>
-    
-    <!-- Daftar Jurnal -->
-    <div class="card">
-        <h2> Daftar Jurnal Mengajar</h2>
-        
-        <!-- Filter -->
-        <div class="filter-bar">
-            <input type="date" id="filterTanggal" onchange="applyFilter()">
-            <select id="filterKelas" onchange="applyFilter()">
-                <option value="">Semua Kelas</option>
-            </select>
-            <select id="filterGuru" onchange="applyFilter()" style="display: none;">
-                <option value="">Semua Guru</option>
-            </select>
-            <input type="text" id="filterSearch" placeholder="🔍 Cari materi..." oninput="applyFilter()">
-            <button class="btn btn-secondary btn-sm" onclick="resetFilter()">🔄 Reset</button>
-            <div style="display: flex; gap: 8px; margin-left: auto;">
-                <button class="btn btn-secondary btn-sm" onclick="window.print()" title="Cetak Halaman">
-                    🖨️ Print
-                </button>
-                <button class="btn btn-success btn-sm" onclick="exportExcel()" title="Export ke Excel">
-                    📥 Excel
-                </button>
-            </div>
-        </div>
-        
-        <div id="loading" style="text-align: center; padding: 40px;">
-            <div class="spinner"></div>
-            <p style="margin-top: 12px; color: #64748b;">Memuat data jurnal...</p>
-        </div>
-        
-        <div id="emptyState" class="empty" style="display: none;">
-            <div class="icon"></div>
-            <h3>Belum Ada Jurnal</h3>
-            <p style="margin: 10px 0;">Mulai isi jurnal mengajar pertama Anda!</p>
-            <a href="jurnal-online.html" class="btn btn-primary">➕ Isi Jurnal</a>
-        </div>
-        
-        <div id="tableContainer" style="display: none;">
-            <div class="tbl-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Tanggal</th>
-                            <th>Jam</th>
-                            <th>Kelas</th>
-                            <th id="thGuru" style="display: none;">Guru</th>
-                            <th>Hadir</th>
-                            <th>Tidak Hadir</th>
-                            <th>Materi/Tugas</th>
-                            <th>Keterangan</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-</div>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-<!-- Modal Detail -->
-<div class="modal" id="modalDetail">
-    <div class="modal-box">
-        <h3>📄 Detail Jurnal Mengajar</h3>
-        <div id="detailContent"></div>
-        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-            <button class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+    <!-- Ringkasan Statistik -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+        <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+          <i class="fa-solid fa-list-check text-2xl"></i>
         </div>
+        <div>
+          <p class="text-xs text-slate-500 font-medium">Total Jurnal</p>
+          <h3 class="text-2xl font-bold text-slate-800" id="statTotal">0</h3>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+        <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+          <i class="fa-solid fa-filter text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 font-medium">Tersaring</p>
+          <h3 class="text-2xl font-bold text-slate-800" id="statFiltered">0</h3>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+        <div class="p-3 bg-amber-100 text-amber-600 rounded-lg">
+          <i class="fa-solid fa-user-graduate text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 font-medium">Total Kelas Terekam</p>
+          <h3 class="text-2xl font-bold text-slate-800" id="statKelas">0</h3>
+        </div>
+      </div>
     </div>
-</div>
 
-<script src="../js/jurnal-online.js"></script>
-<script>
-let allJurnal = [];
-let filteredJurnal = [];
-let currentUserData = null;
-let userRole = 'guru';
+    <!-- Panel Filter -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h2 class="font-semibold text-slate-700 flex items-center">
+          <i class="fa-solid fa-sliders mr-2 text-indigo-600"></i> Filter Data Jurnal
+        </h2>
+        <button onclick="resetFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+          Reset Filter
+        </button>
+      </div>
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Load data user dan role
-    try {
-        const userStr = localStorage.getItem('sipelita_user');
-        if (userStr) {
-            currentUserData = JSON.parse(userStr);
-            // Deteksi role dari field 'role' atau 'jabatan'
-            userRole = currentUserData.role || currentUserData.jabatan || 'guru';
-            console.log('👤 User:', currentUserData.nama || currentUserData.email);
-            console.log(' Role:', userRole);
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Pencarian Kata Kunci -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Cari Kata Kunci</label>
+          <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Cari materi / mapel..." 
+                 class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <!-- Filter Guru (Diaktifkan jika role Evaluator/Admin) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Guru</label>
+          <select id="filterGuru" onchange="applyFilters()" class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="">-- Semua Guru --</option>
+          </select>
+        </div>
+
+        <!-- Filter Kelas -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Kelas</label>
+          <select id="filterKelas" onchange="applyFilters()" class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="">-- Semua Kelas --</option>
+          </select>
+        </div>
+
+        <!-- Filter Tanggal -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+          <input type="date" id="filterTanggal" onchange="applyFilters()" 
+                 class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabel Rekap -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs border-b border-slate-200">
+            <tr>
+              <th class="p-4 w-12 text-center">No</th>
+              <th class="p-4">Tanggal / Jam</th>
+              <th class="p-4">Guru</th>
+              <th class="p-4">Mapel & Kelas</th>
+              <th class="p-4">Materi / Kegiatan</th>
+              <th class="p-4 text-center">Absensi</th>
+              <th class="p-4 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-200">
+            <tr>
+              <td colspan="7" class="p-8 text-center text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>Memuat data rekap...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal Detail Jurnal -->
+  <div id="detailModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Detail Jurnal</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+      <div id="modalContent" class="space-y-3 text-sm text-slate-700">
+        <!-- Konten detail akan diisi oleh JavaScript -->
+      </div>
+      <div class="border-t pt-3 text-right">
+        <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // 1. Konfigurasi Firebase
+    // -------------------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    // -------------------------------------------------------------
+    // 2. Data & Status Global
+    // -------------------------------------------------------------
+    let allJurnal = [];
+    let filteredJurnal = [];
+    let currentUser = null;
+    let isEvaluator = false;
+
+    // -------------------------------------------------------------
+    // 3. Inisialisasi Sesi & Load Data
+    // -------------------------------------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      initSession();
+      loadRekapJurnal();
+    });
+
+    function initSession() {
+      const userRaw = localStorage.getItem('sipelita_user');
+      if (userRaw) {
+        try {
+          const userObj = JSON.parse(userRaw);
+          currentUser = userObj.nama || userObj.username || "Pengguna";
+          isEvaluator = userObj.role === 'evaluator' || userObj.role === 'admin';
+        } catch (e) {
+          currentUser = userRaw;
         }
-    } catch (e) {
-        console.error('Error load user:', e);
-    }
-    
-    // Update UI berdasarkan role
-    updateUIByRole();
-    
-    // Load data jurnal
-    if (typeof loadRekapJurnal === 'function') {
-        loadRekapJurnal();
-    }
-});
+      } else {
+        currentUser = "Tamu";
+      }
 
-function updateUIByRole() {
-    const roleBadge = document.getElementById('roleBadge');
-    const filterGuru = document.getElementById('filterGuru');
-    const thGuru = document.getElementById('thGuru');
-    const guruStatsCard = document.getElementById('guruStatsCard');
-    const statGuruCard = document.getElementById('statGuruCard');
-    
-    // Set badge role
-    const roleLower = userRole.toLowerCase();
-    
-    if (roleLower === 'admin' || roleLower === 'kepala' || roleLower === 'kamad') {
-        roleBadge.textContent = '👑 KAMAD/ADMIN';
-        roleBadge.style.background = 'rgba(255,255,255,0.3)';
-    } else if (roleLower === 'wakil' || roleLower === 'wakamad') {
-        roleBadge.textContent = '⭐ WAKAMAD';
-        roleBadge.style.background = 'rgba(255,255,255,0.3)';
-    } else {
-        roleBadge.textContent = '👨‍🏫 GURU';
+      document.getElementById('userDisplay').innerText = `${currentUser} (${isEvaluator ? 'Evaluator' : 'Guru'})`;
+      
+      // Sembunyikan/tampilkan filter guru berdasarkan peran
+      const filterGuruElem = document.getElementById('filterGuru');
+      if (!isEvaluator) {
+        filterGuruElem.disabled = true;
+        filterGuruElem.parentElement.classList.add('opacity-50');
+      }
     }
-    
-    // Tampilkan fitur Wakamad/Kamad
-    const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
-    
-    if (isEvaluator) {
-        filterGuru.style.display = 'block';
-        thGuru.style.display = 'table-cell';
-        guruStatsCard.style.display = 'block';
-        statGuruCard.style.display = 'block';
-    }
-}
 
-window.loadRekapJurnal = async function() {
-    try {
-        const userStr = localStorage.getItem('sipelita_user');
-        if (!userStr) {
-            alert('Anda harus login!');
-            window.location.href = '../index.html';
-            return;
-        }
-        
-        const user = JSON.parse(userStr);
-        const currentUser = user.nama || user.email || 'guru';
-        const roleLower = userRole.toLowerCase();
-        const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
-        
+    // -------------------------------------------------------------
+    // 4. Pengambilan Data dari Firestore (Tanpa Index Error)
+    // -------------------------------------------------------------
+    async function loadRekapJurnal() {
+      const tbody = document.getElementById('tableBody');
+      try {
         let snapshot;
         
+        // Membaca data berdasarkan otorisasi peran
         if (isEvaluator) {
-            // Wakamad/Kamad: Load SEMUA jurnal
-            console.log('📊 Loading semua jurnal untuk evaluator...');
-            snapshot = await db.collection('jurnal_online')
-                .orderBy('tanggal', 'desc')
-                .get();
+          snapshot = await db.collection('jurnal_online').get();
         } else {
-            // Guru: Load jurnal sendiri saja
-            console.log('📊 Loading jurnal untuk guru:', currentUser);
-            snapshot = await db.collection('jurnal_online')
-                .where('guruNama', '==', currentUser)
-                .orderBy('tanggal', 'desc')
-                .get();
+          snapshot = await db.collection('jurnal_online')
+            .where('guruNama', '==', currentUser)
+            .get();
         }
-        
+
         allJurnal = [];
         const guruSet = new Set();
         const kelasSet = new Set();
-        
+
         snapshot.forEach(doc => {
-            const data = { id: doc.id, ...doc.data() };
-            allJurnal.push(data);
-            if (data.guruNama) guruSet.add(data.guruNama);
-            if (data.kelas) kelasSet.add(data.kelas);
+          const data = { id: doc.id, ...doc.data() };
+          allJurnal.push(data);
+          
+          if (data.guruNama) guruSet.add(data.guruNama);
+          if (data.kelas) kelasSet.add(data.kelas);
         });
-        
-        console.log(`✅ Loaded ${allJurnal.length} jurnal`);
-        
-        // Populate filter kelas
-        const filterKelas = document.getElementById('filterKelas');
-        filterKelas.innerHTML = '<option value="">Semua Kelas</option>';
-        kelasSet.forEach(k => {
-            const opt = document.createElement('option');
-            opt.value = k; opt.textContent = k;
-            filterKelas.appendChild(opt);
-        });
-        
-        // Populate filter guru (hanya untuk evaluator)
-        if (isEvaluator) {
-            const filterGuru = document.getElementById('filterGuru');
-            filterGuru.innerHTML = '<option value="">Semua Guru</option>';
-            guruSet.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g; opt.textContent = g;
-                filterGuru.appendChild(opt);
-            });
-            
-            // Render statistik per guru
-            renderGuruStats(guruSet);
-        }
-        
-        filteredJurnal = [...allJurnal];
-        
-        document.getElementById('loading').style.display = 'none';
-        
-        if (allJurnal.length === 0) {
-            document.getElementById('emptyState').style.display = 'block';
-        } else {
-            document.getElementById('tableContainer').style.display = 'block';
-            renderTabel();
-            updateStatistik();
-        }
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        document.getElementById('loading').innerHTML = 
-            `<div style="color: #ef4444;">❌ ${error.message}</div>`;
-    }
-};
 
-function renderGuruStats(guruSet) {
-    const container = document.getElementById('guruStatsContainer');
-    const stats = [];
-    
-    guruSet.forEach(guru => {
-        const jurnalGuru = allJurnal.filter(j => j.guruNama === guru);
-        const total = jurnalGuru.length;
-        const totalHadir = jurnalGuru.reduce((sum, j) => sum + (parseInt(j.muridHadir) || 0), 0);
-        const totalTidakHadir = jurnalGuru.reduce((sum, j) => sum + (parseInt(j.muridTidakHadir) || 0), 0);
-        
-        stats.push({ guru, total, totalHadir, totalTidakHadir });
-    });
-    
-    // Sort by total jurnal descending
-    stats.sort((a, b) => b.total - a.total);
-    
-    container.innerHTML = stats.map(s => `
-        <div class="guru-stats" onclick="filterByGuru('${s.guru.replace(/'/g, "\\'")}')">
-            <div class="guru-stats-info">
-                <h4>👨‍🏫 ${s.guru}</h4>
-                <p>Hadir: ${s.totalHadir} | Tidak Hadir: ${s.totalTidakHadir}</p>
-            </div>
-            <div class="guru-stats-numbers">
-                <div class="total">${s.total}</div>
-                <div style="font-size: 0.75rem; color: #64748b;">jurnal</div>
-            </div>
-        </div>
-    `).join('');
-}
+        // Urutkan tanggal secara manual di JS (Terbaru -> Terlama)
+        allJurnal.sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0));
 
-window.filterByGuru = function(guruNama) {
-    document.getElementById('filterGuru').value = guruNama;
-    applyFilter();
-    // Scroll ke tabel
-    document.getElementById('tableContainer').scrollIntoView({ behavior: 'smooth' });
-};
+        // Isi dropdown filter
+        populateDropdown('filterGuru', Array.from(guruSet));
+        populateDropdown('filterKelas', Array.from(kelasSet));
 
-function renderTabel() {
-    const tbody = document.getElementById('tabelBody');
-    const roleLower = userRole.toLowerCase();
-    const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
-    
-    if (filteredJurnal.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${isEvaluator ? 10 : 9}" style="text-align: center; padding: 30px; color: #94a3b8;">
-            Tidak ada data yang cocok dengan filter
-        </td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = filteredJurnal.map((j, idx) => {
-        const tanggal = j.tanggal ? formatDate(j.tanggal) : '-';
-        const materi = escapeHtml(j.materi || '-').substring(0, 100);
-        const keterangan = escapeHtml(j.keterangan || '-').substring(0, 80);
-        
-        return `
-            <tr>
-                <td>${idx + 1}</td>
-                <td>${tanggal}</td>
-                <td>${j.jamDisplay || (j.jamKe ? 'Jam ke-' + j.jamKe : '-')}</td>
-                <td><strong>${j.kelas || '-'}</strong></td>
-                ${isEvaluator ? `<td>${j.guruNama || '-'}</td>` : ''}
-                <td><span class="badge badge-hadir">${j.muridHadir || 0}</span></td>
-                <td><span class="badge badge-tidak">${j.muridTidakHadir || 0}</span></td>
-                <td class="materi-cell">${materi}${(j.materi || '').length > 100 ? '...' : ''}</td>
-                <td class="keterangan-cell">${keterangan}${(j.keterangan || '').length > 80 ? '...' : ''}</td>
-                <td>
-                    <button class="btn btn-primary btn-sm" onclick="lihatDetail('${j.id}')">👁️</button>
-                    <button class="btn btn-danger btn-sm" onclick="hapusJurnal('${j.id}')">️</button>
-                </td>
-            </tr>
+        // Tampilkan statistik & tabel
+        document.getElementById('statTotal').innerText = allJurnal.length;
+        document.getElementById('statKelas').innerText = kelasSet.size;
+
+        applyFilters();
+
+      } catch (error) {
+        console.error("Gagal memuat jurnal:", error);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-6 text-center text-red-500">
+              <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+              <p class="font-semibold">Terjadi Kesalahan Kueri / Hak Akses</p>
+              <p class="text-xs text-slate-500 mt-1">${error.message}</p>
+            </td>
+          </tr>
         `;
-    }).join('');
-}
-
-function updateStatistik() {
-    const total = filteredJurnal.length;
-    const now = new Date();
-    const bulanIni = filteredJurnal.filter(j => {
-        if (!j.tanggal) return false;
-        const d = new Date(j.tanggal);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-    
-    const totalHadir = filteredJurnal.reduce((sum, j) => sum + (parseInt(j.muridHadir) || 0), 0);
-    const totalTidakHadir = filteredJurnal.reduce((sum, j) => sum + (parseInt(j.muridTidakHadir) || 0), 0);
-    
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statBulanIni').textContent = bulanIni;
-    document.getElementById('statHadir').textContent = totalHadir;
-    document.getElementById('statTidakHadir').textContent = totalTidakHadir;
-    
-    // Update statistik jumlah guru (hanya untuk evaluator)
-    const roleLower = userRole.toLowerCase();
-    const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
-    if (isEvaluator) {
-        const guruSet = new Set(allJurnal.map(j => j.guruNama).filter(g => g));
-        document.getElementById('statGuru').textContent = guruSet.size;
+      }
     }
-}
 
-window.applyFilter = function() {
-    const tanggal = document.getElementById('filterTanggal').value;
-    const kelas = document.getElementById('filterKelas').value;
-    const guru = document.getElementById('filterGuru').value;
-    const search = document.getElementById('filterSearch').value.toLowerCase();
-    
-    filteredJurnal = allJurnal.filter(j => {
-        if (tanggal && j.tanggal !== tanggal) return false;
-        if (kelas && j.kelas !== kelas) return false;
-        if (guru && j.guruNama !== guru) return false;
-        if (search) {
-            const materi = (j.materi || '').toLowerCase();
-            const keterangan = (j.keterangan || '').toLowerCase();
-            const guruNama = (j.guruNama || '').toLowerCase();
-            if (!materi.includes(search) && !keterangan.includes(search) && !guruNama.includes(search)) return false;
-        }
-        return true;
-    });
-    
-    renderTabel();
-};
-
-window.resetFilter = function() {
-    document.getElementById('filterTanggal').value = '';
-    document.getElementById('filterKelas').value = '';
-    document.getElementById('filterGuru').value = '';
-    document.getElementById('filterSearch').value = '';
-    filteredJurnal = [...allJurnal];
-    renderTabel();
-};
-
-window.lihatDetail = function(id) {
-    const j = allJurnal.find(x => x.id === id);
-    if (!j) return;
-    
-    const content = `
-        <div class="detail-row">
-            <div class="detail-label">Nama Guru:</div>
-            <div class="detail-value">${j.guruNama || '-'}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">NIP:</div>
-            <div class="detail-value">${j.nip || '-'}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Tanggal:</div>
-            <div class="detail-value">${formatDate(j.tanggal)}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Jam Mengajar:</div>
-            <div class="detail-value">${j.jamDisplay || (j.jamKe ? 'Jam ke-' + j.jamKe : '-') || '-'}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Kelas:</div>
-            <div class="detail-value"><strong>${j.kelas || '-'}</strong></div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Murid Hadir:</div>
-            <div class="detail-value"><span class="badge badge-hadir">${j.muridHadir || 0} siswa</span></div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Murid Tidak Hadir:</div>
-            <div class="detail-value"><span class="badge badge-tidak">${j.muridTidakHadir || 0} siswa</span></div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Materi/Tugas:</div>
-            <div class="detail-value">${escapeHtml(j.materi || '-')}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Keterangan:</div>
-            <div class="detail-value">${escapeHtml(j.keterangan || '-')}</div>
-        </div>
-        <div class="detail-row">
-            <div class="detail-label">Disimpan:</div>
-            <div class="detail-value">${j.createdAt ? new Date(j.createdAt).toLocaleString('id-ID') : '-'}</div>
-        </div>
-    `;
-    
-    document.getElementById('detailContent').innerHTML = content;
-    document.getElementById('modalDetail').classList.add('active');
-};
-
-window.closeModal = function() {
-    document.getElementById('modalDetail').classList.remove('active');
-};
-
-window.hapusJurnal = async function(id) {
-    if (!confirm('⚠️ Yakin ingin menghapus jurnal ini?')) return;
-    
-    try {
-        await db.collection('jurnal_online').doc(id).delete();
-        alert('✅ Jurnal berhasil dihapus');
-        loadRekapJurnal();
-    } catch (error) {
-        alert('❌ Gagal menghapus: ' + error.message);
+    function populateDropdown(elemId, options) {
+      const select = document.getElementById(elemId);
+      const currentVal = select.value;
+      
+      // Pertahankan opsi pertama (-- Semua --)
+      select.innerHTML = select.options[0].outerHTML;
+      
+      options.sort().forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt;
+        el.textContent = opt;
+        select.appendChild(el);
+      });
+      select.value = currentVal;
     }
-};
 
-window.exportExcel = function() {
-    if (filteredJurnal.length === 0) {
-        alert('Tidak ada data untuk diexport!');
+    // -------------------------------------------------------------
+    // 5. Logika Penyaringan (Filtering)
+    // -------------------------------------------------------------
+    function applyFilters() {
+      const search = document.getElementById('filterSearch').value.toLowerCase();
+      const guru = document.getElementById('filterGuru').value;
+      const kelas = document.getElementById('filterKelas').value;
+      const tanggal = document.getElementById('filterTanggal').value;
+
+      filteredJurnal = allJurnal.filter(item => {
+        const matchSearch = !search || 
+          (item.materi && item.materi.toLowerCase().includes(search)) ||
+          (item.mapel && item.mapel.toLowerCase().includes(search));
+        
+        const matchGuru = !guru || item.guruNama === guru;
+        const matchKelas = !kelas || item.kelas === kelas;
+        const matchTanggal = !tanggal || item.tanggal === tanggal;
+
+        return matchSearch && matchGuru && matchKelas && matchTanggal;
+      });
+
+      document.getElementById('statFiltered').innerText = filteredJurnal.length;
+      renderTable(filteredJurnal);
+    }
+
+    function resetFilters() {
+      document.getElementById('filterSearch').value = '';
+      if (isEvaluator) document.getElementById('filterGuru').value = '';
+      document.getElementById('filterKelas').value = '';
+      document.getElementById('filterTanggal').value = '';
+      applyFilters();
+    }
+
+    // -------------------------------------------------------------
+    // 6. Render Tabel
+    // -------------------------------------------------------------
+    function renderTable(data) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-8 text-center text-slate-400">
+              Tidak ada data jurnal yang sesuai filter.
+            </td>
+          </tr>
+        `;
         return;
+      }
+
+      data.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+        
+        const absensiSummary = `
+          <span class="text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">H: ${item.hadir || 0}</span>
+          <span class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">S: ${item.sakit || 0}</span>
+          <span class="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">I: ${item.izin || 0}</span>
+          <span class="text-xs bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded">A: ${item.alpa || 0}</span>
+        `;
+
+        tr.innerHTML = `
+          <td class="p-4 text-center font-medium text-slate-400">${index + 1}</td>
+          <td class="p-4 whitespace-nowrap">
+            <div class="font-medium text-slate-800">${item.tanggal || '-'}</div>
+            <div class="text-xs text-slate-400">Jam ke: ${item.jamKe || '-'}</div>
+          </td>
+          <td class="p-4 font-medium text-slate-700">${item.guruNama || '-'}</td>
+          <td class="p-4 whitespace-nowrap">
+            <span class="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded text-xs mb-1">
+              ${item.mapel || '-'}
+            </span>
+            <div class="text-xs text-slate-500">Kelas: ${item.kelas || '-'}</div>
+          </td>
+          <td class="p-4 max-w-xs truncate" title="${item.materi || ''}">
+            ${item.materi || '-'}
+          </td>
+          <td class="p-4 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center space-x-1">
+              ${absensiSummary}
+            </div>
+          </td>
+          <td class="p-4 text-center">
+            <button onclick="openModal('${item.id}')" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-md transition">
+              <i class="fa-solid fa-eye mr-1"></i> Detail
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
-    
-    const userName = currentUserData?.nama || currentUserData?.email || 'User';
-    const userRoleText = currentUserData?.role || 'Guru';
-    
-    const data = [
-        ['JURNAL MENGAJAR ONLINE - SIPELITA'],
-        ['TA. 2025/2026 SEMESTER GENAP'],
-        ['Diekspor oleh: ' + userName + ' (' + userRoleText + ')'],
-        ['Tanggal Export: ' + new Date().toLocaleString('id-ID')],
-        [],
-        ['No', 'Tanggal', 'Jam Mengajar', 'Kelas', 'Nama Guru', 'NIP', 'Murid Hadir', 'Murid Tidak Hadir', 'Materi/Tugas', 'Keterangan']
-    ];
-    
-    filteredJurnal.forEach((j, idx) => {
-        data.push([
-            idx + 1,
-            formatDate(j.tanggal),
-            j.jamDisplay || (j.jamKe ? 'Jam ke-' + j.jamKe : '-') || '-',
-            j.kelas || '-',
-            j.guruNama || '-',
-            j.nip || '-',
-            j.muridHadir || 0,
-            j.muridTidakHadir || 0,
-            j.materi || '-',
-            j.keterangan || '-'
-        ]);
-    });
-    
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    
-    // Set column widths
-    ws['!cols'] = [
-        { wch: 5 },   // No
-        { wch: 20 },  // Tanggal
-        { wch: 10 },  // Jam
-        { wch: 10 },  // Kelas
-        { wch: 25 },  // Nama
-        { wch: 20 },  // NIP
-        { wch: 12 },  // Hadir
-        { wch: 15 },  // Tidak Hadir
-        { wch: 50 },  // Materi
-        { wch: 40 }   // Keterangan
-    ];
-    
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Jurnal Mengajar');
-    
-    const fileName = `Jurnal_Mengajar_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-};
 
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('id-ID', { 
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
-    });
-}
+    // -------------------------------------------------------------
+    // 7. Modal Detail
+    // -------------------------------------------------------------
+    function openModal(id) {
+      const item = allJurnal.find(j => j.id === id);
+      if (!item) return;
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+      document.getElementById('modalTitle').innerText = `Detail Jurnal - ${item.tanggal || ''}`;
+      
+      const content = document.getElementById('modalContent');
+      content.innerHTML = `
+        <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg text-xs border border-slate-200">
+          <div><strong class="text-slate-500">Guru:</strong> <p class="text-sm font-semibold">${item.guruNama || '-'}</p></div>
+          <div><strong class="text-slate-500">Kelas & Mapel:</strong> <p class="text-sm font-semibold">${item.kelas || '-'} / ${item.mapel || '-'}</p></div>
+          <div><strong class="text-slate-500">Tanggal:</strong> <p>${item.tanggal || '-'}</p></div>
+          <div><strong class="text-slate-500">Jam Ke:</strong> <p>${item.jamKe || '-'}</p></div>
+        </div>
 
-document.getElementById('modalDetail').addEventListener('click', (e) => {
-    if (e.target.id === 'modalDetail') closeModal();
-});
-</script>
+        <div>
+          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Materi / Kegiatan Pembelajaran</h4>
+          <p class="p-3 bg-white border rounded-lg text-slate-700 whitespace-pre-line">${item.materi || '-'}</p>
+        </div>
 
+        <div>
+          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Catatan / Hambatan</h4>
+          <p class="p-3 bg-white border rounded-lg text-slate-700 whitespace-pre-line">${item.catatan || 'Tidak ada catatan.'}</p>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-xs text-slate-500 uppercase mb-1">Rincian Kehadiran Siswa</h4>
+          <div class="grid grid-cols-4 gap-2 text-center text-xs">
+            <div class="bg-emerald-50 text-emerald-700 p-2 rounded border border-emerald-200"><span class="block font-bold text-lg">${item.hadir || 0}</span> Hadir</div>
+            <div class="bg-amber-50 text-amber-700 p-2 rounded border border-amber-200"><span class="block font-bold text-lg">${item.sakit || 0}</span> Sakit</div>
+            <div class="bg-blue-50 text-blue-700 p-2 rounded border border-blue-200"><span class="block font-bold text-lg">${item.izin || 0}</span> Izin</div>
+            <div class="bg-rose-50 text-rose-700 p-2 rounded border border-rose-200"><span class="block font-bold text-lg">${item.alpa || 0}</span> Alpa</div>
+          </div>
+        </div>
+      `;
+
+      const modal = document.getElementById('detailModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('detailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // -------------------------------------------------------------
+    // 8. Ekspor Data ke Excel
+    // -------------------------------------------------------------
+    function exportToExcel() {
+      if (filteredJurnal.length === 0) {
+        alert("Tidak ada data untuk diekspor!");
+        return;
+      }
+
+      const exportData = filteredJurnal.map((item, index) => ({
+        "No": index + 1,
+        "Tanggal": item.tanggal || '',
+        "Jam Ke": item.jamKe || '',
+        "Nama Guru": item.guruNama || '',
+        "Mata Pelajaran": item.mapel || '',
+        "Kelas": item.kelas || '',
+        "Materi Pembelajaran": item.materi || '',
+        "Catatan": item.catatan || '',
+        "Hadir": item.hadir || 0,
+        "Sakit": item.sakit || 0,
+        "Izin": item.izin || 0,
+        "Alpa": item.alpa || 0
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Jurnal");
+
+      const fileName = `Rekap_Jurnal_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+    }
+  </script>
 </body>
 </html>
