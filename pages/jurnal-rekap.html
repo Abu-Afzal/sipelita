@@ -6,7 +6,7 @@
     <title>Rekap Jurnal Mengajar - SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
     
-        <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -235,7 +235,7 @@
 <div class="header">
     <div style="flex: 1;">
         <h1> Rekap Jurnal Mengajar</h1>
-           <p>SIPELITA — TA. 2026/2027 Semester Ganjil</p>
+        <p>SIPELITA — TA. 2026/2027 Semester Ganjil</p>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
         <span id="roleBadge" class="role-badge">GURU</span>
@@ -245,7 +245,6 @@
 </div>
 
 <div class="container">
-    
     <!-- Statistik -->
     <div class="stats-grid">
         <div class="stat-card">
@@ -335,7 +334,6 @@
             </div>
         </div>
     </div>
-    
 </div>
 
 <!-- Modal Detail -->
@@ -350,7 +348,7 @@
 </div>
 
 <script>
-// ✅ Inisialisasi Firebase MANDIRI (tidak menumpang file lain)
+// ✅ Inisialisasi Firebase MANDIRI
 const firebaseConfig = {
   apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
   authDomain: "sipelita-guru.firebaseapp.com",
@@ -361,29 +359,51 @@ const firebaseConfig = {
 };
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 let allJurnal = [];
 let filteredJurnal = [];
 let currentUserData = null;
 let userRole = 'guru';
 
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        const userStr = localStorage.getItem('sipelita_user');
-        if (userStr) {
-            currentUserData = JSON.parse(userStr);
-            userRole = currentUserData.role || currentUserData.jabatan || 'guru';
-            console.log('👤 User:', currentUserData.nama || currentUserData.email);
-            console.log(' Role:', userRole);
+// ✅ Helper Ambil User dari LocalStorage dengan Multi-Key Fallback
+function getStoredUserData() {
+    const keys = ['sipelita_user', 'user', 'sipelitaUser', 'session_sipelita', 'currentUser'];
+    for (let key of keys) {
+        try {
+            const data = localStorage.getItem(key);
+            if (data) return JSON.parse(data);
+        } catch (e) {
+            console.error(`Error reading key ${key}:`, e);
         }
-    } catch (e) {
-        console.error('Error load user:', e);
     }
-    
-        updateUIByRole();
-    
-    // ✅ Langsung muat data (identitas dari localStorage, rules terbuka)
-    loadRekapJurnal();
+    return null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ✅ PERBAIKAN: Gunakan Auth Listener Firebase & Multi-Key Check untuk Verifikasi Sesi
+    auth.onAuthStateChanged(async (fbUser) => {
+        let storedUser = getStoredUserData();
+
+        if (fbUser || storedUser) {
+            currentUserData = storedUser || {
+                email: fbUser.email,
+                nama: fbUser.displayName || fbUser.email,
+                role: 'guru'
+            };
+            
+            userRole = currentUserData.role || currentUserData.jabatan || 'guru';
+            console.log('👤 User terverifikasi:', currentUserData.nama || currentUserData.email);
+            console.log('🔑 Role:', userRole);
+
+            updateUIByRole();
+            loadRekapJurnal();
+        } else {
+            console.warn('⚠️ Sesi login tidak ditemukan.');
+            alert('Sesi login tidak ditemukan. Silakan login terlebih dahulu.');
+            window.location.href = '../index.html';
+        }
+    });
 });
 
 function updateUIByRole() {
@@ -393,7 +413,6 @@ function updateUIByRole() {
     const guruStatsCard = document.getElementById('guruStatsCard');
     const statGuruCard = document.getElementById('statGuruCard');
     
-    // Set badge role
     const roleLower = userRole.toLowerCase();
     
     if (roleLower === 'admin' || roleLower === 'kepala' || roleLower === 'kamad') {
@@ -406,7 +425,6 @@ function updateUIByRole() {
         roleBadge.textContent = '👨‍🏫 GURU';
     }
     
-    // Tampilkan fitur Wakamad/Kamad
     const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
     
     if (isEvaluator) {
@@ -419,28 +437,22 @@ function updateUIByRole() {
 
 window.loadRekapJurnal = async function() {
     try {
-        const userStr = localStorage.getItem('sipelita_user');
-        if (!userStr) {
-            alert('Anda harus login!');
-            window.location.href = '../index.html';
-            return;
+        if (!currentUserData) {
+            currentUserData = getStoredUserData();
         }
-        
-        const user = JSON.parse(userStr);
-        const currentUser = user.nama || user.email || 'guru';
+
+        const currentUser = currentUserData?.nama || currentUserData?.email || auth.currentUser?.email || 'guru';
         const roleLower = userRole.toLowerCase();
         const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
         
         let snapshot;
         
         if (isEvaluator) {
-            // Wakamad/Kamad: Load SEMUA jurnal
             console.log('📊 Loading semua jurnal untuk evaluator...');
             snapshot = await db.collection('jurnal_online')
                 .orderBy('tanggal', 'desc')
                 .get();
         } else {
-            // Guru: Load jurnal sendiri saja
             console.log('📊 Loading jurnal untuk guru:', currentUser);
             snapshot = await db.collection('jurnal_online')
                 .where('guruNama', '==', currentUser)
@@ -461,7 +473,6 @@ window.loadRekapJurnal = async function() {
         
         console.log(`✅ Loaded ${allJurnal.length} jurnal`);
         
-        // Populate filter kelas
         const filterKelas = document.getElementById('filterKelas');
         filterKelas.innerHTML = '<option value="">Semua Kelas</option>';
         kelasSet.forEach(k => {
@@ -470,7 +481,6 @@ window.loadRekapJurnal = async function() {
             filterKelas.appendChild(opt);
         });
         
-        // Populate filter guru (hanya untuk evaluator)
         if (isEvaluator) {
             const filterGuru = document.getElementById('filterGuru');
             filterGuru.innerHTML = '<option value="">Semua Guru</option>';
@@ -479,18 +489,17 @@ window.loadRekapJurnal = async function() {
                 opt.value = g; opt.textContent = g;
                 filterGuru.appendChild(opt);
             });
-            
-            // Render statistik per guru
             renderGuruStats(guruSet);
         }
         
         filteredJurnal = [...allJurnal];
-        
         document.getElementById('loading').style.display = 'none';
         
         if (allJurnal.length === 0) {
             document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('tableContainer').style.display = 'none';
         } else {
+            document.getElementById('emptyState').style.display = 'none';
             document.getElementById('tableContainer').style.display = 'block';
             renderTabel();
             updateStatistik();
@@ -516,7 +525,6 @@ function renderGuruStats(guruSet) {
         stats.push({ guru, total, totalHadir, totalTidakHadir });
     });
     
-    // Sort by total jurnal descending
     stats.sort((a, b) => b.total - a.total);
     
     container.innerHTML = stats.map(s => `
@@ -536,7 +544,6 @@ function renderGuruStats(guruSet) {
 window.filterByGuru = function(guruNama) {
     document.getElementById('filterGuru').value = guruNama;
     applyFilter();
-    // Scroll ke tabel
     document.getElementById('tableContainer').scrollIntoView({ behavior: 'smooth' });
 };
 
@@ -576,7 +583,6 @@ function renderTabel() {
         `;
     }).join('');
 
-    // ✅ AMAN: Pasang event listener setelah HTML di-render (menghindari bug karakter khusus ID)
     tbody.querySelectorAll('.btn-detail').forEach(btn => {
         btn.onclick = () => lihatDetail(btn.dataset.id);
     });
@@ -602,7 +608,6 @@ function updateStatistik() {
     document.getElementById('statHadir').textContent = totalHadir;
     document.getElementById('statTidakHadir').textContent = totalTidakHadir;
     
-    // Update statistik jumlah guru (hanya untuk evaluator)
     const roleLower = userRole.toLowerCase();
     const isEvaluator = ['admin', 'kepala', 'kamad', 'wakil', 'wakamad'].includes(roleLower);
     if (isEvaluator) {
@@ -743,8 +748,6 @@ window.exportExcel = function() {
     });
     
     const ws = XLSX.utils.aoa_to_sheet(data);
-    
-    // Set column widths
     ws['!cols'] = [
         { wch: 5 },   // No
         { wch: 20 },  // Tanggal
