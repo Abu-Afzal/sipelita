@@ -4,7 +4,6 @@
 const firebaseConfig = {
     apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
     authDomain: "sipelita-guru.firebaseapp.com",
-    databaseURL: "https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "sipelita-guru",
     storageBucket: "sipelita-guru.firebasestorage.app",
     messagingSenderId: "595996765157",
@@ -13,6 +12,7 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 // ══════════════════════════════════════════════
 // STATE
@@ -22,7 +22,7 @@ let daftarKelas = [];
 
 // ═════════════════════════════════════════════
 // UTILITIES
-// ══════════════════════════════════════════════
+// ═════════════════════════════════════════════
 function toast(msg, type = 'success') {
     const t = document.createElement('div');
     t.className = `toast toast-${type}`;
@@ -30,15 +30,6 @@ function toast(msg, type = 'success') {
     document.body.appendChild(t);
     setTimeout(() => t.style.opacity = '0', 3000);
     setTimeout(() => t.remove(), 3400);
-}
-
-function getCurrentUser() {
-    try {
-        const userStr = localStorage.getItem('sipelita_user');
-        return userStr ? JSON.parse(userStr) : null;
-    } catch (e) {
-        return null;
-    }
 }
 
 function sanitizeEmail(email) {
@@ -52,58 +43,66 @@ function toRoman(num) {
     if (!num || num < 1 || num > 10) return num;
     
     const roman = {
-        1: 'I',
-        2: 'II',
-        3: 'III',
-        4: 'IV',
-        5: 'V',
-        6: 'VI',
-        7: 'VII',
-        8: 'VIII',
-        9: 'IX',
-        10: 'X',
-        11: 'XI'
+        1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
+        6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X', 11: 'XI'
     };
     
     return roman[num] || num;
 }
 
 // ══════════════════════════════════════════════
-// INIT - Form Jurnal Online
+// INIT - Tunggu Firebase Auth siap
 // ══════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const formJurnal = document.getElementById('formJurnal');
     if (!formJurnal) return;
     
-    currentUser = getCurrentUser();
-    if (!currentUser) {
-        alert('Anda harus login!');
-        window.location.href = '../login.html';
-        return;
-    }
-    
-    // Auto-fill nama guru
-    const namaGuru = currentUser.nama || currentUser.email || 'Guru';
-    document.getElementById('namaGuru').value = namaGuru;
-    
-    // Load NIP dari localStorage jika pernah diisi
-    const savedNip = localStorage.getItem('sipelita_nip_' + sanitizeEmail(namaGuru));
-    if (savedNip) {
-        document.getElementById('nipGuru').value = savedNip;
-    }
-    
-    // Set tanggal hari ini
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('tanggal').value = today;
-    
-    // 🆕 Setup Live Preview untuk Rentang Jam (Format Romawi)
-    setupJamPreview();
-    
-    // Load daftar kelas dari SIPENA
-    await loadDaftarKelas();
-    
-    // Setup form submit
-    formJurnal.addEventListener('submit', simpanJurnal);
+    // ✅ TUNGGU FIREBASE AUTH SIAP (ini yang sebelumnya hilang!)
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            alert('Anda harus login terlebih dahulu!');
+            window.location.href = '../home.html';
+            return;
+        }
+        
+        // Ambil data user dari Auth + localStorage
+        let localUser = null;
+        try {
+            localUser = JSON.parse(localStorage.getItem('sipelita_user') || 'null');
+        } catch (e) {}
+        
+        currentUser = {
+            uid: user.uid,
+            email: user.email,
+            nama: localUser?.nama || user.email || 'Guru',
+            role: localUser?.role || 'guru',
+            nip: localUser?.nip || ''
+        };
+        
+        console.log('✅ Auth siap:', currentUser.email);
+        
+        // Auto-fill nama guru
+        document.getElementById('namaGuru').value = currentUser.nama;
+        
+        // Load NIP dari localStorage jika pernah diisi
+        const savedNip = localStorage.getItem('sipelita_nip_' + sanitizeEmail(currentUser.nama));
+        if (savedNip) {
+            document.getElementById('nipGuru').value = savedNip;
+        }
+        
+        // Set tanggal hari ini
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('tanggal').value = today;
+        
+        // Setup Live Preview untuk Rentang Jam
+        setupJamPreview();
+        
+        // Load daftar kelas dari Firestore (sipena2 collection)
+        await loadDaftarKelas();
+        
+        // Setup form submit
+        formJurnal.addEventListener('submit', simpanJurnal);
+    });
 });
 
 // ══════════════════════════════════════════════
@@ -127,7 +126,6 @@ function setupJamPreview() {
                 previewEl.style.background = '#fee2e2';
                 previewEl.style.color = '#991b1b';
             } else {
-                // 🆕 Format Romawi: "Jam I-III"
                 const romanMulai = toRoman(mulaiInt);
                 const romanSelesai = toRoman(selesaiInt);
                 previewEl.textContent = `Jam ${romanMulai}-${romanSelesai}`;
@@ -145,42 +143,51 @@ function setupJamPreview() {
 }
 
 // ══════════════════════════════════════════════
-// LOAD DAFTAR KELAS
+// LOAD DAFTAR KELAS DARI FIRESTORE (sipena2 collection)
 // ══════════════════════════════════════════════
 async function loadDaftarKelas() {
     try {
-        const namaGuru = currentUser.nama || currentUser.email || 'guru';
-        const rtDb = firebase.database();
-        const snap = await rtDb.ref('sipena2').once('value');
-        const data = snap.val();
+        const email = currentUser.email || '';
+        const nama = currentUser.nama || '';
         
-        if (data) {
-            const kelasList = Object.keys(data)
-                .map(k => ({ __key: k, ...data[k] }))
-                .filter(d => d.type === 'class' && d.user_name === namaGuru);
-            
-            daftarKelas = kelasList;
-            
-            const kelasSelect = document.getElementById('kelas');
-            kelasSelect.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-            
-            kelasList.forEach(k => {
-                const opt = document.createElement('option');
-                opt.value = k.class_name;
-                opt.textContent = k.class_name;
-                kelasSelect.appendChild(opt);
-            });
-            
-            if (kelasList.length === 0) {
-                kelasSelect.innerHTML = '<option value="">Belum ada kelas di SIPENA</option>';
-            }
+        // ✅ Baca dari Firestore collection 'sipena2' (bukan RTDB!)
+        const snap = await db.collection('sipena2').get();
+        const allDocs = [];
+        snap.forEach(doc => {
+            allDocs.push({ __key: doc.id, ...doc.data() });
+        });
+        
+        // Filter: hanya kelas milik user ini
+        const kelasList = allDocs.filter(d => {
+            if (d.type !== 'class') return false;
+            const owner = (d.user_name || d.user_email || '').toLowerCase();
+            const userEmail = email.toLowerCase();
+            const userName = nama.toLowerCase();
+            return owner === userEmail || owner === userName;
+        });
+        
+        daftarKelas = kelasList;
+        
+        const kelasSelect = document.getElementById('kelas');
+        kelasSelect.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        
+        kelasList.forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k.class_name;
+            opt.textContent = k.class_name;
+            kelasSelect.appendChild(opt);
+        });
+        
+        if (kelasList.length === 0) {
+            kelasSelect.innerHTML = '<option value="">Belum ada kelas di SIPENA</option>';
         }
+        
+        console.log('📚 Kelas dimuat:', kelasList.length);
     } catch (error) {
         console.error('Error load kelas:', error);
-        // Fallback: input manual jika gagal load dari database
+        // Fallback: input manual jika gagal load
         const kelasSelect = document.getElementById('kelas');
         kelasSelect.innerHTML = '<option value="">-- Ketik Manual --</option>';
-        // Ubah select menjadi input text
         const inputManual = document.createElement('input');
         inputManual.type = 'text';
         inputManual.id = 'kelas';
@@ -205,11 +212,15 @@ async function simpanJurnal(e) {
     alertEl.classList.remove('show');
     
     try {
+        // ✅ Cek Auth lagi sebelum simpan
+        const authUser = auth.currentUser;
+        if (!authUser) {
+            throw new Error('Sesi login tidak aktif. Silakan login ulang.');
+        }
+        
         const namaGuru = document.getElementById('namaGuru').value.trim();
         const nip = document.getElementById('nipGuru').value.trim();
         const tanggal = document.getElementById('tanggal').value;
-        
-        // 🆕 Ambil data jam mulai dan selesai
         const jamMulai = document.getElementById('jamMulai').value;
         const jamSelesai = document.getElementById('jamSelesai').value;
         
@@ -221,7 +232,7 @@ async function simpanJurnal(e) {
         const materi = document.getElementById('materi').value.trim();
         const keterangan = document.getElementById('keterangan').value.trim();
         
-        // Validasi input form
+        // Validasi
         if (!namaGuru) throw new Error('Nama guru wajib diisi');
         if (!nip) throw new Error('NIP wajib diisi');
         if (!tanggal) throw new Error('Tanggal wajib diisi');
@@ -234,31 +245,26 @@ async function simpanJurnal(e) {
         if (!materi) throw new Error('Materi/Tugas wajib diisi');
         if (!keterangan) throw new Error('Keterangan wajib diisi');
         
-        if (!currentUser || (!currentUser.uid && !currentUser.id)) {
-            throw new Error('Sesi login tidak valid. Silakan login ulang.');
-        }
-        
-        const currentUid = currentUser.uid || currentUser.id;
-        
-        // Simpan NIP ke localStorage untuk auto-fill berikutnya
+        // Simpan NIP ke localStorage
         localStorage.setItem('sipelita_nip_' + sanitizeEmail(namaGuru), nip);
         
-        // 🆕 Format data jam untuk database (dengan angka Romawi)
+        // Format jam
         const jamMulaiInt = parseInt(jamMulai);
         const jamSelesaiInt = parseInt(jamSelesai);
-        const jamRange = `${jamMulaiInt}-${jamSelesaiInt}`; // "1-3" untuk database/sorting
-        const jamDisplay = `Jam ${toRoman(jamMulaiInt)}-${toRoman(jamSelesaiInt)}`; // "Jam I-III" untuk tampilan
+        const jamRange = `${jamMulaiInt}-${jamSelesaiInt}`;
+        const jamDisplay = `Jam ${toRoman(jamMulaiInt)}-${toRoman(jamSelesaiInt)}`;
         
-        // Struktur data yang dikirim ke Firestore
+        // Data untuk Firestore
         const data = {
-            userId: currentUid,
+            userId: authUser.uid,
+            userEmail: authUser.email,
             guruNama: namaGuru,
             nip: nip,
             tanggal: tanggal,
-            jamMulai: jamMulaiInt,           // Angka: 1
-            jamSelesai: jamSelesaiInt,       // Angka: 3
-            jamRange: jamRange,              // String: "1-3"
-            jamDisplay: jamDisplay,          // String: "Jam I-III"
+            jamMulai: jamMulaiInt,
+            jamSelesai: jamSelesaiInt,
+            jamRange: jamRange,
+            jamDisplay: jamDisplay,
             kelas: kelas,
             muridHadir: muridHadir,
             muridTidakHadir: muridTidakHadir,
@@ -268,14 +274,13 @@ async function simpanJurnal(e) {
             updatedAt: new Date().toISOString()
         };
         
-        // Simpan ke Firestore
+        // ✅ Simpan ke Firestore (auth.currentUser sudah terisi → rules lolos)
         await db.collection('jurnal_online').add(data);
         
         alertEl.textContent = '✅ Jurnal berhasil disimpan!';
         alertEl.className = 'alert alert-success show';
         toast('✅ Jurnal berhasil disimpan!');
         
-        // Reset form setelah 1.5 detik
         setTimeout(() => {
             resetForm();
             alertEl.classList.remove('show');
@@ -295,7 +300,6 @@ async function simpanJurnal(e) {
 // RESET FORM
 // ══════════════════════════════════════════════
 window.resetForm = function() {
-    //  Reset dropdown jam dan preview
     document.getElementById('jamMulai').value = '';
     document.getElementById('jamSelesai').value = '';
     document.getElementById('jamPreview').style.display = 'none';
