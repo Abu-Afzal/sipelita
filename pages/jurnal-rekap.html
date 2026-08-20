@@ -6,7 +6,8 @@
     <title>Rekap Jurnal Mengajar - SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
     
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
@@ -234,7 +235,7 @@
 <div class="header">
     <div style="flex: 1;">
         <h1> Rekap Jurnal Mengajar</h1>
-        <p>MAN BANTAENG - TA. 2025/2026 SEMESTER GENAP</p>
+           <p>SIPELITA — TA. 2026/2027 Semester Ganjil</p>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
         <span id="roleBadge" class="role-badge">GURU</span>
@@ -356,12 +357,10 @@ let currentUserData = null;
 let userRole = 'guru';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Load data user dan role
     try {
         const userStr = localStorage.getItem('sipelita_user');
         if (userStr) {
             currentUserData = JSON.parse(userStr);
-            // Deteksi role dari field 'role' atau 'jabatan'
             userRole = currentUserData.role || currentUserData.jabatan || 'guru';
             console.log('👤 User:', currentUserData.nama || currentUserData.email);
             console.log(' Role:', userRole);
@@ -370,13 +369,18 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error load user:', e);
     }
     
-    // Update UI berdasarkan role
     updateUIByRole();
     
-    // Load data jurnal
-    if (typeof loadRekapJurnal === 'function') {
-        loadRekapJurnal();
-    }
+    // ✅ WAJIB: tunggu sesi Firebase Auth pulih (rules butuh request.auth != null)
+    firebase.auth().onAuthStateChanged(user => {
+        if (!user) {
+            alert('Sesi login tidak ditemukan. Silakan login terlebih dahulu.');
+            window.location.href = '../index.html';
+            return;
+        }
+        console.log('✅ Auth siap:', user.email);
+        if (typeof loadRekapJurnal === 'function') loadRekapJurnal();
+    });
 });
 
 function updateUIByRole() {
@@ -704,8 +708,8 @@ window.exportExcel = function() {
     const userRoleText = currentUserData?.role || 'Guru';
     
     const data = [
-        ['JURNAL MENGAJAR ONLINE - MAN BANTAENG'],
-        ['TA. 2025/2026 SEMESTER GENAP'],
+        ['JURNAL MENGAJAR ONLINE - SIPELITA'],
+        ['TA. 2026/2027 SEMESTER GANJIL'],
         ['Diekspor oleh: ' + userName + ' (' + userRoleText + ')'],
         ['Tanggal Export: ' + new Date().toLocaleString('id-ID')],
         [],
