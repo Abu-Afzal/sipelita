@@ -758,7 +758,7 @@ window.cetakRekapNilaiPDF = () => {
             <p style="margin:0;font-weight:bold;text-decoration:underline;">${namaKepala}</p>
             <p style="margin:2px 0 0 0;">NIP. ${nipKepala}</p>
           </td>
-          <td style="width:20%;">&nbsp;</td>
+          <td style="width:60%;">&nbsp;</td>
           <td style="width:40%;text-align:left;vertical-align:top;padding:0;margin:0;">
             <p style="margin:0 0 2px 0;">${tempatTtd}, ${tanggalSekarang}</p>
             <p style="margin:0 0 55px 0;font-weight:bold;">Guru Mata Pelajaran</p>
