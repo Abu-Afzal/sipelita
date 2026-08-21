@@ -756,7 +756,7 @@ window.cetakRekapNilaiPDF = () => {
             Mengetahui,<br>Kepala Madrasah<br><br><br><br>
             <strong><u>${namaKepala}</u></strong><br>NIP. ${nipKepala}
           </td>
-          <td style="width:50%;text-align:left;vertical-align:top;padding-left:90px;">
+          <td style="width:50%;text-align:left;vertical-align:top;padding-left:120px;">
             ${tempatTtd}, ${tanggalSekarang}<br>Guru Mata Pelajaran<br><br><br><br>
             <strong><u>${namaGuru}</u></strong><br>NIP. ${nipGuru}
           </td>
