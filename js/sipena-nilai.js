@@ -583,14 +583,16 @@ window.hapusDataNilai = async () => {
   const filter = window.getNilaiFilter();
   const target = document.getElementById('selectHapusTP')?.value || 'all';
 
-  // Cari semua record nilai (pengetahuan, keterampilan, sikap) untuk kelas+semester ini
-  const records = allData.filter(d =>
-    (d.type === 'nilai_pengetahuan' || d.type === 'nilai_keterampilan' || d.type === 'nilai_sikap') &&
-    d.class_name === filter.class_name &&
-    d.user_name === filter.user_name &&
-    d.semester === filter.semester &&
-    (target === 'all' || d.kode_tp === target)
-  );
+   // Cari semua record nilai + konfigurasi kolom K per-TP
+  const records = allData.filter(d => {
+    const isNilai = (d.type === 'nilai_pengetahuan' || d.type === 'nilai_keterampilan' || d.type === 'nilai_sikap');
+    const isKolomKet = d.type === 'nilai_kolom_ket';
+    if (!isNilai && !isKolomKet) return false;
+    if (d.class_name !== filter.class_name || d.user_name !== filter.user_name) return false;
+    if (d.semester !== filter.semester) return false;
+    if (target !== 'all' && d.kode_tp !== target) return false;
+    return true;
+  });
 
   if (!records.length) {
     window.toast('⚠️ Tidak ada data nilai untuk dihapus.', 'err');
@@ -1432,13 +1434,15 @@ window.previewAnalisisPDF = () => {
     .sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
 
   const userData = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
+  const SIG = window.SIG ? window.SIG.get() : {};
   const namaSekolah = userData.nama_sekolah || 'SIPELITA';
-  const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG';
-  const alamatSekolah = userData.alamat_sekolah || 'Jl. Parela Dampang Kel. Gantarangkeke Kab. Bantaeng';
-  const namaKepala = userData.nama_kepala || 'MUHAMMAD ARIF PITHER, S.Ag.,MM.,M.Pd';
-  const nipKepala = userData.nip_kepala || '19710930 200701 1 001';
-  const namaGuru = window.kapitalNamaGuru(userData.nama || currentUser || 'ELIS HARIANTO, S.Pd');
-  const nipGuru = userData.nip || '19900211 202012 1 007';
+  const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA';
+  const alamatSekolah = userData.alamat_sekolah || '-';
+  const namaKepala = SIG.kamadNama || userData.nama_kepala || '( .......................................... )';
+  const nipKepala = SIG.kamadNip || userData.nip_kepala || '....................';
+  const namaGuru = window.kapitalNamaGuru(userData.nama || currentUser || '-');
+  const nipGuru = userData.nip || '-';
+  const tempatTtd = SIG.tempat || '....................';
 
   const jmlSiswa = siswa.length || 1;
   let totalSkorPerSoal = Array(jumlah_soal).fill(0);
@@ -1576,7 +1580,7 @@ window.previewAnalisisPDF = () => {
           <p style="margin:2px 0 0 0;">NIP. ${nipKepala}</p>
         </div>
         <div style="text-align:left; width:45%;">
-          <p style="margin:0 0 5px 0;">Bantaeng, ${tanggalSekarang}</p>
+          <p style="margin:0 0 5px 0;">${tempatTtd}, ${tanggalSekarang}</p>
           <p style="margin:0 0 55px 0; font-weight:bold;">Guru Mata Pelajaran</p>
           <p style="margin:0; font-weight:bold; text-decoration:underline;">${namaGuru}</p>
           <p style="margin:2px 0 0 0;">NIP. ${nipGuru}</p>
