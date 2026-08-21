@@ -750,15 +750,20 @@ window.cetakRekapNilaiPDF = () => {
         <tbody>${tbody}</tbody>
       </table>
 
-      <table style="width:100%;margin-top:25px;page-break-inside:avoid;">
+            <table style="width:100%;margin-top:25px;page-break-inside:avoid;table-layout:fixed;">
         <tr>
-          <td style="width:50%;text-align:left;vertical-align:top;">
-            Mengetahui,<br>Kepala Madrasah<br><br><br><br>
-            <strong><u>${namaKepala}</u></strong><br>NIP. ${nipKepala}
+          <td style="width:40%;text-align:left;vertical-align:top;padding:0;margin:0;">
+            <p style="margin:0 0 2px 0;">Mengetahui,</p>
+            <p style="margin:0 0 55px 0;font-weight:bold;">Kepala Madrasah</p>
+            <p style="margin:0;font-weight:bold;text-decoration:underline;">${namaKepala}</p>
+            <p style="margin:2px 0 0 0;">NIP. ${nipKepala}</p>
           </td>
-          <td style="width:50%;text-align:left;vertical-align:top;padding-left:120px;">
-            ${tempatTtd}, ${tanggalSekarang}<br>Guru Mata Pelajaran<br><br><br><br>
-            <strong><u>${namaGuru}</u></strong><br>NIP. ${nipGuru}
+          <td style="width:20%;">&nbsp;</td>
+          <td style="width:40%;text-align:left;vertical-align:top;padding:0;margin:0;">
+            <p style="margin:0 0 2px 0;">${tempatTtd}, ${tanggalSekarang}</p>
+            <p style="margin:0 0 55px 0;font-weight:bold;">Guru Mata Pelajaran</p>
+            <p style="margin:0;font-weight:bold;text-decoration:underline;">${namaGuru}</p>
+            <p style="margin:2px 0 0 0;">NIP. ${nipGuru}</p>
           </td>
         </tr>
       </table>
