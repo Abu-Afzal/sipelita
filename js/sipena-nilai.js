@@ -752,7 +752,7 @@ window.cetakRekapNilaiPDF = () => {
 
             <table style="width:100%;margin-top:25px;page-break-inside:avoid;table-layout:fixed;">
         <tr>
-          <td style="width:40%;text-align:left;vertical-align:top;padding:0;margin:0;">
+          <td style="width:60%;text-align:left;vertical-align:top;padding:0;margin:0;">
             <p style="margin:0 0 2px 0;">Mengetahui,</p>
             <p style="margin:0 0 55px 0;font-weight:bold;">Kepala Madrasah</p>
             <p style="margin:0;font-weight:bold;text-decoration:underline;">${namaKepala}</p>
