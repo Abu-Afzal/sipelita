@@ -673,7 +673,7 @@ window.cetakRekapNilaiPDF = () => {
   const userData = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
   const SIG = window.SIG ? window.SIG.get() : {};
   const namaSekolah = userData.nama_sekolah || 'SIPELITA';
-  const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA';
+  const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG';
   const alamatSekolah = userData.alamat_sekolah || '-';
   const namaKepala = SIG.kamadNama || userData.nama_kepala || '( .......................................... )';
   const nipKepala = SIG.kamadNip || userData.nip_kepala || '....................';
@@ -1477,7 +1477,7 @@ window.previewAnalisisPDF = () => {
   const userData = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
   const SIG = window.SIG ? window.SIG.get() : {};
   const namaSekolah = userData.nama_sekolah || 'SIPELITA';
-  const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA';
+  const dinasPendidikan = userData.dinas || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG';
   const alamatSekolah = userData.alamat_sekolah || '-';
   const namaKepala = SIG.kamadNama || userData.nama_kepala || '( .......................................... )';
   const nipKepala = SIG.kamadNip || userData.nip_kepala || '....................';
