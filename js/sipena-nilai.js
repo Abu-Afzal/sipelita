@@ -238,6 +238,15 @@ window.renderNilaiPengetahuan = (siswa) => {
   siswa.forEach((s, idx) => {
     const nd = allData.find(d => d.type === 'nilai_pengetahuan' && d.student_key === s.__key && d.class_name === filter.class_name && d.user_name === filter.user_name && d.semester === filter.semester && d.kode_tp === filter.kode_tp);
     const nilai = nd?.nilai ? JSON.parse(nd.nilai) : {};
+    // ✅ PULIHKAN nilai yang kolomnya pernah terhapus (ID lama tak cocok)
+    const hasMatch = window.nilaiKolom.some(k => nilai[k.id] !== undefined);
+    if (!hasMatch && Object.keys(nilai).length) {
+      const colIds = new Set(window.nilaiKolom.map(k => k.id));
+      const orphans = Object.keys(nilai).filter(key => !colIds.has(key));
+      window.nilaiKolom.forEach(k => {
+        if (nilai[k.id] === undefined && orphans.length) nilai[k.id] = nilai[orphans.shift()];
+      });
+    }
 
     html += `<tr><td style="color:#94a3b8;">${idx + 1}</td><td style="font-weight:600;">${s.student_name}</td>`;
     if (window.nilaiKolom.length) {
@@ -347,6 +356,15 @@ window.renderNilaiKeterampilan = (siswa) => {
   siswa.forEach((s, idx) => {
     const nd = allData.find(d => d.type === 'nilai_keterampilan' && d.student_key === s.__key && d.class_name === filter.class_name && d.user_name === filter.user_name && d.semester === filter.semester && d.kode_tp === filter.kode_tp);
     const nilai = nd?.nilai ? JSON.parse(nd.nilai) : {};
+    // ✅ PULIHKAN nilai yang kolomnya pernah terhapus (ID lama tak cocok)
+    const hasMatchKet = window.nilaiKolomKet.some(k => nilai[k.id] !== undefined);
+    if (!hasMatchKet && Object.keys(nilai).length) {
+      const colIdsKet = new Set(window.nilaiKolomKet.map(k => k.id));
+      const orphansKet = Object.keys(nilai).filter(key => !colIdsKet.has(key));
+      window.nilaiKolomKet.forEach(k => {
+        if (nilai[k.id] === undefined && orphansKet.length) nilai[k.id] = nilai[orphansKet.shift()];
+      });
+    }
     html += `<tr><td style="color:#94a3b8;">${idx + 1}</td><td style="font-weight:600;">${s.student_name}</td>`;
     if (window.nilaiKolomKet.length) {
       const vals = window.nilaiKolomKet.map(k => parseFloat(nilai[k.id])).filter(v => !isNaN(v));
@@ -558,11 +576,11 @@ window.tambahKolom = async (jenisNilai = 'pengetahuan') => {
   const jenis = document.getElementById('inputJenisKolom')?.value || 'PH';
   if (jenisNilai === 'pengetahuan') {
     const jumlahKolomSama = window.nilaiKolom.filter(k => k.jenis === jenis).length;
-    window.nilaiKolom.push({ id: 'k_' + Date.now(), jenis, label: `${jenis} ${jumlahKolomSama + 1}` });
+    window.nilaiKolom.push({ id: `k_${jenis}_${jumlahKolomSama + 1}`, jenis, label: `${jenis} ${jumlahKolomSama + 1}` });
     await window.simpanKonfigKolom('nilai_kolom', window.nilaiKolom);
   } else {
     const jumlahKolomSama = window.nilaiKolomKet.filter(k => k.jenis === jenis).length;
-    window.nilaiKolomKet.push({ id: 'kk_' + Date.now(), jenis, label: `${jenis} ${jumlahKolomSama + 1}` });
+    window.nilaiKolomKet.push({ id: `kk_${jenis}_${jumlahKolomSama + 1}`, jenis, label: `${jenis} ${jumlahKolomSama + 1}` });
     await window.simpanKonfigKolom('nilai_kolom_ket', window.nilaiKolomKet, true);
   }
   window.closeModal('modalKolom');
