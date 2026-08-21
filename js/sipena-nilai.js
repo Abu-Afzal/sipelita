@@ -750,18 +750,20 @@ window.cetakRekapNilaiPDF = () => {
         <tbody>${tbody}</tbody>
       </table>
 
-            <table style="width:100%;margin-top:25px;page-break-inside:avoid;table-layout:fixed;">
+                  <table style="width:100%;margin-top:25px;page-break-inside:avoid;table-layout:fixed;">
         <tr>
-          <td style="width:60%;text-align:left;vertical-align:top;padding:0;margin:0;">
-            <p style="margin:0 0 2px 0;">Mengetahui,</p>
-            <p style="margin:0 0 55px 0;font-weight:bold;">Kepala Madrasah</p>
+          <!-- BLOK KIRI: KAMAD (rumus sama, +padding-top 22px) -->
+          <td style="width:45%;text-align:left;vertical-align:top;padding:22px 0 0 0;margin:0;">
+            <p style="margin:0 0 4px 0;">Mengetahui,</p>
+            <p style="margin:0 0 60px 0;font-weight:bold;">Kepala Madrasah</p>
             <p style="margin:0;font-weight:bold;text-decoration:underline;">${namaKepala}</p>
             <p style="margin:2px 0 0 0;">NIP. ${nipKepala}</p>
           </td>
-          <td style="width:60%;">&nbsp;</td>
-          <td style="width:40%;text-align:left;vertical-align:top;padding:0;margin:0;">
-            <p style="margin:0 0 2px 0;">${tempatTtd}, ${tanggalSekarang}</p>
-            <p style="margin:0 0 55px 0;font-weight:bold;">Guru Mata Pelajaran</p>
+          <td style="width:10%;">&nbsp;</td>
+          <!-- BLOK KANAN: GURU (rumus sama, kota margin 26px) -->
+          <td style="width:45%;text-align:left;vertical-align:top;padding:0;margin:0;">
+            <p style="margin:0 0 26px 0;">${tempatTtd}, ${tanggalSekarang}</p>
+            <p style="margin:0 0 60px 0;font-weight:bold;">Guru Mata Pelajaran</p>
             <p style="margin:0;font-weight:bold;text-decoration:underline;">${namaGuru}</p>
             <p style="margin:2px 0 0 0;">NIP. ${nipGuru}</p>
           </td>
