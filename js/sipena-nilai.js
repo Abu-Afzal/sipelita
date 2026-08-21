@@ -752,11 +752,11 @@ window.cetakRekapNilaiPDF = () => {
 
       <table style="width:100%;margin-top:25px;page-break-inside:avoid;">
         <tr>
-          <td style="width:55%;text-align:left;vertical-align:top;">
+          <td style="width:50%;text-align:left;vertical-align:top;">
             Mengetahui,<br>Kepala Madrasah<br><br><br><br>
             <strong><u>${namaKepala}</u></strong><br>NIP. ${nipKepala}
           </td>
-          <td style="width:45%;text-align:left;vertical-align:top;">
+          <td style="width:50%;text-align:left;vertical-align:top;padding-left:90px;">
             ${tempatTtd}, ${tanggalSekarang}<br>Guru Mata Pelajaran<br><br><br><br>
             <strong><u>${namaGuru}</u></strong><br>NIP. ${nipGuru}
           </td>
