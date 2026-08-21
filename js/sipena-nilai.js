@@ -174,6 +174,12 @@ window.rerataRecNilai = (rec) => {
   } catch (e) { return null; }
 };
 
+// ✅ Deteksi apakah suatu TP punya nilai P dan/atau K (kolom kosong tidak ditampilkan)
+window.getTpFlags = (allNilaiData, tp) => ({
+  hasP: allNilaiData.some(d => d.kode_tp === tp && d.type === 'nilai_pengetahuan'),
+  hasK: allNilaiData.some(d => d.kode_tp === tp && d.type === 'nilai_keterampilan')
+});
+
 // ✅ Kolom KETERAMPILAN per-TP (tidak bocor ke TP lain)
 window.getKolomKetConfig = () => {
   const filter = window.getNilaiFilter();
@@ -408,8 +414,9 @@ window.renderRekapNilai = (siswa) => {
     <th style="min-width:150px;">Nama Siswa</th>`;
 
     uniqueTPs.forEach(tp => {
-    html += `<th style="min-width:70px; text-align:center;background:#eff6ff;">TP ${tp}<br><small style="font-weight:400;color:#1e40af;">📘 P</small></th>`;
-    html += `<th style="min-width:70px; text-align:center;background:#f0fdf4;">TP ${tp}<br><small style="font-weight:400;color:#065f46;">🛠️ K</small></th>`;
+    const flags = window.getTpFlags(allNilaiData, tp);
+    if (flags.hasP) html += `<th style="min-width:70px; text-align:center;background:#eff6ff;">TP ${tp}<br><small style="font-weight:400;color:#1e40af;">📘 P</small></th>`;
+    if (flags.hasK) html += `<th style="min-width:70px; text-align:center;background:#f0fdf4;">TP ${tp}<br><small style="font-weight:400;color:#065f46;">🛠️ K</small></th>`;
   });
 
   html += `<th width="100" style="background:#f0fdf4; color:#065f46;">Nilai Akhir<br>Semester</th>
@@ -422,9 +429,11 @@ window.renderRekapNilai = (siswa) => {
     let countTP = 0;
 
         uniqueTPs.forEach(tp => {
-      const recP = allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_pengetahuan');
-      const recK = allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_keterampilan');
-      [recP, recK].forEach(rec => {
+      const flags = window.getTpFlags(allNilaiData, tp);
+      const recs = [];
+      if (flags.hasP) recs.push(allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_pengetahuan') || null);
+      if (flags.hasK) recs.push(allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_keterampilan') || null);
+      recs.forEach(rec => {
         const avg = window.rerataRecNilai(rec);
         if (avg !== null) {
           totalNilaiSemester += avg;
@@ -660,9 +669,11 @@ window.cetakRekapNilaiPDF = () => {
   siswa.forEach((s, idx) => {
     let totalSemester = 0, countTP = 0, cells = '';
     uniqueTPs.forEach(tp => {
-      const recP = allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_pengetahuan');
-      const recK = allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_keterampilan');
-      [recP, recK].forEach(rec => {
+      const flags = window.getTpFlags(allNilaiData, tp);
+      const recs = [];
+      if (flags.hasP) recs.push(allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_pengetahuan') || null);
+      if (flags.hasK) recs.push(allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_keterampilan') || null);
+      recs.forEach(rec => {
         const avg = window.rerataRecNilai(rec);
         if (avg !== null) { totalSemester += avg; countTP++; }
         cells += `<td style="border:1px solid #000;padding:4px;text-align:center;">${avg !== null ? avg.toFixed(1) : '-'}</td>`;
@@ -711,7 +722,11 @@ window.cetakRekapNilaiPDF = () => {
         <thead><tr>
           <th style="border:1px solid #000;padding:4px;background:#f2f2f2;width:30px;">No</th>
           <th style="border:1px solid #000;padding:4px;background:#f2f2f2;">Nama Siswa</th>
-          ${uniqueTPs.map(tp => `<th style="border:1px solid #000;padding:4px;background:#eef4ff;">TP ${tp} (P)</th><th style="border:1px solid #000;padding:4px;background:#effaf2;">TP ${tp} (K)</th>`).join('')}
+          ${uniqueTPs.map(tp => {
+            const flags = window.getTpFlags(allNilaiData, tp);
+            return (flags.hasP ? `<th style="border:1px solid #000;padding:4px;background:#eef4ff;">TP ${tp} (P)</th>` : '') +
+                   (flags.hasK ? `<th style="border:1px solid #000;padding:4px;background:#effaf2;">TP ${tp} (K)</th>` : '');
+          }).join('')}
           <th style="border:1px solid #000;padding:4px;background:#f2f2f2;">Nilai Akhir</th>
         </tr></thead>
         <tbody>${tbody}</tbody>
@@ -846,16 +861,24 @@ window.eksporNilai = () => {
         });
         rows.push([]);
 
-         rows.push(['No', 'Nama Siswa', ...uniqueTPs.flatMap(tp => [`TP ${tp} (P)`, `TP ${tp} (K)`]), 'Nilai Akhir Semester']);
+         rows.push(['No', 'Nama Siswa', ...uniqueTPs.flatMap(tp => {
+           const flags = window.getTpFlags(allNilaiData, tp);
+           const cols = [];
+           if (flags.hasP) cols.push(`TP ${tp} (P)`);
+           if (flags.hasK) cols.push(`TP ${tp} (K)`);
+           return cols;
+         }), 'Nilai Akhir Semester']);
 
         siswa.forEach((s, i) => {
             const row = [i + 1, s.student_name];
             let totalSemester = 0, countTP = 0;
 
-                       uniqueTPs.forEach(tp => {
-                const recP = allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_pengetahuan');
-                const recK = allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_keterampilan');
-                [recP, recK].forEach(rec => {
+                      uniqueTPs.forEach(tp => {
+                const flags = window.getTpFlags(allNilaiData, tp);
+                const recs = [];
+                if (flags.hasP) recs.push(allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_pengetahuan') || null);
+                if (flags.hasK) recs.push(allNilaiData.find(d => d.student_key === s.__key && d.kode_tp === tp && d.type === 'nilai_keterampilan') || null);
+                recs.forEach(rec => {
                     const avg = window.rerataRecNilai(rec);
                     if (avg !== null) {
                         row.push(avg.toFixed(1));
