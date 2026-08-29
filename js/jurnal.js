@@ -767,6 +767,9 @@ async function generatePDF(isPreview) {
         }
     }
 
+    // Transformasi Nama Guru ke Kapital Semua
+    const namaGuruCaps = (currentUser.nama || '').toUpperCase();
+
     // Menggunakan lebar standar A4 Potret (794px)
     pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:5px;width:100%;max-width:794px;margin:0 auto;background:white;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
         '<h2 style="text-align:center;font-size:13pt;margin-bottom:4px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
@@ -779,7 +782,7 @@ async function generatePDF(isPreview) {
                     '<tr>' +
                         '<td style="width: 65px; padding: 2px 0; font-weight: bold; border: none;">NAMA</td>' +
                         '<td style="width: 10px; padding: 2px 0; border: none;">:</td>' +
-                        '<td style="padding: 2px 0; border: none;">' + (currentUser.nama || '') + '</td>' +
+                        '<td style="padding: 2px 0; border: none;">' + namaGuruCaps + '</td>' +
                     '</tr>' +
                     '<tr>' +
                         '<td style="padding: 2px 0; font-weight: bold; border: none;">NIP</td>' +
@@ -791,13 +794,13 @@ async function generatePDF(isPreview) {
             '<div style="width: 48%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt;">' +
                     '<tr>' +
-                        '<td style="width: 130px; padding: 2px 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
-                        '<td style="width: 10px; padding: 2px 0; border: none;">:</td>' +
+                        '<td style="white-space: nowrap; padding: 2px 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
+                        '<td style="width: 10px; padding: 2px 0; border: none; text-align: center;">:</td>' +
                         '<td style="padding: 2px 0; border: none;">' + mapelText + '</td>' +
                     '</tr>' +
                     '<tr>' +
                         '<td style="padding: 2px 0; font-weight: bold; border: none;">JABATAN</td>' +
-                        '<td style="padding: 2px 0; border: none;">:</td>' +
+                        '<td style="padding: 2px 0; border: none; text-align: center;">:</td>' +
                         '<td style="padding: 2px 0; border: none;">Guru</td>' +
                     '</tr>' +
                 '</table>' +
@@ -839,7 +842,7 @@ async function generatePDF(isPreview) {
         '</tbody></table>' +
         
         '<div style="margin-top:25px; display:flex; justify-content:space-between; font-size:11pt; width:100%; line-height: 1.4; page-break-inside: avoid;">' +
-            '<div style="width: 48%; text-align:left;">' +
+            '<div style="width: 45%; text-align:left;">' +
                 '<div style="height: 16px;"></div>' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">Mengetahui,</p>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Kepala Madrasah</p>' +
@@ -847,12 +850,12 @@ async function generatePDF(isPreview) {
                 '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + SET.ttdKamad + '</p>' +
                 '<p style="margin: 0; padding: 0;">' + SET.ttdNip + '</p>' +
             '</div>' +
-            '<div style="width: 48%; text-align:left;">' +
+            '<div style="width: 38%; text-align:left;">' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">' + SET.ttdTempat + ', ' + new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) + '</p>' +
                 '<div style="height: 16px;"></div>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Guru Mata Pelajaran</p>' +
                 '<div style="height: 60px;"></div>' +
-                '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + (currentUser.nama || '') + '</p>' +
+                '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + namaGuruCaps + '</p>' +
                 '<p style="margin: 0; padding: 0;">NIP. ' + (currentUser.nip || '-') + '</p>' +
             '</div>' +
         '</div>' +
@@ -885,7 +888,7 @@ async function generatePDF(isPreview) {
     } else {
         const canvas = await html2canvas(pdfArea.firstElementChild, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' untuk mode Potret
+        const pdf = new jsPDF('p', 'mm', 'a4');
         const imgData = canvas.toDataURL('image/jpeg', 0.92);
         const pdfW = pdf.internal.pageSize.getWidth();
         const pdfH = pdf.internal.pageSize.getHeight();
@@ -905,7 +908,7 @@ async function generatePDF(isPreview) {
                 pdf.addImage(imgData, 'JPEG', 0, yOffset, pdfW, scaledH);
             }
         }
-        pdf.save('LCKH_' + monthNames[filterBulan] + '_' + filterTahun + '_' + (currentUser.nama || '').replace(/\s+/g, '_') + '.pdf');
+        pdf.save('LCKH_' + monthNames[filterBulan] + '_' + filterTahun + '_' + namaGuruCaps.replace(/\s+/g, '_') + '.pdf');
     }
 }
 
