@@ -767,9 +767,9 @@ async function generatePDF(isPreview) {
         }
     }
 
-    // Menggunakan font 11pt eksplisit serta instruksi paksa cetak warna
-    pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:10px;width:100%;max-width:1080px;background:white;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
-        '<h2 style="text-align:center;font-size:14pt;margin-bottom:4px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
+    // Menggunakan lebar standar A4 Potret (794px)
+    pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:5px;width:100%;max-width:794px;margin:0 auto;background:white;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
+        '<h2 style="text-align:center;font-size:13pt;margin-bottom:4px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
         '<h3 style="text-align:center;font-size:11pt;margin-bottom:2px;font-weight:normal;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
         '<h3 style="text-align:center;font-size:11pt;margin-bottom:16px;font-weight:bold;">SIPELITA</h3>' +
         
@@ -777,8 +777,8 @@ async function generatePDF(isPreview) {
             '<div style="width: 48%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt;">' +
                     '<tr>' +
-                        '<td style="width: 70px; padding: 2px 0; font-weight: bold; border: none;">NAMA</td>' +
-                        '<td style="width: 15px; padding: 2px 0; border: none;">:</td>' +
+                        '<td style="width: 65px; padding: 2px 0; font-weight: bold; border: none;">NAMA</td>' +
+                        '<td style="width: 10px; padding: 2px 0; border: none;">:</td>' +
                         '<td style="padding: 2px 0; border: none;">' + (currentUser.nama || '') + '</td>' +
                     '</tr>' +
                     '<tr>' +
@@ -791,8 +791,8 @@ async function generatePDF(isPreview) {
             '<div style="width: 48%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt;">' +
                     '<tr>' +
-                        '<td style="width: 140px; padding: 2px 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
-                        '<td style="width: 15px; padding: 2px 0; border: none;">:</td>' +
+                        '<td style="width: 130px; padding: 2px 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
+                        '<td style="width: 10px; padding: 2px 0; border: none;">:</td>' +
                         '<td style="padding: 2px 0; border: none;">' + mapelText + '</td>' +
                     '</tr>' +
                     '<tr>' +
@@ -806,12 +806,12 @@ async function generatePDF(isPreview) {
         
         '<table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:20px;">' +
             '<thead><tr style="background-color:#1e40af !important;color:white !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
-                '<th style="border:1px solid #000;padding:8px;width:35px;text-align:center;background-color:#1e40af !important;color:white !important;">NO</th>' +
-                '<th style="border:1px solid #000;padding:8px;width:160px;background-color:#1e40af !important;color:white !important;">HARI, TANGGAL</th>' +
-                '<th style="border:1px solid #000;padding:8px;background-color:#1e40af !important;color:white !important;">URAIAN KEGIATAN</th>' +
-                '<th style="border:1px solid #000;padding:8px;width:45px;text-align:center;background-color:#1e40af !important;color:white !important;">VOL</th>' +
-                '<th style="border:1px solid #000;padding:8px;background-color:#1e40af !important;color:white !important;">OUTPUT</th>' +
-                '<th style="border:1px solid #000;padding:8px;width:130px;text-align:center;background-color:#1e40af !important;color:white !important;">KETERANGAN/<br>GAMBAR</th>' +
+                '<th style="border:1px solid #000;padding:6px 4px;width:30px;text-align:center;background-color:#1e40af !important;color:white !important;">NO</th>' +
+                '<th style="border:1px solid #000;padding:6px 4px;width:110px;background-color:#1e40af !important;color:white !important;">HARI, TANGGAL</th>' +
+                '<th style="border:1px solid #000;padding:6px 4px;background-color:#1e40af !important;color:white !important;">URAIAN KEGIATAN</th>' +
+                '<th style="border:1px solid #000;padding:6px 4px;width:35px;text-align:center;background-color:#1e40af !important;color:white !important;">VOL</th>' +
+                '<th style="border:1px solid #000;padding:6px 4px;background-color:#1e40af !important;color:white !important;">OUTPUT</th>' +
+                '<th style="border:1px solid #000;padding:6px 4px;width:100px;text-align:center;background-color:#1e40af !important;color:white !important;">KETERANGAN/<br>GAMBAR</th>' +
             '</tr></thead><tbody>' +
             filtered.map((j, index) => {
                 let activities = j.activities || [];
@@ -823,35 +823,35 @@ async function generatePDF(isPreview) {
                 const outputText = activities.map((a, i) => (i+1) + '. ' + (a.hasil || '-')).join('<br>');
                 let fotoHtml = '';
                 if (j.fotoBase64 && j.fotoBase64.length > 0) {
-                    fotoHtml = j.fotoBase64.map(f => '<img src="' + f + '" style="max-width:100px;max-height:70px;margin:2px;display:inline-block;border:1px solid #ddd;">').join('');
+                    fotoHtml = j.fotoBase64.map(f => '<img src="' + f + '" style="max-width:80px;max-height:60px;margin:2px;display:inline-block;border:1px solid #ddd;">').join('');
                 } else {
                     fotoHtml = '-';
                 }
                 return '<tr>' +
-                    '<td style="border:1px solid #000;padding:6px;text-align:center;vertical-align:top;font-size:11pt;">' + (index + 1) + '</td>' +
-                    '<td style="border:1px solid #000;padding:6px;vertical-align:top;font-size:11pt;">' + formatDate(j.tanggal) + '</td>' +
-                    '<td style="border:1px solid #000;padding:6px;vertical-align:top;font-size:11pt;">' + kegiatanText + '</td>' +
-                    '<td style="border:1px solid #000;padding:6px;text-align:center;vertical-align:top;font-weight:bold;font-size:11pt;">' + vol + '</td>' +
-                    '<td style="border:1px solid #000;padding:6px;vertical-align:top;font-size:11pt;">' + outputText + '</td>' +
-                    '<td style="border:1px solid #000;padding:6px;text-align:center;vertical-align:top;font-size:11pt;">' + fotoHtml + '</td>' +
+                    '<td style="border:1px solid #000;padding:5px 4px;text-align:center;vertical-align:top;font-size:11pt;">' + (index + 1) + '</td>' +
+                    '<td style="border:1px solid #000;padding:5px 4px;vertical-align:top;font-size:11pt;">' + formatDate(j.tanggal) + '</td>' +
+                    '<td style="border:1px solid #000;padding:5px 4px;vertical-align:top;font-size:11pt;">' + kegiatanText + '</td>' +
+                    '<td style="border:1px solid #000;padding:5px 4px;text-align:center;vertical-align:top;font-weight:bold;font-size:11pt;">' + vol + '</td>' +
+                    '<td style="border:1px solid #000;padding:5px 4px;vertical-align:top;font-size:11pt;">' + outputText + '</td>' +
+                    '<td style="border:1px solid #000;padding:5px 4px;text-align:center;vertical-align:top;font-size:11pt;">' + fotoHtml + '</td>' +
                 '</tr>';
             }).join('') +
         '</tbody></table>' +
         
-        '<div style="margin-top:30px; display:flex; justify-content:space-between; font-size:11pt; width:100%; line-height: 1.4; page-break-inside: avoid;">' +
-            '<div style="width: 45%; text-align:left;">' +
+        '<div style="margin-top:25px; display:flex; justify-content:space-between; font-size:11pt; width:100%; line-height: 1.4; page-break-inside: avoid;">' +
+            '<div style="width: 48%; text-align:left;">' +
                 '<div style="height: 16px;"></div>' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">Mengetahui,</p>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Kepala Madrasah</p>' +
-                '<div style="height: 65px;"></div>' +
+                '<div style="height: 60px;"></div>' +
                 '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + SET.ttdKamad + '</p>' +
                 '<p style="margin: 0; padding: 0;">' + SET.ttdNip + '</p>' +
             '</div>' +
-            '<div style="width: 45%; text-align:left;">' +
+            '<div style="width: 48%; text-align:left;">' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">' + SET.ttdTempat + ', ' + new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) + '</p>' +
                 '<div style="height: 16px;"></div>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Guru Mata Pelajaran</p>' +
-                '<div style="height: 65px;"></div>' +
+                '<div style="height: 60px;"></div>' +
                 '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + (currentUser.nama || '') + '</p>' +
                 '<p style="margin: 0; padding: 0;">NIP. ' + (currentUser.nip || '-') + '</p>' +
             '</div>' +
@@ -866,10 +866,10 @@ async function generatePDF(isPreview) {
             const pdfContent = pdfArea.innerHTML;
             printWindow.document.write('<!DOCTYPE html><html><head><title>Preview LCKH - ' + monthNames[filterBulan] + ' ' + filterTahun + '</title>' +
             '<style>' +
-            '@page { size: A4 landscape; margin: 10mm; } ' +
+            '@page { size: A4 portrait; margin: 10mm; } ' +
             '* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; } ' +
             'body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #f5f5f5; } ' +
-            '.preview-container { background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); width: 100%; max-width: 1050px; margin: 0 auto; padding: 10px; box-sizing: border-box; } ' +
+            '.preview-container { background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); width: 100%; max-width: 794px; margin: 0 auto; padding: 10px; box-sizing: border-box; } ' +
             '.print-btn { position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; } ' +
             '.print-btn:hover { background: #059669; } ' +
             '@media print { ' +
@@ -885,7 +885,7 @@ async function generatePDF(isPreview) {
     } else {
         const canvas = await html2canvas(pdfArea.firstElementChild, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('l', 'mm', 'a4');
+        const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' untuk mode Potret
         const imgData = canvas.toDataURL('image/jpeg', 0.92);
         const pdfW = pdf.internal.pageSize.getWidth();
         const pdfH = pdf.internal.pageSize.getHeight();
