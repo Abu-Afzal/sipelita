@@ -760,12 +760,12 @@ async function generatePDF(isPreview) {
             '<div style="width: 48%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
                     '<tr>' +
-                        '<td style="width: 60px; padding: 0; font-weight: bold; border: none;">NAMA</td>' +
+                        '<td style="width: 60px; padding: 0; font-weight: bold; border: none;">Nama</td>' +
                         '<td style="width: 10px; padding: 0; border: none;">:</td>' +
                         '<td style="padding: 0; font-weight: bold; border: none;">' + namaAtas + '</td>' +
                     '</tr>' +
                     '<tr>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">NIP</td>' +
+                        '<td style="padding: 0; font-weight: bold; border: none;">Nip</td>' +
                         '<td style="padding: 0; border: none;">:</td>' +
                         '<td style="padding: 0; font-weight: bold; border: none;">' + (currentUser.nip || '-') + '</td>' +
                     '</tr>' +
@@ -774,12 +774,12 @@ async function generatePDF(isPreview) {
             '<div style="width: 38%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
                     '<tr>' +
-                        '<td style="white-space: nowrap; padding: 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
+                        '<td style="white-space: nowrap; padding: 0; font-weight: bold; border: none;">Mata Pelajaran</td>' +
                         '<td style="width: 10px; padding: 0; border: none; text-align: center;">:</td>' +
                         '<td style="padding: 0; font-weight: bold; border: none;">' + mapelText + '</td>' +
                     '</tr>' +
                     '<tr>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">JABATAN</td>' +
+                        '<td style="padding: 0; font-weight: bold; border: none;">Jabatan</td>' +
                         '<td style="padding: 0; border: none; text-align: center;">:</td>' +
                         '<td style="padding: 0; font-weight: bold; border: none;">Guru</td>' +
                     '</tr>' +
