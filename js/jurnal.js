@@ -749,10 +749,10 @@ async function generatePDF(isPreview) {
     }
 
     pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:5px;width:100%;max-width:794px;margin:0 auto;background:white;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
-        /* Judul Dokumen (Dirapatkan) */
-        '<h2 style="text-align:center;font-size:13pt;margin:0 0 2px 0;font-weight:bold;line-height:1.2;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
-        '<h2 style="text-align:center;font-size:12pt;margin:0 0 12px 0;font-weight:bold;line-height:1.2;">SIPELITA</h2>' +
-        '<h2 style="text-align:center;font-size:11pt;margin:0 0 12px 0;font-weight:bold;line-height:1.2;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
+    /* Judul Dokumen (Jarak Seimbang) */
+'<h2 style="text-align:center;font-size:13pt;margin:0 0 2px 0;font-weight:bold;line-height:1.2;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
+'<h3 style="text-align:center;font-size:11pt;margin:0 0 12px 0;font-weight:bold;line-height:1.2;">SIPELITA</h3>' +
+'<h3 style="text-align:center;font-size:11pt;margin:0 0 2px 0;font-weight:normal;line-height:1.2;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
 
         
         /* Header Identitas (Rapi, Bold, & Seimbang) */
