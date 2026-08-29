@@ -826,8 +826,8 @@ async function generatePDF(isPreview) {
         '<div style="margin-top:25px; display:flex; justify-content:space-between; font-size:11pt; width:100%; line-height: 1.2; page-break-inside: avoid;">' +
             '<div style="width: 45%; text-align:left;">' +
                 '<div style="height: 16px;"></div>' +
-                '<p style="margin: 0 0 4px 0; padding: 0;">Mengetahui,</p>' +
-                '<p style="margin: 0; padding: 0; font-weight:bold;">Kepala Madrasah</p>' +
+                '<p style="margin: 0 0 4px 0; padding: 0; font-weight:normal;">Mengetahui,</p>' +
+                '<p style="margin: 0; padding: 0; font-weight:normal;">Kepala Madrasah</p>' +
                 '<div style="height: 60px;"></div>' +
                 '<p style="font-weight:bold; margin: 0; padding: 0; text-decoration: underline;">' + SET.ttdKamad + '</p>' +
                 '<p style="font-weight:bold; margin: 1px 0 0 0; padding: 0;">' + SET.ttdNip + '</p>' +
