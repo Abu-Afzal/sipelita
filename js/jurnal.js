@@ -893,6 +893,20 @@ async function generatePDF(isPreview) {
     }
 }
 
+// Helper wrapper untuk tombol Cetak / Preview
+function previewPDF() {
+    generatePDF(true);
+}
+
+// Helper wrapper untuk tombol Export PDF langsung
+function exportPDF() {
+    generatePDF(false);
+}
+
+// Jika file JS Anda menggunakan type="module", daftarkan ke window agar bisa diakses oleh onclick HTML:
+window.previewPDF = previewPDF;
+window.exportPDF = exportPDF;
+window.generatePDF = generatePDF;
 // ══════════════════════════════════════════════
 // SYSTEM HELPERS
 // ══════════════════════════════════════════════
