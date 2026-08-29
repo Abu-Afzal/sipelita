@@ -835,7 +835,7 @@ async function generatePDF(isPreview) {
             '<div style="width: 38%; text-align:left;">' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">' + SET.ttdTempat + ', ' + new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) + '</p>' +
                 '<div style="height: 16px;"></div>' +
-                '<p style="margin: 0; padding: 0; font-weight:bold;">Guru Mata Pelajaran</p>' +
+                '<p style="margin: 0; padding: 0; font-weight:normal">Guru Mata Pelajaran</p>' +
                 '<div style="height: 60px;"></div>' +
                 '<p style="font-weight:bold; margin: 0; padding: 0; text-decoration: underline;">' + namaTTD + '</p>' +
                 '<p style="font-weight:bold; margin: 1px 0 0 0; padding: 0;">NIP. ' + (currentUser.nip || '-') + '</p>' +
