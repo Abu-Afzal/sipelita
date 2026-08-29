@@ -701,39 +701,6 @@ window.updateJurnal = updateJurnal;
 // ══════════════════════════════════════════════
 // EXPORT SYSTEM & REPORT GENERATOR
 // ══════════════════════════════════════════════
-async function previewPDF(e) {
-    const evt = e || window.event;
-    const btn = (evt && evt.target) ? evt.target.closest('button') : null;
-    let originalText = "Preview";
-    if (btn) {
-        originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Loading...';
-    }
-    try { await generatePDF(true); } 
-    catch (error) { console.error('Error preview:', error); alert('⚠️ Gagal preview PDF: ' + error.message); } 
-    finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
-    }
-}
-window.previewPDF = previewPDF;
-
-async function exportPDF(e) {
-    const evt = e || window.event;
-    const btn = (evt && evt.target) ? evt.target.closest('button') : null;
-    let originalText = "Export";
-    if (btn) {
-        originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Membuat PDF...';
-    }
-    try { await generatePDF(false); } 
-    catch (error) { console.error('Error export:', error); alert('❌ Gagal export PDF: ' + error.message); } 
-    finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
-    }
-}
-window.exportPDF = exportPDF;
 
 async function generatePDF(isPreview) {
     // ✅ Muat identitas madrasah (SIG) untuk tanda tangan
@@ -770,7 +737,7 @@ async function generatePDF(isPreview) {
     // 1. Nama Atas: Sesuai data login asli (tanpa di-UPPERCASE)
     const namaAtas = currentUser.nama || '';
 
-    // 2. Format Nama TTD: Nama Utama KAPITAL, Gelar tetap seperti aslinya (cth: ELIS HARIANTO, S.Pd)
+    // 2. Format Nama TTD: Nama Utama KAPITAL, Gelar tetap seperti aslinya
     let namaTTD = namaAtas;
     if (namaTTD.includes(',')) {
         const parts = namaTTD.split(',');
@@ -782,16 +749,17 @@ async function generatePDF(isPreview) {
     }
 
     pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:5px;width:100%;max-width:794px;margin:0 auto;background:white;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
-        '<h2 style="text-align:center;font-size:13pt;margin-bottom:4px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
-        '<h3 style="text-align:center;font-size:11pt;margin-bottom:2px;font-weight:normal;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
-        '<h3 style="text-align:center;font-size:11pt;margin-bottom:16px;font-weight:bold;">SIPELITA</h3>' +
+        /* Judul Dokumen (Dirapatkan) */
+        '<h2 style="text-align:center;font-size:13pt;margin:0 0 2px 0;font-weight:bold;line-height:1.2;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
+        '<h3 style="text-align:center;font-size:11pt;margin:0 0 2px 0;font-weight:normal;line-height:1.2;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
+        '<h3 style="text-align:center;font-size:11pt;margin:0 0 12px 0;font-weight:bold;line-height:1.2;">SIPELITA</h3>' +
         
-        /* Header Identitas (Bagian Atas) */
-        '<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px; font-size: 11pt;">' +
+        /* Header Identitas (Rapi, Bold, & Seimbang) */
+        '<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 12px; font-size: 11pt;">' +
             '<div style="width: 48%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
                     '<tr>' +
-                        '<td style="width: 65px; padding: 0; font-weight: bold; border: none;">NAMA</td>' +
+                        '<td style="width: 60px; padding: 0; font-weight: bold; border: none;">NAMA</td>' +
                         '<td style="width: 10px; padding: 0; border: none;">:</td>' +
                         '<td style="padding: 0; font-weight: bold; border: none;">' + namaAtas + '</td>' +
                     '</tr>' +
@@ -802,17 +770,17 @@ async function generatePDF(isPreview) {
                     '</tr>' +
                 '</table>' +
             '</div>' +
-            '<div style="width: 48%;">' +
+            '<div style="width: 38%;">' +
                 '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
                     '<tr>' +
                         '<td style="white-space: nowrap; padding: 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
                         '<td style="width: 10px; padding: 0; border: none; text-align: center;">:</td>' +
-                        '<td style="padding: 0; border: none;">' + mapelText + '</td>' +
+                        '<td style="padding: 0; font-weight: bold; border: none;">' + mapelText + '</td>' +
                     '</tr>' +
                     '<tr>' +
                         '<td style="padding: 0; font-weight: bold; border: none;">JABATAN</td>' +
                         '<td style="padding: 0; border: none; text-align: center;">:</td>' +
-                        '<td style="padding: 0; border: none;">Guru</td>' +
+                        '<td style="padding: 0; font-weight: bold; border: none;">Guru</td>' +
                     '</tr>' +
                 '</table>' +
             '</div>' +
