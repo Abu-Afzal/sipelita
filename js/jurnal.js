@@ -755,37 +755,37 @@ async function generatePDF(isPreview) {
 '<h3 style="text-align:center;font-size:11pt;margin:0 0 12px 0;font-weight:bold;line-height:1.2;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
 
         
-        /* Header Identitas (Rapi, Bold, & Seimbang) */
-        '<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 12px; font-size: 11pt;">' +
-            '<div style="width: 48%;">' +
-                '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
-                    '<tr>' +
-                        '<td style="width: 60px; padding: 0; font-weight: bold; border: none;">Nama</td>' +
-                        '<td style="width: 10px; padding: 0; border: none;">:</td>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">' + namaAtas + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">Nip</td>' +
-                        '<td style="padding: 0; border: none;">:</td>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">' + (currentUser.nip || '-') + '</td>' +
-                    '</tr>' +
-                '</table>' +
-            '</div>' +
-            '<div style="width: 38%;">' +
-                '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
-                    '<tr>' +
-                        '<td style="white-space: nowrap; padding: 0; font-weight: bold; border: none;">Mata Pelajaran</td>' +
-                        '<td style="width: 10px; padding: 0; border: none; text-align: center;">:</td>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">' + mapelText + '</td>' +
-                    '</tr>' +
-                    '<tr>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">Jabatan</td>' +
-                        '<td style="padding: 0; border: none; text-align: center;">:</td>' +
-                        '<td style="padding: 0; font-weight: bold; border: none;">Guru</td>' +
-                    '</tr>' +
-                '</table>' +
-            '</div>' +
-        '</div>' +
+    /* Header Identitas (Rapi, Bold, & Seimbang) */
+'<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 12px; font-size: 11pt;">' +
+    '<div style="width: 48%;">' +
+        '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
+            '<tr>' +
+                '<td style="width: 60px; padding: 0; font-weight: bold; border: none;">NAMA</td>' +
+                '<td style="width: 10px; padding: 0; border: none;">:</td>' +
+                '<td style="padding: 0; font-weight: bold; border: none;">' + namaAtas + '</td>' +
+            '</tr>' +
+            '<tr>' +
+                '<td style="padding: 0; font-weight: bold; border: none;">NIP</td>' +
+                '<td style="padding: 0; border: none;">:</td>' +
+                '<td style="padding: 0; font-weight: bold; border: none;">' + (currentUser.nip || '-') + '</td>' +
+            '</tr>' +
+        '</table>' +
+    '</div>' +
+    '<div style="width: 48%;">' +
+        '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt; line-height: 1.2;">' +
+            '<tr>' +
+                '<td style="white-space: nowrap; padding-right: 4px; font-weight: bold; border: none; text-align: right;">MATA PELAJARAN</td>' +
+                '<td style="width: 10px; padding: 0; border: none; text-align: center;">:</td>' +
+                '<td style="padding: 0; font-weight: bold; border: none;">' + mapelText + '</td>' +
+            '</tr>' +
+            '<tr>' +
+                '<td style="padding-right: 4px; font-weight: bold; border: none; text-align: right;">JABATAN</td>' +
+                '<td style="padding: 0; border: none; text-align: center;">:</td>' +
+                '<td style="padding: 0; font-weight: bold; border: none;">Guru</td>' +
+            '</tr>' +
+        '</table>' +
+    '</div>' +
+'</div>' +
         
         /* Tabel Utama */
         '<table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:20px;">' +
