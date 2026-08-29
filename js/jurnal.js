@@ -779,8 +779,8 @@ async function generatePDF(isPreview) {
                 '<td style="padding: 0; font-weight: bold; border: none;">' + mapelText + '</td>' +
             '</tr>' +
             '<tr>' +
-                '<td style="padding-right: 4px; font-weight: bold; border: none; text-align: right;">Jabatan</td>' +
-                '<td style="padding: 0; border: none; text-align: center;">:</td>' +
+                '<td style="padding-right: 8px; font-weight: bold; border: none; text-align: left;">Jabatan</td>' +
+                '<td style="padding-right: 8px; border: none; text-align: center;">:</td>' +
                 '<td style="padding: 0; font-weight: bold; border: none;">Guru</td>' +
             '</tr>' +
         '</table>' +
