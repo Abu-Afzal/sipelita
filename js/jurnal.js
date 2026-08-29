@@ -767,50 +767,51 @@ async function generatePDF(isPreview) {
         }
     }
 
-    pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:20px 30px;width:1050px;background:white;box-sizing:border-box;">' +
-        '<h2 style="text-align:center;font-size:16px;margin-bottom:5px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
-        '<h3 style="text-align:center;font-size:13px;margin-bottom:3px;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
-        '<h3 style="text-align:center;font-size:13px;margin-bottom:20px;font-weight:bold;">SIPELITA</h3>' +
+    // Menggunakan font 11pt eksplisit serta instruksi paksa cetak warna
+    pdfArea.innerHTML = '<div style="font-family:Arial,sans-serif;padding:10px;width:100%;max-width:1080px;background:white;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
+        '<h2 style="text-align:center;font-size:14pt;margin-bottom:4px;font-weight:bold;">LAPORAN CAPAIAN KINERJA HARIAN (LCKH)</h2>' +
+        '<h3 style="text-align:center;font-size:11pt;margin-bottom:2px;font-weight:normal;">BULAN ' + monthNames[filterBulan].toUpperCase() + ' TP. ' + filterTahun + '/' + (parseInt(filterTahun)+1) + '</h3>' +
+        '<h3 style="text-align:center;font-size:11pt;margin-bottom:16px;font-weight:bold;">SIPELITA</h3>' +
         
-        '<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; font-size: 11px;">' +
-            '<div style="width: 45%;">' +
-                '<table style="width: 100%; border-collapse: collapse; border: none;">' +
+        '<div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px; font-size: 11pt;">' +
+            '<div style="width: 48%;">' +
+                '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt;">' +
                     '<tr>' +
-                        '<td style="width: 60px; padding: 3px 0; font-weight: bold; border: none;">NAMA</td>' +
-                        '<td style="width: 15px; padding: 3px 0; border: none;">:</td>' +
-                        '<td style="padding: 3px 0; border: none;">' + (currentUser.nama || '') + '</td>' +
+                        '<td style="width: 70px; padding: 2px 0; font-weight: bold; border: none;">NAMA</td>' +
+                        '<td style="width: 15px; padding: 2px 0; border: none;">:</td>' +
+                        '<td style="padding: 2px 0; border: none;">' + (currentUser.nama || '') + '</td>' +
                     '</tr>' +
                     '<tr>' +
-                        '<td style="padding: 3px 0; font-weight: bold; border: none;">NIP</td>' +
-                        '<td style="padding: 3px 0; border: none;">:</td>' +
-                        '<td style="padding: 3px 0; border: none;">' + (currentUser.nip || '-') + '</td>' +
+                        '<td style="padding: 2px 0; font-weight: bold; border: none;">NIP</td>' +
+                        '<td style="padding: 2px 0; border: none;">:</td>' +
+                        '<td style="padding: 2px 0; border: none;">' + (currentUser.nip || '-') + '</td>' +
                     '</tr>' +
                 '</table>' +
             '</div>' +
-            '<div style="width: 45%; margin-left: auto; padding-left: 460px;">' +
-                '<table style="width: 100%; border-collapse: collapse; border: none;">' +
+            '<div style="width: 48%;">' +
+                '<table style="width: 100%; border-collapse: collapse; border: none; font-size: 11pt;">' +
                     '<tr>' +
-                        '<td style="width: 130px; padding: 3px 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
-                        '<td style="width: 15px; padding: 3px 0; border: none;">:</td>' +
-                        '<td style="padding: 3px 0; border: none;">' + mapelText + '</td>' +
+                        '<td style="width: 140px; padding: 2px 0; font-weight: bold; border: none;">MATA PELAJARAN</td>' +
+                        '<td style="width: 15px; padding: 2px 0; border: none;">:</td>' +
+                        '<td style="padding: 2px 0; border: none;">' + mapelText + '</td>' +
                     '</tr>' +
                     '<tr>' +
-                        '<td style="padding: 3px 0; font-weight: bold; border: none;">JABATAN</td>' +
-                        '<td style="padding: 3px 0; border: none;">:</td>' +
-                        '<td style="padding: 3px 0; border: none;">Guru</td>' +
+                        '<td style="padding: 2px 0; font-weight: bold; border: none;">JABATAN</td>' +
+                        '<td style="padding: 2px 0; border: none;">:</td>' +
+                        '<td style="padding: 2px 0; border: none;">Guru</td>' +
                     '</tr>' +
                 '</table>' +
             '</div>' +
         '</div>' +
         
-        '<table style="width:100%;border-collapse:collapse;font-size:10px;">' +
-            '<thead><tr style="background:#1e40af;color:white;">' +
-                '<th style="border:1px solid #333;padding:8px;width:30px;text-align:center;">NO</th>' +
-                '<th style="border:1px solid #333;padding:8px;width:150px;">HARI, TANGGAL</th>' +
-                '<th style="border:1px solid #333;padding:8px;">URAIAN KEGIATAN</th>' +
-                '<th style="border:1px solid #333;padding:8px;width:40px;text-align:center;">VOL</th>' +
-                '<th style="border:1px solid #333;padding:8px;">OUTPUT</th>' +
-                '<th style="border:1px solid #333;padding:8px;width:120px;text-align:center;">KETERANGAN/<br>GAMBAR</th>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:20px;">' +
+            '<thead><tr style="background-color:#1e40af !important;color:white !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
+                '<th style="border:1px solid #000;padding:8px;width:35px;text-align:center;background-color:#1e40af !important;color:white !important;">NO</th>' +
+                '<th style="border:1px solid #000;padding:8px;width:160px;background-color:#1e40af !important;color:white !important;">HARI, TANGGAL</th>' +
+                '<th style="border:1px solid #000;padding:8px;background-color:#1e40af !important;color:white !important;">URAIAN KEGIATAN</th>' +
+                '<th style="border:1px solid #000;padding:8px;width:45px;text-align:center;background-color:#1e40af !important;color:white !important;">VOL</th>' +
+                '<th style="border:1px solid #000;padding:8px;background-color:#1e40af !important;color:white !important;">OUTPUT</th>' +
+                '<th style="border:1px solid #000;padding:8px;width:130px;text-align:center;background-color:#1e40af !important;color:white !important;">KETERANGAN/<br>GAMBAR</th>' +
             '</tr></thead><tbody>' +
             filtered.map((j, index) => {
                 let activities = j.activities || [];
@@ -822,48 +823,63 @@ async function generatePDF(isPreview) {
                 const outputText = activities.map((a, i) => (i+1) + '. ' + (a.hasil || '-')).join('<br>');
                 let fotoHtml = '';
                 if (j.fotoBase64 && j.fotoBase64.length > 0) {
-                    fotoHtml = j.fotoBase64.map(f => '<img src="' + f + '" style="max-width:100px;max-height:70px;margin:2px;display:block;border:1px solid #ddd;">').join('');
+                    fotoHtml = j.fotoBase64.map(f => '<img src="' + f + '" style="max-width:100px;max-height:70px;margin:2px;display:inline-block;border:1px solid #ddd;">').join('');
                 } else {
                     fotoHtml = '-';
                 }
                 return '<tr>' +
-                    '<td style="border:1px solid #333;padding:6px;text-align:center;vertical-align:top;">' + (index + 1) + '</td>' +
-                    '<td style="border:1px solid #333;padding:6px;vertical-align:top;">' + formatDate(j.tanggal) + '</td>' +
-                    '<td style="border:1px solid #333;padding:6px;font-size:9px;vertical-align:top;">' + kegiatanText + '</td>' +
-                    '<td style="border:1px solid #333;padding:6px;text-align:center;vertical-align:top;font-weight:bold;">' + vol + '</td>' +
-                    '<td style="border:1px solid #333;padding:6px;font-size:9px;vertical-align:top;">' + outputText + '</td>' +
-                    '<td style="border:1px solid #333;padding:6px;text-align:center;vertical-align:top;">' + fotoHtml + '</td>' +
+                    '<td style="border:1px solid #000;padding:6px;text-align:center;vertical-align:top;font-size:11pt;">' + (index + 1) + '</td>' +
+                    '<td style="border:1px solid #000;padding:6px;vertical-align:top;font-size:11pt;">' + formatDate(j.tanggal) + '</td>' +
+                    '<td style="border:1px solid #000;padding:6px;vertical-align:top;font-size:11pt;">' + kegiatanText + '</td>' +
+                    '<td style="border:1px solid #000;padding:6px;text-align:center;vertical-align:top;font-weight:bold;font-size:11pt;">' + vol + '</td>' +
+                    '<td style="border:1px solid #000;padding:6px;vertical-align:top;font-size:11pt;">' + outputText + '</td>' +
+                    '<td style="border:1px solid #000;padding:6px;text-align:center;vertical-align:top;font-size:11pt;">' + fotoHtml + '</td>' +
                 '</tr>';
             }).join('') +
         '</tbody></table>' +
         
-                '<div style="margin-top:40px; display:flex; justify-content:space-between; font-size:11px; width:100%; line-height: 1.5;">' +
-            '<div style="width: 350px; text-align:left;">' +
-                '<div style="height: 18px;"></div>' +
+        '<div style="margin-top:30px; display:flex; justify-content:space-between; font-size:11pt; width:100%; line-height: 1.4; page-break-inside: avoid;">' +
+            '<div style="width: 45%; text-align:left;">' +
+                '<div style="height: 16px;"></div>' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">Mengetahui,</p>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Kepala Madrasah</p>' +
-                '<div style="height: 75px;"></div>' +
+                '<div style="height: 65px;"></div>' +
                 '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + SET.ttdKamad + '</p>' +
                 '<p style="margin: 0; padding: 0;">' + SET.ttdNip + '</p>' +
             '</div>' +
-            '<div style="width: 350px; text-align:left; margin-left: auto; padding-left: 460px;">' +
+            '<div style="width: 45%; text-align:left;">' +
                 '<p style="margin: 0 0 4px 0; padding: 0;">' + SET.ttdTempat + ', ' + new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) + '</p>' +
-                '<div style="height: 18px;"></div>' +
+                '<div style="height: 16px;"></div>' +
                 '<p style="margin: 0; padding: 0; font-weight:bold;">Guru Mata Pelajaran</p>' +
-                '<div style="height: 75px;"></div>' +
+                '<div style="height: 65px;"></div>' +
                 '<p style="font-weight:bold; margin: 0 0 4px 0; padding: 0; text-decoration: underline;">' + (currentUser.nama || '') + '</p>' +
                 '<p style="margin: 0; padding: 0;">NIP. ' + (currentUser.nip || '-') + '</p>' +
             '</div>' +
         '</div>' +
     '</div>';
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     if (isPreview) {
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             const pdfContent = pdfArea.innerHTML;
-            printWindow.document.write('<!DOCTYPE html><html><head><title>Preview LCKH - ' + monthNames[filterBulan] + ' ' + filterTahun + '</title><style>body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f5f5f5;}.preview-container{background:white;box-shadow:0 0 20px rgba(0,0,0,0.1);}.print-btn{position:fixed;top:20px;right:20px;padding:12px 24px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}.print-btn:hover{background:#059669;}@media print{body{background:white;}.preview-container{box-shadow:none;}.print-btn{display:none;}}</style></head><body><button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button><div class="preview-container">' + pdfContent + '</div></body></html>');
+            printWindow.document.write('<!DOCTYPE html><html><head><title>Preview LCKH - ' + monthNames[filterBulan] + ' ' + filterTahun + '</title>' +
+            '<style>' +
+            '@page { size: A4 landscape; margin: 10mm; } ' +
+            '* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; } ' +
+            'body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #f5f5f5; } ' +
+            '.preview-container { background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); width: 100%; max-width: 1050px; margin: 0 auto; padding: 10px; box-sizing: border-box; } ' +
+            '.print-btn { position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; } ' +
+            '.print-btn:hover { background: #059669; } ' +
+            '@media print { ' +
+                'body { background: white; padding: 0; } ' +
+                '.preview-container { box-shadow: none; max-width: 100%; width: 100%; padding: 0; margin: 0; } ' +
+                '.print-btn { display: none; } ' +
+            '}' +
+            '</style></head><body>' +
+            '<button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>' +
+            '<div class="preview-container">' + pdfContent + '</div></body></html>');
             printWindow.document.close();
         }
     } else {
