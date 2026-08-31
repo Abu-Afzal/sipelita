@@ -56,7 +56,7 @@ const CONFIG = {
     
     layananMadrasah: [
         { icon: '👨‍💼', title: 'Admin Users', desc: '', color: '#dc3309', page: 'admin-users.html' },
-        { icon: '📖', title: 'SIPENA', desc: 'Sistem Penilaian dan Absensi', color: '#3949ab', page: 'pages/sipena.html' },
+        { icon: '✏️', title: 'SIPENA', desc: 'Sistem Penilaian dan Absensi', color: '#3949ab', page: 'pages/sipena.html' },
         { icon: '⏱️', title: 'JADWAL MENGAJAR', desc: 'Upload & Setting Jadwal', color: '#a704c8', page: 'pages/jadwal-mengajar.html' },
         { icon: '🎓', title: 'SIBEL', desc: 'Sistem Belajar Digital', color: '#d8b580', page: 'pages/elearning.html' },
         { icon: '📁', title: 'E-DOKUMEN', desc: 'Brankas Dokumen & Arsip', color: '#1e88e5', page: 'pages/edokumen.html' },
