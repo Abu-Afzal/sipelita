@@ -1,623 +1,372 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="theme-color" content="#10b981">
-<link rel="manifest" href="../manifest.json">
-<link rel="apple-touch-icon" href="../assets/images/sipelita-app.png">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIPENA - Sistem Penilaian & Absensi</title>
-<link rel="icon" href="../assets/images/sipelita-app.png">
-
-<!-- Firebase CDN (compat version) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<!-- Library Chart.js untuk Grafik -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<!-- Library jsPDF untuk Export PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="../js/settings-global.js"></script>
-
-<!-- CSS Modular -->
-<link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/sipena.css">
-
-<!-- Style Khusus Print untuk memastikan Header Rekap muncul -->
-<style>
-@media print {
-    .print-header-rekap {
-        display: block !important;
-        text-align: center;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 3px double #1e40af;
-    }
-    .print-header-rekap h2 {
-        font-size: 16pt;
-        color: #1e40af;
-        margin: 0 0 5px 0;
-        font-weight: bold;
-    }
-    .print-header-rekap h3 {
-        font-size: 14pt;
-        color: #334155;
-        margin: 0 0 10px 0;
-        font-weight: normal;
-    }
-    .print-header-rekap p {
-        font-size: 11pt;
-        color: #555;
-        margin: 0;
-    }
-}
-</style>
-<!-- Library SheetJS untuk Export Excel Format Tabel yang Rapi -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIPENA 2.0 - Modern</title>
+  
+  <!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="../css/sipenav2.css?v=270830">
 </head>
 <body>
-<div class="app-wrap">
-  <!-- HEADER (NETRAL) -->
-  <div class="header">
-    <img src="../assets/images/sipelita-app.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
-    <div class="header-info">
-      <div class="header-title">SIPENA</div>
-      <div class="header-subtitle">Sistem Penilaian & Absensi</div>
-    </div>
-    <div class="header-user">
-      <div class="user-name" id="userDisplay">–</div>
-      <button class="btn-dashboard" id="btnDashboard">← Dashboard</button>
-    </div>
-  </div>
+  
+    <!-- Tombol Menu (Mobile) -->
+  <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
 
-  <!-- MENU -->
-  <div class="menu-grid" id="menuGrid">
-    <div class="menu-card" data-target="kelola-kelas"><div class="menu-icon">🏫</div><div class="menu-title">Kelola Kelas</div></div>
-    <div class="menu-card" data-target="presensi"><div class="menu-icon">✅</div><div class="menu-title">Presensi</div></div>
-    <div class="menu-card" data-target="rekap"><div class="menu-icon">📊</div><div class="menu-title">Rekap</div></div>
-    <div class="menu-card" data-target="penilaian"><div class="menu-icon">📝</div><div class="menu-title">Penilaian</div></div>
-    <div class="menu-card" data-target="bank-soal"><div class="menu-icon">📚</div><div class="menu-title">Bank Soal</div></div>
-    <div class="menu-card" id="menuHapus"><div class="menu-icon">🗑️</div><div class="menu-title">Hapus Data Saya</div></div>
-  </div>
-
-  <!-- CONTENT AREAS -->
-  <div id="kelola-kelas" class="content-area">
-    <div class="content-card">
-      <div class="section-title">🏫 Kelola Kelas</div>
-      <div class="action-bar"><button class="btn btn-primary" id="btnTambahKelas">+ Tambah Kelas Baru</button></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Nama Kelas</th><th>Jumlah Siswa</th><th>Aksi</th></tr></thead><tbody id="classTableBody"><tr><td colspan="3"><div class="empty"><div class="ei">🏫</div><p>Memuat data...</p></div></td></tr></tbody></table></div>
-    </div>
-  </div>
-
-    <div id="presensi" class="content-area">
-    <div class="content-card">
-      <div class="section-title">✅ Presensi Siswa</div>
-      
-      <!-- BIARKAN ID INI TETAP ADA (disembunyikan) agar script lama tidak error -->
-      <div id="currentDate" style="display: none;"></div>
-      
-      <!-- INPUT TANGGAL BARU -->
-      <div class="date-bar" style="display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;">
-          <span style="font-weight: 600; color: #854d0e;">📅 Tanggal Presensi:</span>
-          <input type="date" id="inputTanggalPresensi" 
-                 style="padding: 8px 14px; border-radius: 8px; border: 2px solid #fde047; font-weight: 700; color: #334155; font-size: 0.95rem; outline: none; cursor: pointer;">
-      </div>
-
-      <div class="action-bar">
-          <button class="btn btn-success" id="btnHadirSemua">✅ Hadir Semua</button>
-        <button class="btn btn-primary" id="btnKirimAbsen">💾 Simpan Absensi</button>
-      </div>
-      <div class="tabs" id="classTabs"></div>
-      <div class="student-list" id="studentListContainer"></div>
-    </div>
-  </div>
-
-  <div id="rekap" class="content-area">
-    <div class="content-card">
-      <div class="section-title">📊 Rekap Kehadiran</div>
-      <div class="tabs" id="rekapTabs">
-        <button class="tab active" data-rtab="harian">Harian</button>
-        <button class="tab" data-rtab="bulanan">Bulanan</button>
-        <button class="tab" data-rtab="semester">Semester</button>
-      </div>
-      <div class="action-bar">
-        <button class="btn btn-primary" id="btnCetakRekap">🖨️ Cetak</button>
-        <button class="btn btn-success" id="btnExportRekap">📥 Export Excel</button>
-        <button class="btn btn-danger" id="btnHapusRekap">🗑️ Hapus Rekap</button>
-      </div>
-      <div id="rekapFilters" style="margin-bottom:14px;"></div>
-      <div id="rekapContent"></div>
-    </div>
-  </div>
-
-    <div id="penilaian" class="content-area">
-    <div class="content-card">
-      <div class="section-title">📝 Penilaian</div>
-      
-      <!-- Informasi Kelas, Tahun Ajaran & Semester -->
-      <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding:14px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
-        <div class="fg" style="margin:0;flex:1;min-width:150px;">
-          <label>Kelas</label>
-          <select id="nilaiKelasSelect" style="font-weight:600;width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;"></select>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="fas fa-pen-fancy"></i>
         </div>
-        <div class="fg" style="margin:0;min-width:120px;">
-          <label>Tahun Ajaran</label>
-          <input type="text" id="nilaiTahunAjaran" value="2026/2027" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
+        <div class="brand-text">
+          <h1>SIPENA</h1>
+          <p>Sistem Penilaian & Absensi</p>
         </div>
-        <div class="fg" style="margin:0;min-width:120px;">
-          <label>Semester</label>
-          <select id="nilaiSemesterSelect" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
-            <option value="ganjil">Ganjil</option>
-            <option value="genap">Genap</option>
-          </select>
-        </div>
-        <div id="infoSiswaKelas" style="font-size:0.82rem;color:#64748b;align-self:flex-end;padding-bottom:2px;"></div>
       </div>
-
-      <!-- Identitas Penilaian (TP/KD) -->
-      <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:16px;margin-bottom:18px;">
-        <div style="font-weight:700;color:#92400e;margin-bottom:12px;">📋 Identitas Penilaian (TP/KD)</div>
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
-          <div class="fg" style="margin:0;">
-            <label>Kode TP/KD *</label>
-            <input type="text" id="nilaiKodeTP" placeholder="Cth: 3.1 atau TP.1" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:6px;">
+      
+      <ul class="nav-menu">
+        <li class="nav-item" data-page="dashboard">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
+        </li>
+        <!-- ✅ KELOLA KELAS + ACCORDION -->
+        <li class="nav-parent guru-only">
+          <div class="nav-toggle">
+            <i class="fas fa-chalkboard"></i>
+            <span>Kelola Kelas</span>
+            <i class="fas fa-chevron-down nav-arrow"></i>
           </div>
-          <div class="fg" style="margin:0;">
-            <label>Mata Pelajaran</label>
-            <input type="text" id="nilaiMapel" placeholder="Cth: Matematika" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:6px;">
+          <ul class="sub-menu">
+            <li class="nav-item sub-item" data-page="kelas">
+              <i class="fas fa-list"></i>
+              <span>Daftar Kelas</span>
+            </li>
+            <li class="nav-item sub-item" id="navTambahKelas">
+              <i class="fas fa-plus"></i>
+              <span>Tambah Kelas</span>
+            </li>
+            <li class="nav-item sub-item" id="navTambahSiswa">
+              <i class="fas fa-user-plus"></i>
+              <span>Tambah Siswa</span>
+            </li>
+          </ul>
+        </li>
+
+        <!-- ✅ PRESENSI + ACCORDION -->
+        <li class="nav-parent">
+          <div class="nav-toggle">
+            <i class="fas fa-check-circle"></i>
+            <span>Presensi</span>
+            <i class="fas fa-chevron-down nav-arrow"></i>
+          </div>
+          <ul class="sub-menu">
+            <li class="nav-item sub-item guru-only" data-page="presensi">
+              <i class="fas fa-edit"></i>
+              <span>Input Presensi</span>
+            </li>
+            <li class="nav-item sub-item" data-page="rekap">
+              <i class="fas fa-chart-bar"></i>
+              <span>Rekap Presensi</span>
+            </li>
+          </ul>
+        </li>
+
+        <!-- ✅ PENILAIAN + ACCORDION (3 SUB-FITUR) -->
+        <li class="nav-parent guru-only">
+          <div class="nav-toggle">
+            <i class="fas fa-star"></i>
+            <span>Penilaian</span>
+            <i class="fas fa-chevron-down nav-arrow"></i>
+          </div>
+          <ul class="sub-menu">
+            <li class="nav-item sub-item" data-page="penilaian">
+              <i class="fas fa-edit"></i>
+              <span>Input Penilaian</span>
+            </li>
+            <li class="nav-item sub-item" data-page="rekap-nilai">
+              <i class="fas fa-chart-line"></i>
+              <span>Rekap Nilai</span>
+            </li>
+            <li class="nav-item sub-item" data-page="analisis">
+              <i class="fas fa-chart-pie"></i>
+              <span>Analisis Nilai</span>
+            </li>
+          </ul>
+        </li>
+
+        <!-- ✅ BANK SOAL + ACCORDION -->
+        <li class="nav-parent guru-only">
+          <div class="nav-toggle">
+            <i class="fas fa-database"></i>
+            <span>Bank Soal</span>
+            <i class="fas fa-chevron-down nav-arrow"></i>
+          </div>
+          <ul class="sub-menu">
+            <li class="nav-item sub-item" id="navUploadSoal">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <span>Upload Soal</span>
+            </li>
+            <li class="nav-item sub-item" data-page="bank-soal">
+              <i class="fas fa-eye"></i>
+              <span>Lihat Soal</span>
+             </li>
+          </ul>
+        </li>
+        <!-- ✅ JURNAL MENGAJAR + ACCORDION -->
+        <li class="nav-parent">
+          <div class="nav-toggle">
+            <i class="fas fa-book"></i>
+            <span>Jurnal Mengajar</span>
+            <i class="fas fa-chevron-down nav-arrow"></i>
+          </div>
+          <ul class="sub-menu">
+            <li class="nav-item sub-item guru-only" data-page="jurnal">
+              <i class="fas fa-edit"></i>
+              <span>Input Jurnal</span>
+            </li>
+            <li class="nav-item sub-item" data-page="rekap-jurnal">
+              <i class="fas fa-file-alt"></i>
+              <span>Rekap Jurnal</span>
+            </li>
+          </ul>
+        </li>
+            </ul>
+
+      <!-- ✅ Tombol Kembali ke Dashboard SIPELITA (bawah sidebar) -->
+      <a href="../index.html" class="btn-back-dashboard" title="Kembali ke Dashboard SIPELITA">
+        <i class="fas fa-arrow-left"></i>
+        <span>Dashboard SIPELITA</span>
+      </a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle" id="userGreeting">Memuat profil pengguna...</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-icon green"><i class="fas fa-chalkboard"></i></div>
+          <div class="stat-value" id="statKelas">0</div>
+          <div class="stat-label">Kelas Diajar</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+          <div class="stat-value" id="statSiswa">0</div>
+          <div class="stat-label">Total Siswa</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon purple"><i class="fas fa-check-double"></i></div>
+          <div class="stat-value" id="statPresensi">0%</div>
+          <div class="stat-label">Kehadiran Hari Ini</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon orange"><i class="fas fa-file-alt"></i></div>
+          <div class="stat-value" id="statSoal">0</div>
+          <div class="stat-label">Soal di Bank</div>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div id="pageContent">
+        <!-- Dynamic content loaded here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Modal Tambah Kelas -->
+  <div class="modal" id="modalTambahKelas">
+    <div class="modal-box">
+      <div class="modal-title">🏫 Tambah Kelas Baru</div>
+      <div class="form-group">
+        <label>Nama Kelas *</label>
+        <input type="text" id="inputNamaKelas" placeholder="Contoh: X.1 atau XI IPA 2">
+      </div>
+      <div class="form-group">
+        <label>Tahun Ajaran *</label>
+        <input type="text" id="inputTahunAjaran" placeholder="2026/2027" value="2026/2027">
+      </div>
+      <div class="form-group">
+        <label>Semester</label>
+        <select id="inputSemester">
+          <option value="ganjil">Ganjil</option>
+          <option value="genap">Genap</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Mata Pelajaran yang Diampu *</label>
+        <input type="text" id="inputMapel" placeholder="Contoh: Matematika, B.Indonesia, IPA">
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('modalTambahKelas')">Batal</button>
+        <button class="btn btn-primary" onclick="tambahKelas()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Kelola Siswa -->
+  <div class="modal" id="modalKelolaSiswa">
+    <div class="modal-box" style="max-width: 800px;">
+      <div class="modal-title" id="titleKelolaSiswa">👥 Kelola Siswa</div>
+      
+      <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="font-weight: 600; color: #0369a1;">
+             Total di Kelas: <span id="totalSiswaKelas">0</span> | Tersedia dari SICAN: <span id="totalSiswaSICAN">0</span>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="tambahkanSemuaSiswa()">➕ Tambahkan Semua</button>
+        </div>
+      </div>
+
+      <div class="table-container" id="daftarSiswaModal">
+        <!-- Siswa list loaded here -->
+      </div>
+
+      <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+        <h4 style="margin-bottom: 1rem;">➕ Tambah Siswa Manual</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <input type="text" id="inputNamaSiswaManual" placeholder="Nama Siswa">
+          
+          <!-- Upload file dari perangkat -->
+          <div>
+            <input type="file" id="inputFotoSiswaFile" accept="image/*" style="display: none;" onchange="handleFotoUpload(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('inputFotoSiswaFile').click()" style="width: 100%;">
+              <i class="fas fa-camera"></i> Pilih Foto
+            </button>
+            <div id="fotoPreviewContainer" style="margin-top: 0.5rem; display: none;">
+              <img id="fotoPreview" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+              <button class="btn btn-danger btn-sm" onclick="hapusFotoPreview()" style="margin-left: 0.5rem;">Hapus</button>
+            </div>
           </div>
         </div>
-        <div class="fg" style="margin:0;margin-top:12px;">
-          <label>Deskripsi TP/KD</label>
-          <textarea id="nilaiDeskripsiTP" rows="2" placeholder="Deskripsi tujuan pembelajaran yang dinilai..." style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:6px;"></textarea>
-        </div>
+        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="tambahSiswaManual()">
+          + Tambah Siswa
+        </button>
       </div>
 
-                  <div class="tabs" id="nilaiTabs">
-        <button class="tab active" data-ntab="pengetahuan">📘 Pengetahuan</button>
-        <button class="tab" data-ntab="sikap">💚 Sikap</button>
-        <button class="tab" data-ntab="keterampilan">🛠️ Keterampilan</button>
-        <button class="tab" data-ntab="rekap">📊 Rekap Nilai</button>
-        <button class="tab" data-ntab="analisis-soal">📝 Analisis Soal Asesmen</button>
-      </div>
-      
-      <div class="action-bar">
-        <button class="btn btn-primary" id="btnAddKolom" style="display:none;">+ Tambah Kolom</button>
-        <button class="btn btn-primary" id="btnAddKolomKet" style="display:none;">+ Tambah Kolom</button>
-        <button class="btn btn-warning" id="btnExportNilai">📥 Export Excel</button>
-        <button class="btn btn-success" id="btnExportAnalisisSoal" style="display:none;">📥 Export Analisis Soal</button>
-        <button class="btn btn-info" id="btnPreviewPDF" style="display:none;">👁️ Preview PDF</button>
-      </div>
-      <div id="penilaianContent"></div>
-      <div style="display:flex; justify-content:flex-end; margin-top:14px;">
-        <button class="btn btn-success" id="btnSimpanNilai">💾 Simpan Nilai</button>
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button class="btn btn-secondary" onclick="closeModal('modalKelolaSiswa')">Tutup</button>
       </div>
     </div>
   </div>
-
-  <div id="bank-soal" class="content-area">
-    <div class="content-card">
-      <div class="section-title">📚 Bank Soal</div>
-      <div class="action-bar"><button class="btn btn-primary" id="btnTambahDokumen">+ Upload Dokumen</button></div>
-      <div id="documentList"></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODALS -->
-<div class="modal" id="modalTambahKelas">
+  
+  <!-- Modal Edit Kelas -->
+<div class="modal" id="modalEditKelas">
   <div class="modal-box">
-    <div class="modal-title">🏫 Tambah Kelas Baru</div>
-    <div class="fg"><label>Nama Kelas *</label><input type="text" id="inputNamaKelas" placeholder="Contoh: X IPA 1"></div>
-    <div class="modal-foot"><button class="btn btn-secondary" id="btnBatalTambahKelas">Batal</button><button class="btn btn-primary" id="btnSimpanKelas">Simpan</button></div>
-  </div>
-</div>
-
-<div class="modal" id="modalKelolaSwiswa">
-  <div class="modal-box wide">
-    <div class="modal-title" id="titleKelolaSwiswa">👥 Kelola Siswa</div>
-    <div style="background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:18px;">
-      <div style="font-weight:700;color:#334155;margin-bottom:12px;">➕ Tambah Siswa Baru (Manual)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="fg" style="margin:0;"><label>Nama Siswa *</label><input type="text" id="inputNamaSiswa" placeholder="Nama lengkap"></div>
-        <div class="fg" style="margin:0;">
-          <label>Foto Siswa (opsional)</label>
-          <input type="hidden" id="inputFotoSiswa">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img id="previewFotoSiswa" src="" alt="" style="width:46px;height:46px;border-radius:50%;object-fit:cover;background:#e2e8f0;display:none;">
-            <label for="fileFotoSiswa" style="cursor:pointer;background:#eef2ff;color:#4f46e5;font-weight:600;font-size:.82rem;padding:9px 14px;border-radius:8px;border:1.5px dashed #a5b4fc;">📷 Pilih Foto</label>
-            <input type="file" id="fileFotoSiswa" accept="image/*" style="display:none;">
-            <span id="labelFotoSiswa" style="font-size:.75rem;color:#94a3b8;">Otomatis dikompres</span>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:10px;"><button class="btn btn-success" id="btnSimpanSiswa">+ Tambah Siswa</button></div>
+    <div class="modal-title">✏️ Edit Kelas</div>
+    <input type="hidden" id="editKelasId">
+    <div class="form-group">
+      <label>Nama Kelas *</label>
+      <input type="text" id="editNamaKelas" placeholder="Contoh: X.1 atau XI IPA 2">
     </div>
-    <div class="tbl-wrap"><table><thead><tr><th width="50">Foto</th><th>Nama Siswa</th><th width="120">Aksi</th></tr></thead><tbody id="siswaTableBody"></tbody></table></div>
-    <div class="modal-foot"><button class="btn btn-secondary" id="btnTutupKelolaSwiswa">Tutup</button></div>
+    <div class="form-group">
+      <label>Tahun Ajaran *</label>
+      <input type="text" id="editTahunAjaran" placeholder="2026/2027">
+    </div>
+    <div class="form-group">
+      <label>Semester</label>
+      <select id="editSemester">
+        <option value="ganjil">Ganjil</option>
+        <option value="genap">Genap</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Mata Pelajaran yang Diampu *</label>
+      <input type="text" id="editMapel" placeholder="Contoh: Matematika, B.Indonesia, IPA">
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modalEditKelas')">Batal</button>
+      <button class="btn btn-primary" onclick="simpanEditKelas()"> Simpan Perubahan</button>
+    </div>
   </div>
 </div>
 
-    <!-- Modal Edit Siswa -->
+<!-- Modal Edit Siswa -->
 <div class="modal" id="modalEditSiswa">
   <div class="modal-box">
     <div class="modal-title">️ Edit Data Siswa</div>
-    <input type="hidden" id="editSiswaKey">
-    <div class="fg">
+    <input type="hidden" id="editSiswaId">
+    
+    <div class="form-group">
       <label>Nama Siswa *</label>
-      <input type="text" id="editNamaSiswa" placeholder="Nama lengkap">
+      <input type="text" id="editSiswaNama" placeholder="Nama lengkap siswa">
     </div>
-    <div class="fg">
-      <label>Foto Siswa (opsional)</label>
-      <input type="hidden" id="editFotoSiswa">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img id="previewFotoEdit" src="" alt="" style="width:46px;height:46px;border-radius:50%;object-fit:cover;background:#e2e8f0;opacity:.4;">
-        <label for="fileFotoEdit" style="cursor:pointer;background:#eef2ff;color:#4f46e5;font-weight:600;font-size:.82rem;padding:9px 14px;border-radius:8px;border:1.5px dashed #a5b4fc;">📷 Ganti Foto</label>
-        <input type="file" id="fileFotoEdit" accept="image/*" style="display:none;">
+    
+    <div class="form-group">
+      <label>Foto Siswa</label>
+      
+      <!-- Preview foto saat ini -->
+      <div id="editFotoCurrentContainer" style="margin-bottom: 1rem;">
+        <img id="editFotoCurrent" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Foto saat ini</p>
+      </div>
+      
+      <!-- Upload foto baru -->
+      <div style="margin-top: 1rem;">
+        <input type="file" id="editFotoSiswaFile" accept="image/*" style="display: none;" onchange="handleEditFotoUpload(event)">
+        <button class="btn btn-secondary" onclick="document.getElementById('editFotoSiswaFile').click()" style="width: 100%; margin-bottom: 0.5rem;">
+          <i class="fas fa-camera"></i> Upload Foto Baru
+        </button>
+        
+        <!-- Preview foto baru -->
+        <div id="editFotoNewContainer" style="display: none;">
+          <img id="editFotoNew" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Foto baru</p>
+          <button class="btn btn-danger btn-sm" onclick="hapusEditFotoBaru()" style="margin-top: 0.5rem;">
+            <i class="fas fa-trash"></i> Batal Upload
+          </button>
+        </div>
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" id="btnBatalEdit">Batal</button>
-      <button class="btn btn-primary" id="btnSimpanEdit">💾 Simpan Perubahan</button>
+    
+    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+      <button class="btn btn-secondary" onclick="closeModal('modalEditSiswa')">Batal</button>
+      <button class="btn btn-primary" onclick="simpanEditSiswa()">💾 Simpan Perubahan</button>
     </div>
   </div>
 </div>
 
-<div class="modal" id="modalDokumen">
-  <div class="modal-box">
-    <div class="modal-title">📄 Upload Dokumen</div>
-    <div class="fg">
-      <label>Pilih File *</label>
-      <div id="dropZone" style="border:2px dashed #c7d2fe;border-radius:10px;padding:24px;text-align:center;cursor:pointer;background:#f5f3ff;transition:all .2s;">
-        <div style="font-size:2rem;margin-bottom:6px;">📂</div>
-        <div style="font-weight:600;color:#4f46e5;font-size:0.9rem;">Klik atau seret file ke sini</div>
-        <div style="font-size:0.78rem;color:#94a3b8;margin-top:4px;">PDF · Word · Excel — Maks. 5 MB</div>
-        <input type="file" id="inputFileDokumen" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display:none;">
-      </div>
-      <div id="filePreview" style="display:none;margin-top:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;align-items:center;gap:10px;">
-        <span id="fileIcon" style="font-size:1.5rem;"></span>
-        <div style="flex:1;"><div id="fileName" style="font-weight:700;font-size:0.88rem;color:#1e293b;"></div><div id="fileSize" style="font-size:0.75rem;color:#64748b;"></div></div>
-        <button id="btnHapusFile" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-    </div>
-    <div class="fg"><label>Nama Dokumen *</label><input type="text" id="inputNamaDokumen" placeholder="Nama dokumen"></div>
-    <div id="uploadProgress" style="display:none;margin-top:6px;"><div style="font-size:0.8rem;color:#4f46e5;font-weight:600;margin-bottom:4px;">Mengkonversi file...</div><div style="height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;background:#4f46e5;width:0%;transition:width .3s;border-radius:3px;"></div></div></div>
-    <div class="modal-foot"><button class="btn btn-secondary" id="btnBatalDokumen">Batal</button><button class="btn btn-primary" id="btnSimpanDokumen">⬆️ Upload</button></div>
-  </div>
-</div>
-
-<div class="modal" id="modalHapus">
-  <div class="modal-box">
-    <div class="modal-title" style="color:#ef4444;">⚠️ Hapus Semua Data Saya</div>
-    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;margin-bottom:16px;font-size:0.88rem;color:#991b1b;">Semua kelas, siswa, absensi, dan nilai yang Anda buat akan dihapus permanen.</div>
-    <div class="fg"><label>Ketik <strong>HAPUS</strong> untuk konfirmasi</label><input type="text" id="inputKonfirmasiHapus" placeholder="Ketik HAPUS"></div>
-    <div class="modal-foot"><button class="btn btn-secondary" id="btnBatalHapus">Batal</button><button class="btn btn-danger" id="btnKonfirmasiHapus">Hapus Semua Data</button></div>
-  </div>
-</div>
-
-<div class="modal" id="modalKolom">
-  <div class="modal-box">
-    <div class="modal-title" id="modalKolomTitle">➕ Tambah Kolom Penilaian</div>
-    <div class="fg"><label>Jenis Kolom</label><select id="inputJenisKolom"><option value="PH">PH (Penilaian Harian)</option><option value="UH">UH (Ulangan Harian)</option><option value="UTS">UTS</option><option value="UAS">UAS / SAS</option><option value="Praktik">Praktik</option><option value="Proyek">Proyek</option><option value="Portofolio">Portofolio</option><option value="Presentasi">Presentasi</option></select></div>
-    <div class="modal-foot"><button class="btn btn-secondary" id="btnBatalKolom">Batal</button><button class="btn btn-primary" id="btnSimpanKolom">Tambah Kolom</button></div>
-  </div>
-</div>
-
-<!-- Modal Hapus Rekap -->
-<div class="modal" id="modalHapusRekap">
+  <!-- Modal Pilih Kelas untuk Tambah Siswa -->
+  <div class="modal" id="modalPilihKelasSiswa">
     <div class="modal-box">
-        <div class="modal-title" style="color:#ef4444;">🗑️ Hapus Data Rekap Absensi</div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;margin-bottom:16px;font-size:0.88rem;color:#991b1b;">
-            <strong>⚠️ PERHATIAN:</strong> Tindakan ini akan menghapus data absensi secara permanen dan tidak bisa dikembalikan!
-        </div>
-        <div class="fg">
-            <label>Pilih Kelas yang akan dihapus rekapnya:</label>
-            <select id="selectKelasHapus" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;">
-                <option value="all">-- SEMUA KELAS --</option>
-            </select>
-        </div>
-        <div class="fg">
-            <label>Ketik <strong>HAPUS</strong> untuk konfirmasi:</label>
-            <input type="text" id="inputKonfirmasiHapusRekap" placeholder="Ketik HAPUS">
-        </div>
-        <div class="modal-foot">
-            <button class="btn btn-secondary" id="btnBatalHapusRekap">Batal</button>
-            <button class="btn btn-danger" id="btnKonfirmasiHapusRekap">🗑️ Hapus Permanen</button>
-        </div>
-    </div>
-</div>
-
-            <!-- Modal Preview PDF -->
-<div class="modal" id="modalPreviewPDF">
-  <div class="modal-box" style="max-width:900px;width:95%;">
-    <div class="modal-title">👁️ Preview Analisis Soal Asesmen</div>
-    <div id="pdfPreviewContent" style="background:white;padding:20px;max-height:70vh;overflow-y:auto;"></div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" id="btnTutupPreview">Tutup</button>
-      <button class="btn btn-primary" id="btnCetakPDF">🖨️ Cetak PDF</button>
+      <div class="modal-title">👥 Tambah Siswa — Pilih Kelas</div>
+      <div class="form-group">
+        <label>Pilih Kelas *</label>
+        <select id="selectKelasUntukSiswa">
+          <option value="">-- Pilih Kelas --</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('modalPilihKelasSiswa')">Batal</button>
+        <button class="btn btn-primary" onclick="konfirmasiTambahSiswa()">Lanjut Kelola Siswa</button>
+      </div>
     </div>
   </div>
-</div>
-<!-- SCRIPT MODULAR -->
-<script src="../js/sipena-core.js"></script>
-<script src="../js/sipena-kelas.js"></script>
-<script src="../js/sipena-presensi.js"></script>
-<script src="../js/sipena-rekap.js"></script>
-<script src="../js/sipena-nilai.js"></script>
-<script src="../js/sipena-dokumen.js"></script>
 
-<!-- EVENT BINDING -->
-<script>
-function bindEvents(){
-  document.getElementById('btnDashboard').onclick = () => window.location.href='../index.html';
-  document.querySelectorAll('.menu-card[data-target]').forEach(c => { c.onclick = () => window.showContent(c.dataset.target); });
-  document.getElementById('menuHapus').onclick = () => { document.getElementById('inputKonfirmasiHapus').value=''; window.openModal('modalHapus'); };
-  
-  document.getElementById('btnTambahKelas').onclick = () => { document.getElementById('inputNamaKelas').value=''; window.openModal('modalTambahKelas'); setTimeout(()=>document.getElementById('inputNamaKelas').focus(),200); };
-  document.getElementById('btnBatalTambahKelas').onclick = () => window.closeModal('modalTambahKelas');
-  document.getElementById('btnSimpanKelas').onclick = window.simpanKelas;
-  document.getElementById('inputNamaKelas').addEventListener('keydown', e=>{ if(e.key==='Enter') window.simpanKelas(); });
-
-  document.getElementById('btnTutupKelolaSwiswa').onclick = () => window.closeModal('modalKelolaSwiswa');
-  document.getElementById('btnSimpanSiswa').onclick = window.simpanSiswa;
-  document.getElementById('inputNamaSiswa').addEventListener('keydown', e=>{ if(e.key==='Enter') window.simpanSiswa(); });
-
-  document.getElementById('btnHadirSemua').onclick = window.hadirSemua;
-  document.getElementById('btnKirimAbsen').onclick = window.simpanAbsensi;
-
-  document.querySelectorAll('#rekapTabs .tab').forEach(t=>{ 
-      t.onclick = () => { 
-          document.querySelectorAll('#rekapTabs .tab').forEach(x=>x.classList.remove('active')); 
-          t.classList.add('active'); 
-          currentRekapTab = t.dataset.rtab; 
-          window.renderRekap(); 
-      }; 
-  });
-
-  document.getElementById('btnExportAnalisisSoal').onclick = window.exportAnalisisAsesmenExcel;
-  document.getElementById('btnPreviewPDF').onclick = window.previewAnalisisPDF;
-  document.getElementById('btnTutupPreview').onclick = () => window.closeModal('modalPreviewPDF');
-  document.getElementById('btnCetakPDF').onclick = window.cetakAnalisisPDF;
-    
-  // Event untuk tombol Hapus Rekap
-  document.getElementById('btnHapusRekap').onclick = () => {
-      const selectKelas = document.getElementById('selectKelasHapus');
-      selectKelas.innerHTML = '<option value="all">-- SEMUA KELAS --</option>';
-      
-      const kelasList = allData.filter(d => d.type === 'class' && d.user_name === currentUser);
-      kelasList.forEach(k => {
-          selectKelas.innerHTML += `<option value="${k.class_name}">${k.class_name}</option>`;
-      });
-      
-      document.getElementById('inputKonfirmasiHapusRekap').value = '';
-      window.openModal('modalHapusRekap');
-  };
-
-  document.getElementById('btnBatalHapusRekap').onclick = () => window.closeModal('modalHapusRekap');
-
-  document.getElementById('btnKonfirmasiHapusRekap').onclick = async () => {
-    const konfirmasi = document.getElementById('inputKonfirmasiHapusRekap').value.trim();
-    const kelasDipilih = document.getElementById('selectKelasHapus').value;
-    
-    if (konfirmasi !== 'HAPUS') {
-        window.toast('❌ Konfirmasi tidak sesuai. Ketik HAPUS.', 'err');
-        return;
-    }
-    
-    if (typeof ROOT === 'undefined' || typeof allData === 'undefined' || !allData) {
-        window.toast('❌ Error: Data belum siap. Refresh halaman.', 'err');
-        return;
-    }
-    
-    const btn = document.getElementById('btnKonfirmasiHapusRekap');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Menghapus...';
-    
-    try {
-        // Ambil semua data absensi dari attendance_logs
-        const snap = await ROOT.once('value');
-        const rawData = (snap && snap.val()) || {};
-        const logs = rawData.attendance_logs || {};
-        
-        // Filter berdasarkan user & kelas
-        const targets = Object.keys(logs).filter(key => {
-            const log = logs[key];
-            const matchUser = log.user_name === currentUser;
-            const matchClass = (kelasDipilih === 'all') || (log.class_name === kelasDipilih);
-            return matchUser && matchClass;
-        });
-        
-        if (targets.length === 0) {
-            window.toast('⚠️ Tidak ada data rekap untuk dihapus.', 'err');
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            return;
-        }
-        
-        // Konfirmasi
-        const confirmMsg = 'Yakin ingin menghapus ' + targets.length + ' data rekap absensi?\n\nData siswa TIDAK akan terhapus.';
-        if (!confirm(confirmMsg)) {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            return;
-        }
-        
-        // Hapus satu per satu menggunakan adapter v3
-        for (let i = 0; i < targets.length; i++) {
-            await ROOT.child('attendance_logs').child(targets[i]).remove();
-            console.log('✅ Terhapus:', targets[i]);
-        }
-        
-        window.closeModal('modalHapusRekap');
-        window.toast('✅ Berhasil menghapus ' + targets.length + ' data rekap absensi!', 'success');
-        
-        setTimeout(() => {
-            if (typeof window.renderRekap === 'function') {
-                window.renderRekap();
-            }
-        }, 500);
-        
-    } catch (error) {
-        console.error('❌ Error di hapus rekap:', error);
-        window.toast('❌ Gagal menghapus: ' + error.message, 'err');
-    }
-    
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-  };
-
-  document.getElementById('btnCetakRekap').onclick = () => {
-      if (typeof window.cetakRekap === 'function') {
-          window.cetakRekap();
-      } else {
-          window.print();
-      }
-  };
-  
-  document.getElementById('btnExportRekap').onclick = window.exportRekap;
-
-  document.querySelectorAll('#nilaiTabs .tab').forEach(t=>{ 
-      t.onclick = () => { 
-          document.querySelectorAll('#nilaiTabs .tab').forEach(x=>x.classList.remove('active')); 
-          t.classList.add('active'); 
-          currentNilaiTab = t.dataset.ntab; 
-          window.renderPenilaian(); 
-      }; 
-  });
-  
-  document.getElementById('nilaiKelasSelect').onchange = e => { 
-      currentNilaiClass = e.target.value; 
-      window.renderPenilaian(); 
-  };
-  
-  document.getElementById('btnSimpanNilai').onclick = window.simpanNilai;
-  document.getElementById('btnExportNilai').onclick = window.eksporNilai;
-    
-  document.getElementById('btnAddKolom').onclick = () => { 
-      document.getElementById('inputJenisKolom').value = 'PH'; 
-      document.getElementById('modalKolom').dataset.target = 'pengetahuan'; 
-      window.openModal('modalKolom'); 
-  };
-  
-  document.getElementById('btnAddKolomKet').onclick = () => { 
-      document.getElementById('inputJenisKolom').value = 'Praktik'; 
-      document.getElementById('modalKolom').dataset.target = 'keterampilan'; 
-      window.openModal('modalKolom'); 
-  };
-  
-  document.getElementById('btnBatalKolom').onclick = () => window.closeModal('modalKolom');
-  document.getElementById('btnSimpanKolom').onclick = async () => { 
-      try { 
-          await window.tambahKolom(document.getElementById('modalKolom').dataset.target); 
-      } catch(e) { 
-          window.toast('❌ Gagal: ' + e.message, 'err'); 
-      } 
-  };
-
-  document.getElementById('btnTambahDokumen').onclick = () => { 
-      selectedFileData = null; 
-      document.getElementById('inputNamaDokumen').value = ''; 
-      document.getElementById('inputFileDokumen').value = ''; 
-      document.getElementById('filePreview').style.display = 'none'; 
-      document.getElementById('dropZone').style.display = 'block'; 
-      document.getElementById('uploadProgress').style.display = 'none'; 
-      window.openModal('modalDokumen'); 
-      setTimeout(()=>window.bindDropZone(), 100); 
-  };
-  
-  document.getElementById('btnBatalDokumen').onclick = () => { 
-      selectedFileData = null; 
-      window.closeModal('modalDokumen'); 
-  };
-  
-  document.getElementById('btnSimpanDokumen').onclick = window.simpanDokumen;
-
-  document.getElementById('btnBatalHapus').onclick = () => window.closeModal('modalHapus');
-  document.getElementById('btnKonfirmasiHapus').onclick = window.hapusSemuaData;
-
-  document.querySelectorAll('.modal').forEach(m=>{ 
-      m.addEventListener('click', e=>{ 
-          if(e.target === m) m.classList.remove('active'); 
-      }); 
-  });
-}
-
-// Jalankan bindEvents saat DOM siap
-document.addEventListener('DOMContentLoaded', bindEvents);
-</script>
-
-<!-- ══ UPLOAD FOTO SISWA DARI PERANGKAT (auto-compress) ══ -->
-<script>
-function prosesFotoSiswa(file, onDone) {
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { window.toast('File harus berupa gambar.', 'err'); return; }
-  if (file.size > 5 * 1024 * 1024) { window.toast('Ukuran foto maks 5 MB.', 'err'); return; }
-
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const img = new Image();
-    img.onload = function () {
-      const MAX = 300;
-      let w = img.width, h = img.height;
-      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      onDone(canvas.toDataURL('image/jpeg', 0.8));
-    };
-    img.onerror = function () { window.toast('Gagal membaca gambar.', 'err'); };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  // Pilih foto saat TAMBAH siswa
-  const fileAdd = document.getElementById('fileFotoSiswa');
-  if (fileAdd) fileAdd.addEventListener('change', function () {
-    prosesFotoSiswa(fileAdd.files[0], function (dataUrl) {
-      document.getElementById('inputFotoSiswa').value = dataUrl;
-      const p = document.getElementById('previewFotoSiswa');
-      p.src = dataUrl; p.style.display = 'block';
-      const lbl = document.getElementById('labelFotoSiswa');
-      if (lbl) lbl.textContent = '✅ Foto siap disimpan';
-    });
-  });
-
-  // Pilih foto saat EDIT siswa
-  const fileEdit = document.getElementById('fileFotoEdit');
-  if (fileEdit) fileEdit.addEventListener('change', function () {
-    prosesFotoSiswa(fileEdit.files[0], function (dataUrl) {
-      document.getElementById('editFotoSiswa').value = dataUrl;
-      const p = document.getElementById('previewFotoEdit');
-      p.src = dataUrl; p.style.opacity = '1';
-    });
-  });
-
-  // Sinkronkan preview setiap kali modal dibuka
-  const obs = new MutationObserver(function () {
-    const mEdit = document.getElementById('modalEditSiswa');
-    if (mEdit && mEdit.classList.contains('active')) {
-      const val = document.getElementById('editFotoSiswa').value || '';
-      const p = document.getElementById('previewFotoEdit');
-      if (p) { p.src = val || ''; p.style.opacity = val ? '1' : '.4'; }
-    }
-    const mAdd = document.getElementById('modalKelolaSwiswa');
-    if (mAdd && mAdd.classList.contains('active')) {
-      const val = document.getElementById('inputFotoSiswa').value || '';
-      const p = document.getElementById('previewFotoSiswa');
-      if (p) { if (val) { p.src = val; p.style.display = 'block'; } else { p.style.display = 'none'; } }
-    }
-  });
-  ['modalEditSiswa', 'modalKelolaSwiswa'].forEach(function (id) {
-    const el = document.getElementById(id);
-    if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
-  });
-});
-</script>
+    <!-- Custom JavaScript -->
+  <script src="../js/sipenav2.js?v=270827"></script>
+  <script src="../js/sipenav2-penilaian.js?v=270828"></script>
+  <script src="../js/sipenav2-rekapnilai.js?v=270828"></script>
+  <script src="../js/sipenav2-analisis.js?v=270828"></script>
+  <script src="../js/sipenav2-banksoal.js?v=270828"></script>
+  <script src="../js/sipenav2-jurnal.js?v=270843"></script>
 </body>
 </html>
