@@ -170,6 +170,7 @@ async function initSession() {
       
       await fetchNipUser();
       await fetchKepalaMadrasah();
+      await fetchIdentitasSekolah();
       
       updateGreeting();
       applyRoleRestrictions();
@@ -261,6 +262,68 @@ async function fetchKepalaMadrasah() {
   } catch (error) {
     console.warn('⚠️ Gagal mengambil data Kepala Madrasah:', error.message);
   }
+}
+
+// ══════════════════════════════════════════════
+// 🏫 SIG: MUAT IDENTITAS MADRASAH
+// Menimpa CONFIG_MADRASAH dengan data dari form SIG
+// ══════════════════════════════════════════════
+async function fetchIdentitasSekolah() {
+  if (!currentUser) return;
+  const targets = [];
+
+  // 1️⃣ identitas_madrasah per user (UID / email)
+  try {
+    const byUid = await db.collection('identitas_madrasah').doc(currentUser.uid).get();
+    if (byUid.exists) targets.push(byUid.data());
+  } catch (e) {}
+  
+  try {
+    const byEmail = await db.collection('identitas_madrasah').doc(currentUser.email).get();
+    if (byEmail.exists) targets.push(byEmail.data());
+  } catch (e) {}
+
+  // 2️⃣ dokumen global pertama di identitas_madrasah
+  if (!targets.length) {
+    try {
+      const snap = await db.collection('identitas_madrasah').limit(1).get();
+      snap.forEach(d => targets.push(d.data()));
+    } catch (e) {}
+  }
+
+  // 3️⃣ cadangan: collection config / sekolah / identitas_sekolah
+  if (!targets.length) {
+    for (const col of ['config', 'sekolah', 'identitas_sekolah']) {
+      try {
+        const snap = await db.collection(col).limit(1).get();
+        snap.forEach(d => targets.push(d.data()));
+      } catch (e) {}
+    }
+  }
+
+  if (!targets.length) {
+    console.warn('⚠️ SIG: data identitas madrasah belum ditemukan');
+    return;
+  }
+  
+  const d = targets[0];
+
+  // ✅ Mapping field fleksibel (menyesuaikan nama field SIG)
+  const kop1    = d.kop1 || d.kop_1 || d.kop_atas || '';
+  const kop2    = d.kop2 || d.kop_2 || d.nama_madrasah || d.namaMadrasah || d.nama_sekolah || d.namaSekolah || d.madrasah || d.sekolah || '';
+  const alamat  = d.alamat || d.alamat_madrasah || d.alamatSekolah || '';
+  const kota    = d.kota || d.tempat || d.kota_ttd || '';
+  const kepala  = d.nama_kepala || d.namaKepala || d.kepala_madrasah || d.kepalaMadrasah || d.kepala || d.nama_kepala_madrasah || '';
+  const nipKep  = d.nip_kepala || d.nipKepala || d.nip_kepala_madrasah || '';
+
+  if (kop1)   CONFIG_MADRASAH.kop1 = kop1;
+  if (kop2)   CONFIG_MADRASAH.kop2 = kop2;
+  if (alamat) CONFIG_MADRASAH.alamat = alamat;
+  if (kota)   CONFIG_MADRASAH.kota = kota;
+  if (kepala) CONFIG_MADRASAH.kepalaMadrasah = kepala;
+  if (nipKep) CONFIG_MADRASAH.nipKepala = nipKep.startsWith('NIP.') ? nipKep : 'NIP. ' + nipKep;
+
+  console.log('✅ SIG dimuat →', CONFIG_MADRASAH.kop2, '| Kepala:', CONFIG_MADRASAH.kepalaMadrasah);
 }
 
 function redirectToLogin() {
