@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daftar Sekolah Baru — SIPELITA Guru</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+  body { min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:linear-gradient(135deg,#059669,#065f46); padding:1.5rem 1rem; }
+  .box { background:#fff; border-radius:16px; padding:2rem 1.75rem; width:100%; max-width:560px;
+         box-shadow:0 20px 40px rgba(0,0,0,.25); }
+  .box h1 { color:#059669; font-size:1.35rem; text-align:center; }
+  .box p { color:#64748b; font-size:.82rem; text-align:center; margin:.6rem 0 1.4rem; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+  .full { grid-column:1 / -1; }
+  label { font-size:.72rem; font-weight:700; color:#475569; display:block; margin-bottom:.25rem; }
+  input { width:100%; padding:.65rem .8rem; border:1.5px solid #e2e8f0; border-radius:9px; font-size:.85rem; outline:none; }
+  input:focus { border-color:#10b981; }
+  button { grid-column:1 / -1; padding:.85rem; border:none; border-radius:10px; cursor:pointer;
+           background:linear-gradient(135deg,#10b981,#059669); color:#fff; font-weight:700; font-size:.95rem; margin-top:.4rem; }
+  #msg { margin-top:.9rem; font-size:.8rem; text-align:center; min-height:1.1rem; color:#dc2626; }
+  .back { display:block; text-align:center; margin-top:.8rem; font-size:.82rem; color:#64748b; text-decoration:none; }
+  .back b { color:#059669; }
+  @media (max-width:520px){ .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1><i class="fas fa-school"></i> DAFTAR SEKOLAH BARU</h1>
+  <p>Bergabung dengan SIPELITA Guru. Akun pertama otomatis menjadi <b>Admin Sekolah</b> dengan seluruh fitur.</p>
+
+  <div class="grid">
+    <div class="full"><label>👤 Nama Lengkap & Gelar</label><input id="nama" placeholder="Contoh: Andi Miftahul Khaer, S.Pd"></div>
+    <div><label>📧 Email</label><input id="email" type="email" placeholder="guru@sekolah.sch.id"></div>
+    <div><label>🔒 Password</label><input id="password" type="password" placeholder="Minimal 6 karakter"></div>
+    <div class="full"><label>🆔 NIP (opsional)</label><input id="nip" placeholder="NIP / NUPTK"></div>
+
+    <div class="full" style="margin-top:.5rem; padding-top:.75rem; border-top:2px dashed #e2e8f0;">
+      <label style="font-size:.8rem; color:#059669;">🏫 IDENTITAS SEKOLAH</label>
+    </div>
+    <div class="full"><label>Nama Sekolah / Madrasah</label><input id="sekolah" placeholder="Contoh: MTs Al-Hidayah"></div>
+    <div class="full"><label>Alamat Sekolah</label><input id="alamat" placeholder="Jl. ..."></div>
+    <div><label>Kota / Kabupaten</label><input id="kota" placeholder="Contoh: Bantaeng"></div>
+    <div><label>Nama Kepala Sekolah</label><input id="kepalaNama" placeholder="Untuk TTD laporan"></div>
+    <div class="full"><label>NIP Kepala Sekolah (opsional)</label><input id="kepalaNip" placeholder="NIP Kepala"></div>
+
+    <button onclick="daftar()"><i class="fas fa-user-plus"></i> DAFTARKAN SEKOLAH</button>
+  </div>
+
+  <div id="msg"></div>
+  <a class="back" href="home.html">← Sudah punya akun? <b>Masuk di sini</b></a>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+  authDomain: "sipelita-guru.firebaseapp.com",
+  projectId: "sipelita-guru",
+  storageBucket: "sipelita-guru.firebasestorage.app",
+  messagingSenderId: "595996765157",
+  appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let sedangDaftar = false;
+auth.onAuthStateChanged(u => { if (u && !sedangDaftar) location.href = 'pages/sipena-modern.html'; });
+
+function genKode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)];
+  return s;
+}
+
+async function daftar() {
+  const v = id => document.getElementById(id).value.trim();
+  const nama = v('nama'), email = v('email'), pass = v('password'), nip = v('nip');
+  const sekolah = v('sekolah'), alamat = v('alamat'), kota = v('kota');
+  const kepNama = v('kepalaNama'), kepNip = v('kepalaNip');
+  const msg = document.getElementById('msg');
+
+  if (!nama || !email || !pass || !sekolah || !kota) {
+    msg.textContent = '⚠️ Nama, email, password, nama sekolah & kota wajib diisi'; return;
+  }
+  if (pass.length < 6) { msg.textContent = '⚠️ Password minimal 6 karakter'; return; }
+
+  msg.style.color = '#64748b';
+  msg.textContent = '⏳ Memproses pendaftaran...';
+
+  try {
+    sedangDaftar = true;
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    const uid = cred.user.uid;
+
+    // 1️⃣ Buat dokumen SEKOLAH
+    const sekRef = await db.collection('sekolah').add({
+      nama: sekolah,
+      alamat: alamat || '',
+      kota: kota,
+      kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+      kop2: sekolah.toUpperCase(),
+      kepala_nama: kepNama || nama,
+      kepala_nip: kepNip || '',
+      admin_uid: uid,
+      kode_gabung: genKode(),
+      aktif: true,
+      created_at: new Date().toISOString()
+    });
+
+    // 2️⃣ Buat dokumen USER (role admin = akses penuh + monitoring)
+    await db.collection('users').doc(uid).set({
+      nama, email, nip: nip || '',
+      role: 'admin',
+      school_id: sekRef.id,
+      created_at: new Date().toISOString()
+    });
+
+    msg.style.color = '#059669';
+    msg.textContent = '✅ Pendaftaran berhasil! Mengalihkan ke halaman login...';
+    setTimeout(async () => { await auth.signOut(); location.href = 'home.html'; }, 1200);
+  } catch (e) {
+    sedangDaftar = false;
+    msg.style.color = '#dc2626';
+    msg.textContent = '❌ ' + (e.code === 'auth/email-already-in-use' ? 'Email sudah terdaftar' : e.message);
+  }
+}
+</script>
+</body>
+</html>
