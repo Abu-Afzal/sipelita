@@ -293,11 +293,16 @@ function ekstrakSIG(d) {
   for (const [k, v] of Object.entries(d || {})) {
     if (typeof v !== 'string' || !v) continue;
     const key = k.toLowerCase();
+    // ✅ Kenali semua penulisan: kamadNama, nama_kepala, namaKepala, kepsek, kepala_madrasah
+    const isKepalaKey = key.includes('kamad') || key.includes('kepala') || key.includes('kepsek');
+
     if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
-    if (!hasil.nip && key.includes('nip')) hasil.nip = v;
-    if (!hasil.kepala && key.includes('kepala') && !key.includes('nip') && !v.includes('@')) hasil.kepala = v;
+    // NIP kepala = field ber-nip YANG JUGA menyebut kepala/kamad (hindari NIP guru sendiri)
+    if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
+    // Nama kepala = field kepala/kamad tanpa nip & tanpa link
+    if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
     if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
-    if (!hasil.kop2 && ((key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama'))) hasil.kop2 = v;
+    if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
     if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
   }
   return hasil;
@@ -453,8 +458,33 @@ document.querySelectorAll('.nav-toggle').forEach(toggle => {
 // ══════════════════════════════════════════════
 // 6. PAGE RENDERING
 // ══════════════════════════════════════════════
+// ✅ Judul halaman mengikuti MENU UTAMA (bukan sub-menu)
+const PAGE_TITLES = {
+  dashboard:      'Dashboard',
+  kelas:          'Kelola Kelas',
+  presensi:       'Presensi',
+  rekap:          'Presensi',
+  penilaian:      'Penilaian',
+  'rekap-nilai':  'Penilaian',
+  analisis:       'Penilaian',
+  'bank-soal':    'Bank Soal',
+  jurnal:         'Jurnal Mengajar',
+  'rekap-jurnal': 'Jurnal Mengajar'
+};
+
 function loadPage(page) {
   const content = document.getElementById('pageContent');
+
+  // ✅ Card statistik HANYA tampil di Dashboard (tetap disembunyikan untuk Kepala)
+  const statsGrid = document.querySelector('.stats-grid');
+  if (statsGrid) {
+    statsGrid.style.display = (page === 'dashboard' && !isRoleKepala()) ? 'grid' : 'none';
+  }
+
+  // ✅ Judul halaman ikut berubah sesuai menu
+  const titleEl = document.querySelector('.page-title');
+  if (titleEl) titleEl.textContent = PAGE_TITLES[page] || 'Dashboard';
+
   switch(page) {
     case 'dashboard': content.innerHTML = renderDashboard(); loadStats(); loadJadwalHariIni(); break;
     case 'kelas': content.innerHTML = renderKelas(); loadKelasList(); break;
