@@ -172,7 +172,7 @@ async function initSession() {
       await fetchKepalaMadrasah();
       await fetchIdentitasSekolah();
       await fetchSekolahAktif(); 
-      
+
       updateGreeting();
       applyRoleRestrictions();
       if (isRoleKepala()) {
@@ -268,64 +268,80 @@ async function fetchKepalaMadrasah() {
 }
 
 // ══════════════════════════════════════════════
-// 🏫 SIG: MUAT IDENTITAS MADRASAH
-// Menimpa CONFIG_MADRASAH dengan data dari form SIG
+// 🏫 SIG: MUAT IDENTITAS MADRASAH (PER GURU)
+// Prioritas: SIG guru sendiri → dokumen sekolah → legacy
+// Mengisi KOP, kota TTD, nama & NIP kepala untuk SEMUA PDF
 // ══════════════════════════════════════════════
 async function fetchIdentitasSekolah() {
   if (!currentUser) return;
   let foundData = null;
 
-  try {
-    // 1. Cari di koleksi 'identitas_madrasah' (ambil semua, cari yang datanya lengkap)
-    const snapIdentitas = await db.collection('identitas_madrasah').get();
-    snapIdentitas.forEach(doc => {
-      if (!foundData && (doc.data().nama_madrasah || doc.data().namaSekolah)) {
-        foundData = doc.data();
-      }
-    });
+  // ✅ Terapkan data ke CONFIG_MADRASAH (dipakai semua modul PDF)
+  const applyData = (d) => {
+    const kota = d.kota || d.tempat || d.kota_ttd || d.tempat_ttd || '';
+    const namaKepala = d.nama_kepala || d.namaKepala || d.kepala_madrasah || d.kepalaMadrasah ||
+                       d.nama_kepala_madrasah || d.namaKepalaMadrasah || d.kepala ||
+                       d.nama_kepsek || d.namaKepsek || d.kepsek || d.kepala_nama || '';
+    const nipKepala = d.nip_kepala || d.nipKepala || d.nip_kepala_madrasah || d.nipKepalaMadrasah ||
+                      d.nip_kepsek || d.nipKepsek || d.kepala_nip || '';
 
-    // 2. Jika belum ketemu, cari di koleksi alternatif
+    if (kota) CONFIG_MADRASAH.kota = kota;
+    if (namaKepala) CONFIG_MADRASAH.kepalaMadrasah = namaKepala;
+    if (nipKepala) CONFIG_MADRASAH.nipKepala = nipKepala.startsWith('NIP.') ? nipKepala : 'NIP. ' + nipKepala;
+    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
+    if (d.kop2 || d.nama_madrasah || d.namaSekolah || d.nama) CONFIG_MADRASAH.kop2 = d.kop2 || d.nama_madrasah || d.namaSekolah || d.nama;
+    if (d.alamat || d.alamat_madrasah) CONFIG_MADRASAH.alamat = d.alamat || d.alamat_madrasah;
+  };
+
+  try {
+    // 1️⃣ SIG milik guru ini sendiri (doc ID = UID / email)
+    try {
+      const byUid = await db.collection('identitas_madrasah').doc(currentUser.uid).get();
+      if (byUid.exists) foundData = byUid.data();
+    } catch (e) {}
     if (!foundData) {
-      const collectionsToCheck = ['config', 'sekolah', 'identitas_sekolah', 'settings'];
-      for (const colName of collectionsToCheck) {
-        const snap = await db.collection(colName).get();
-        snap.forEach(doc => {
-          if (!foundData && (doc.data().nama_madrasah || doc.data().namaSekolah || doc.data().kop2)) {
-            foundData = doc.data();
-          }
-        });
-      }
+      try {
+        const byEmail = await db.collection('identitas_madrasah').doc(currentUser.email).get();
+        if (byEmail.exists) foundData = byEmail.data();
+      } catch (e) {}
+    }
+
+    // 2️⃣ SIG via field user_uid / user_email
+    if (!foundData) {
+      try {
+        const q1 = await db.collection('identitas_madrasah').where('user_uid', '==', currentUser.uid).limit(1).get();
+        q1.forEach(doc => { if (!foundData) foundData = doc.data(); });
+      } catch (e) {}
+    }
+    if (!foundData) {
+      try {
+        const q2 = await db.collection('identitas_madrasah').where('user_email', '==', currentUser.email).limit(1).get();
+        q2.forEach(doc => { if (!foundData) foundData = doc.data(); });
+      } catch (e) {}
+    }
+
+    // 3️⃣ Dokumen sekolah (hasil register.html)
+    if (!foundData && currentUserData.school_id) {
+      try {
+        const sdoc = await db.collection('sekolah').doc(currentUserData.school_id).get();
+        if (sdoc.exists) foundData = sdoc.data();
+      } catch (e) {}
+    }
+
+    // 4️⃣ Legacy: dokumen SIG mana pun (single-school lama)
+    if (!foundData) {
+      const snap = await db.collection('identitas_madrasah').limit(1).get();
+      snap.forEach(doc => { if (!foundData) foundData = doc.data(); });
     }
 
     if (foundData) {
-      console.log('✅ Data SIG ditemukan di database:', foundData);
-      
-      // Mapping Nama Kepala (Sangat fleksibel terhadap variasi penulisan field)
-      const namaKepala = foundData.nama_kepala || foundData.namaKepala || foundData.kepala_madrasah || 
-                         foundData.kepalaMadrasah || foundData.kepala || foundData.nama_kepala_madrasah || 
-                         foundData.nama_kepsek || foundData.namaKepsek || foundData.kepsek || '';
-      
-      // Mapping NIP Kepala
-      const nipKepala = foundData.nip_kepala || foundData.nipKepala || foundData.nip_kepala_madrasah || 
-                        foundData.nipKepalaMadrasah || foundData.nip_kepsek || foundData.nipKepsek || '';
-
-      // Update CONFIG_MADRASAH jika data ditemukan
-      if (namaKepala) {
-        CONFIG_MADRASAH.kepalaMadrasah = namaKepala;
-        console.log('✅ BERHASIL: Nama Kepala Madrasah diperbarui dari SIG →', CONFIG_MADRASAH.kepalaMadrasah);
-      } else {
-        console.warn('⚠️ PERINGATAN: Field nama kepala madrasah KOSONG di database. Pastikan nama field-nya benar.');
-      }
-
-      if (nipKepala) {
-        CONFIG_MADRASAH.nipKepala = nipKepala.startsWith('NIP.') ? nipKepala : 'NIP. ' + nipKepala;
-        console.log('✅ BERHASIL: NIP Kepala Madrasah diperbarui dari SIG →', CONFIG_MADRASAH.nipKepala);
-      }
+      applyData(foundData);
+      console.log('✅ SIG dimuat → kota:', CONFIG_MADRASAH.kota, '| kepala:', CONFIG_MADRASAH.kepalaMadrasah);
     } else {
-      console.warn('⚠️ SIG: Data identitas madrasah TIDAK ditemukan di koleksi manapun.');
+      console.warn('⚠️ SIG: identitas belum diisi guru ini.');
     }
-  } catch (error) {
-    console.error('❌ Error fatal saat mengambil data identitas sekolah:', error);
+  } catch (e) {
+    console.warn('⚠️ fetchIdentitasSekolah:', e.message);
   }
 }
 
