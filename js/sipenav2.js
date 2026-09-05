@@ -268,81 +268,72 @@ async function fetchKepalaMadrasah() {
 }
 
 // ══════════════════════════════════════════════
-// 🏫 SIG: MUAT IDENTITAS MADRASAH (PER GURU)
-// Prioritas: SIG guru sendiri → dokumen sekolah → legacy
-// Mengisi KOP, kota TTD, nama & NIP kepala untuk SEMUA PDF
+// 🏫 SIG: MUAT IDENTITAS (SUPER-FLEKSIBEL)
+// Menyapu users / koleksi SIG / sekolah, dengan
+// deteksi field otomatis (apa pun nama fieldnya)
 // ══════════════════════════════════════════════
+function ekstrakSIG(d) {
+  const hasil = { kota:'', kepala:'', nip:'', kop1:'', kop2:'', alamat:'' };
+  for (const [k, v] of Object.entries(d || {})) {
+    if (typeof v !== 'string' || !v) continue;
+    const key = k.toLowerCase();
+    if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
+    if (!hasil.nip && key.includes('nip')) hasil.nip = v;
+    if (!hasil.kepala && key.includes('kepala') && !key.includes('nip') && !v.includes('@')) hasil.kepala = v;
+    if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
+    if (!hasil.kop2 && ((key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama'))) hasil.kop2 = v;
+    if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
+  }
+  return hasil;
+}
+
 async function fetchIdentitasSekolah() {
   if (!currentUser) return;
-  let foundData = null;
+  const sumber = [];   // urutan prioritas terbalik: yang di-apply terakhir menang
 
-  // ✅ Terapkan data ke CONFIG_MADRASAH (dipakai semua modul PDF)
-  const applyData = (d) => {
-    const kota = d.kota || d.tempat || d.kota_ttd || d.tempat_ttd || '';
-    const namaKepala = d.nama_kepala || d.namaKepala || d.kepala_madrasah || d.kepalaMadrasah ||
-                       d.nama_kepala_madrasah || d.namaKepalaMadrasah || d.kepala ||
-                       d.nama_kepsek || d.namaKepsek || d.kepsek || d.kepala_nama || '';
-    const nipKepala = d.nip_kepala || d.nipKepala || d.nip_kepala_madrasah || d.nipKepalaMadrasah ||
-                      d.nip_kepsek || d.nipKepsek || d.kepala_nip || '';
-
-    if (kota) CONFIG_MADRASAH.kota = kota;
-    if (namaKepala) CONFIG_MADRASAH.kepalaMadrasah = namaKepala;
-    if (nipKepala) CONFIG_MADRASAH.nipKepala = nipKepala.startsWith('NIP.') ? nipKepala : 'NIP. ' + nipKepala;
-    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
-    if (d.kop2 || d.nama_madrasah || d.namaSekolah || d.nama) CONFIG_MADRASAH.kop2 = d.kop2 || d.nama_madrasah || d.namaSekolah || d.nama;
-    if (d.alamat || d.alamat_madrasah) CONFIG_MADRASAH.alamat = d.alamat || d.alamat_madrasah;
-  };
-
-  try {
-    // 1️⃣ SIG milik guru ini sendiri (doc ID = UID / email)
+  // 3️⃣ Dokumen sekolah (hasil register.html) — prioritas terendah
+  if (currentUserData.school_id) {
     try {
-      const byUid = await db.collection('identitas_madrasah').doc(currentUser.uid).get();
-      if (byUid.exists) foundData = byUid.data();
+      const s = await db.collection('sekolah').doc(currentUserData.school_id).get();
+      if (s.exists) sumber.push(s.data());
     } catch (e) {}
-    if (!foundData) {
-      try {
-        const byEmail = await db.collection('identitas_madrasah').doc(currentUser.email).get();
-        if (byEmail.exists) foundData = byEmail.data();
-      } catch (e) {}
-    }
-
-    // 2️⃣ SIG via field user_uid / user_email
-    if (!foundData) {
-      try {
-        const q1 = await db.collection('identitas_madrasah').where('user_uid', '==', currentUser.uid).limit(1).get();
-        q1.forEach(doc => { if (!foundData) foundData = doc.data(); });
-      } catch (e) {}
-    }
-    if (!foundData) {
-      try {
-        const q2 = await db.collection('identitas_madrasah').where('user_email', '==', currentUser.email).limit(1).get();
-        q2.forEach(doc => { if (!foundData) foundData = doc.data(); });
-      } catch (e) {}
-    }
-
-    // 3️⃣ Dokumen sekolah (hasil register.html)
-    if (!foundData && currentUserData.school_id) {
-      try {
-        const sdoc = await db.collection('sekolah').doc(currentUserData.school_id).get();
-        if (sdoc.exists) foundData = sdoc.data();
-      } catch (e) {}
-    }
-
-    // 4️⃣ Legacy: dokumen SIG mana pun (single-school lama)
-    if (!foundData) {
-      const snap = await db.collection('identitas_madrasah').limit(1).get();
-      snap.forEach(doc => { if (!foundData) foundData = doc.data(); });
-    }
-
-    if (foundData) {
-      applyData(foundData);
-      console.log('✅ SIG dimuat → kota:', CONFIG_MADRASAH.kota, '| kepala:', CONFIG_MADRASAH.kepalaMadrasah);
-    } else {
-      console.warn('⚠️ SIG: identitas belum diisi guru ini.');
-    }
-  } catch (e) {
-    console.warn('⚠️ fetchIdentitasSekolah:', e.message);
   }
+
+  // 2️⃣ Koleksi SIG (doc per-user dulu, lalu dokumen global)
+  const cols = ['identitas_madrasah','sig','sig_madrasah','identitas','pengaturan',
+                'settings','config','config_madrasah','madrasah','identitas_sekolah'];
+  for (const c of cols) {
+    try {
+      const byId = await db.collection(c).doc(currentUser.uid).get();
+      if (byId.exists) { sumber.push(byId.data()); continue; }
+    } catch (e) {}
+    try {
+      const anyDoc = await db.collection(c).limit(1).get();
+      anyDoc.forEach(d => sumber.push(d.data()));
+    } catch (e) {}
+  }
+
+  // 1️⃣ Dokumen users guru ini (SIG mungkin tersimpan di sini) — prioritas tertinggi
+  try {
+    const u = await db.collection('users').doc(currentUser.uid).get();
+    if (u.exists) sumber.push(u.data());
+  } catch (e) {}
+
+  // Terapkan berurutan (nilai tidak kosong menimpa)
+  let ketemu = false;
+  for (const d of sumber) {
+    const x = ekstrakSIG(d);
+    if (x.kota)    { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
+    if (x.kepala)  { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
+    if (x.nip)     { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
+    if (x.kop1)    { CONFIG_MADRASAH.kop1 = x.kop1; ketemu = true; }
+    if (x.kop2)    { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
+    if (x.alamat)  { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
+  }
+
+  console.log(ketemu
+    ? '✅ SIG dimuat → kepala: ' + CONFIG_MADRASAH.kepalaMadrasah + ' | NIP: ' + CONFIG_MADRASAH.nipKepala
+    : '⚠️ SIG: data identitas tidak ditemukan di sumber mana pun');
 }
 
 // ══════════════════════════════════════════════
