@@ -241,6 +241,18 @@
                     <input type="text" id="sigKamadNip" placeholder="Kosongkan bila tidak ada">
                 </div>
 
+                        <div style="margin-bottom:1rem;">
+          <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏛️ KOP Baris 1 (opsional — kosongkan untuk otomatis)</label>
+          <input type="text" id="sigKop1" placeholder="KEMENTERIAN AGAMA KABUPATEN / KOTA ..." style="width:100%; padding:0.5rem; border:1.5px solid var(--border); border-radius:8px;">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏫 Nama Madrasah / Sekolah (KOP Baris 2)</label>
+          <input type="text" id="sigNamaMadrasah" placeholder="Contoh: MTs NEGERI 1 MAKASSAR" style="width:100%; padding:0.5rem; border:1.5px solid var(--border); border-radius:8px;">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">📍 Alamat Madrasah (KOP Baris 3)</label>
+          <input type="text" id="sigAlamat" placeholder="Jl. ..." style="width:100%; padding:0.5rem; border:1.5px solid var(--border); border-radius:8px;">
+        </div>
                                 <div class="form-group-modal">
                     <label>🔗 Link RDM Madrasah</label>
                     <input type="url" id="sigRdmLink" placeholder="https://... link RDM madrasah Anda">
@@ -427,6 +439,9 @@
                         document.getElementById('sigTempat').value = s.tempat || '';
                         document.getElementById('sigKamadNama').value = s.kamadNama || '';
                         document.getElementById('sigKamadNip').value = s.kamadNip || '';
+                        kop1: (document.getElementById('sigKop1')?.value || '').trim(),
+                        namaMadrasah: (document.getElementById('sigNamaMadrasah')?.value || '').trim(),
+                        alamatMadrasah: (document.getElementById('sigAlamat')?.value || '').trim(),
                         document.getElementById('sigRdmLink').value = s.rdmLink || '';
                         document.getElementById('modalPengaturanAkun').style.display = 'flex';
                     });
@@ -492,6 +507,9 @@
                             tempat: document.getElementById('sigTempat').value.trim(),
                             kamadNama: document.getElementById('sigKamadNama').value.trim(),
                             kamadNip: document.getElementById('sigKamadNip').value.trim(),
+                            kop1: (document.getElementById('sigKop1')?.value || '').trim(),
+                            namaMadrasah: (document.getElementById('sigNamaMadrasah')?.value || '').trim(),
+                            alamatMadrasah: (document.getElementById('sigAlamat')?.value || '').trim(),
                             rdmLink: document.getElementById('sigRdmLink').value.trim()
                         };
                         
