@@ -241,6 +241,7 @@ async function fetchKepalaMadrasah() {
     usersSnap.forEach(doc => {
       const data = doc.data();
       const role = (data.role || '').toString().toLowerCase();
+      // Cek jika role mengandung kata 'kepala'
       if (role.includes('kepala')) {
         kepalaData = {
           nama: data.nama || data.name || data.displayName || CONFIG_MADRASAH.kepalaMadrasah,
@@ -255,12 +256,11 @@ async function fetchKepalaMadrasah() {
         ? kepalaData.nip 
         : (kepalaData.nip ? 'NIP. ' + kepalaData.nip : 'NIP. ............................................');
       
-      console.log('✅ Data Kepala Madrasah dimuat:', kepalaData.nama);
-    } else {
-      console.warn('⚠️ Tidak ditemukan user dengan role "kepala" di collection users');
+      console.log('✅ [Fallback] Data Kepala Madrasah dimuat dari collection users:', kepalaData.nama);
     }
   } catch (error) {
-    console.warn('⚠️ Gagal mengambil data Kepala Madrasah:', error.message);
+    console.warn('⚠️ Gagal mengambil data Kepala Madrasah dari users:', error.message);
+    // Tidak return, biarkan fetchIdentitasSekolah yang menangani
   }
 }
 
@@ -270,65 +270,60 @@ async function fetchKepalaMadrasah() {
 // ══════════════════════════════════════════════
 async function fetchIdentitasSekolah() {
   if (!currentUser) return;
-  const targets = [];
+  let foundData = null;
 
-  // 1️⃣ identitas_madrasah per user (UID / email)
   try {
-    const byUid = await db.collection('identitas_madrasah').doc(currentUser.uid).get();
-    if (byUid.exists) targets.push(byUid.data());
-  } catch (e) {}
-  
-  try {
-    const byEmail = await db.collection('identitas_madrasah').doc(currentUser.email).get();
-    if (byEmail.exists) targets.push(byEmail.data());
-  } catch (e) {}
+    // 1. Cari di koleksi 'identitas_madrasah' (ambil semua, cari yang datanya lengkap)
+    const snapIdentitas = await db.collection('identitas_madrasah').get();
+    snapIdentitas.forEach(doc => {
+      if (!foundData && (doc.data().nama_madrasah || doc.data().namaSekolah)) {
+        foundData = doc.data();
+      }
+    });
 
-  // 2️⃣ dokumen global pertama di identitas_madrasah
-  if (!targets.length) {
-    try {
-      const snap = await db.collection('identitas_madrasah').limit(1).get();
-      snap.forEach(d => targets.push(d.data()));
-    } catch (e) {}
-  }
-
-  // 3️⃣ cadangan: collection config / sekolah / identitas_sekolah
-  if (!targets.length) {
-    for (const col of ['config', 'sekolah', 'identitas_sekolah']) {
-      try {
-        const snap = await db.collection(col).limit(1).get();
-        snap.forEach(d => targets.push(d.data()));
-      } catch (e) {}
+    // 2. Jika belum ketemu, cari di koleksi alternatif
+    if (!foundData) {
+      const collectionsToCheck = ['config', 'sekolah', 'identitas_sekolah', 'settings'];
+      for (const colName of collectionsToCheck) {
+        const snap = await db.collection(colName).get();
+        snap.forEach(doc => {
+          if (!foundData && (doc.data().nama_madrasah || doc.data().namaSekolah || doc.data().kop2)) {
+            foundData = doc.data();
+          }
+        });
+      }
     }
+
+    if (foundData) {
+      console.log('✅ Data SIG ditemukan di database:', foundData);
+      
+      // Mapping Nama Kepala (Sangat fleksibel terhadap variasi penulisan field)
+      const namaKepala = foundData.nama_kepala || foundData.namaKepala || foundData.kepala_madrasah || 
+                         foundData.kepalaMadrasah || foundData.kepala || foundData.nama_kepala_madrasah || 
+                         foundData.nama_kepsek || foundData.namaKepsek || foundData.kepsek || '';
+      
+      // Mapping NIP Kepala
+      const nipKepala = foundData.nip_kepala || foundData.nipKepala || foundData.nip_kepala_madrasah || 
+                        foundData.nipKepalaMadrasah || foundData.nip_kepsek || foundData.nipKepsek || '';
+
+      // Update CONFIG_MADRASAH jika data ditemukan
+      if (namaKepala) {
+        CONFIG_MADRASAH.kepalaMadrasah = namaKepala;
+        console.log('✅ BERHASIL: Nama Kepala Madrasah diperbarui dari SIG →', CONFIG_MADRASAH.kepalaMadrasah);
+      } else {
+        console.warn('⚠️ PERINGATAN: Field nama kepala madrasah KOSONG di database. Pastikan nama field-nya benar.');
+      }
+
+      if (nipKepala) {
+        CONFIG_MADRASAH.nipKepala = nipKepala.startsWith('NIP.') ? nipKepala : 'NIP. ' + nipKepala;
+        console.log('✅ BERHASIL: NIP Kepala Madrasah diperbarui dari SIG →', CONFIG_MADRASAH.nipKepala);
+      }
+    } else {
+      console.warn('⚠️ SIG: Data identitas madrasah TIDAK ditemukan di koleksi manapun.');
+    }
+  } catch (error) {
+    console.error('❌ Error fatal saat mengambil data identitas sekolah:', error);
   }
-
-  if (!targets.length) {
-    console.warn('⚠️ SIG: data identitas madrasah belum ditemukan');
-    return;
-  }
-  
-  const d = targets[0];
-
-  // ✅ Mapping field fleksibel (menyesuaikan nama field SIG)
-  const kop1    = d.kop1 || d.kop_1 || d.kop_atas || '';
-  const kop2    = d.kop2 || d.kop_2 || d.nama_madrasah || d.namaMadrasah || d.nama_sekolah || d.namaSekolah || d.madrasah || d.sekolah || '';
-  const alamat  = d.alamat || d.alamat_madrasah || d.alamatSekolah || '';
-  const kota    = d.kota || d.tempat || d.kota_ttd || '';
-  const kepala  = d.nama_kepala || d.namaKepala || d.kepala_madrasah || d.kepalaMadrasah || d.kepala || d.nama_kepala_madrasah || '';
-  const nipKep  = d.nip_kepala || d.nipKepala || d.nip_kepala_madrasah || '';
-
-  if (kop1)   CONFIG_MADRASAH.kop1 = kop1;
-  if (kop2)   CONFIG_MADRASAH.kop2 = kop2;
-  if (alamat) CONFIG_MADRASAH.alamat = alamat;
-  if (kota)   CONFIG_MADRASAH.kota = kota;
-  if (kepala) CONFIG_MADRASAH.kepalaMadrasah = kepala;
-  if (nipKep) CONFIG_MADRASAH.nipKepala = nipKep.startsWith('NIP.') ? nipKep : 'NIP. ' + nipKep;
-
-  console.log('✅ SIG dimuat →', CONFIG_MADRASAH.kop2, '| Kepala:', CONFIG_MADRASAH.kepalaMadrasah);
-}
-
-function redirectToLogin() {
-  showToast('⚠️ Sesi Anda berakhir. Silakan login ulang.', 'warning');
-  setTimeout(() => { window.location.href = '../home.html'; }, 1500);
 }
 
 // ══════════════════════════════════════════════
