@@ -439,9 +439,9 @@
                         document.getElementById('sigTempat').value = s.tempat || '';
                         document.getElementById('sigKamadNama').value = s.kamadNama || '';
                         document.getElementById('sigKamadNip').value = s.kamadNip || '';
-                        kop1: (document.getElementById('sigKop1')?.value || '').trim(),
-                        namaMadrasah: (document.getElementById('sigNamaMadrasah')?.value || '').trim(),
-                        alamatMadrasah: (document.getElementById('sigAlamat')?.value || '').trim(),
+                        document.getElementById('sigKop1').value = s.kop1 || '';
+                        document.getElementById('sigNamaMadrasah').value = s.namaMadrasah || '';
+                        document.getElementById('sigAlamat').value = s.alamatMadrasah || '';
                         document.getElementById('sigRdmLink').value = s.rdmLink || '';
                         document.getElementById('modalPengaturanAkun').style.display = 'flex';
                     });
@@ -513,8 +513,10 @@
                             rdmLink: document.getElementById('sigRdmLink').value.trim()
                         };
                         
-                        // ✅ Validasi DULU — minimal satu field terisi
-                        if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip && !identitas.rdmLink) {
+                        // ✅ Validasi DULU — minimal satu field terisi (termasuk kop)
+                        if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip 
+                            && !identitas.rdmLink && !identitas.kop1 
+                            && !identitas.namaMadrasah && !identitas.alamatMadrasah) {
                             showToast('⚠️ Isi minimal salah satu kolom!', 'warning');
                             return;
                         }
