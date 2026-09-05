@@ -171,6 +171,7 @@ async function initSession() {
       await fetchNipUser();
       await fetchKepalaMadrasah();
       await fetchIdentitasSekolah();
+      await fetchSekolahAktif(); 
       
       updateGreeting();
       applyRoleRestrictions();
@@ -219,6 +220,8 @@ async function fetchNipUser() {
       const nip = data.nip || data.NIP || data.Nip || '';
       currentUserData.nip = nip;
       if (data.role) currentUserData.role = data.role;
+      if (data.school_id) currentUserData.school_id = data.school_id;
+      if (data.sekolah_id) currentUserData.school_id = data.sekolah_id;
             
       if (data.nama || data.name || data.displayName) {
         currentUserData.namaResmi = data.nama || data.name || data.displayName;
@@ -323,6 +326,46 @@ async function fetchIdentitasSekolah() {
     }
   } catch (error) {
     console.error('❌ Error fatal saat mengambil data identitas sekolah:', error);
+  }
+}
+
+// ══════════════════════════════════════════════
+// 🏫 MULTI-SEKOLAH: MUAT IDENTITAS SEKOLAH AKTIF
+// Prioritas tertinggi - meng-override SIG jika user
+// terdaftar di collection `sekolah`
+// ══════════════════════════════════════════════
+async function fetchSekolahAktif() {
+  if (!currentUser || !currentUserData.school_id) return;
+  
+  try {
+    const sdoc = await db.collection('sekolah').doc(currentUserData.school_id).get();
+    if (!sdoc.exists) {
+      console.warn('⚠️ School ID ada tapi dokumen tidak ditemukan:', currentUserData.school_id);
+      return;
+    }
+    
+    const d = sdoc.data();
+    console.log('🏫 Data sekolah aktif ditemukan:', d);
+    
+    // ✅ Override semua CONFIG_MADRASAH dengan data sekolah user
+    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
+    if (d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
+    else if (d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
+    if (d.alamat) CONFIG_MADRASAH.alamat = d.alamat;
+    if (d.kota) CONFIG_MADRASAH.kota = d.kota;
+    if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
+    if (d.kepala_nip) {
+      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') 
+        ? d.kepala_nip 
+        : 'NIP. ' + d.kepala_nip;
+    }
+    
+    console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override:', {
+      kop2: CONFIG_MADRASAH.kop2,
+      kepala: CONFIG_MADRASAH.kepalaMadrasah
+    });
+  } catch (e) {
+    console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
   }
 }
 
