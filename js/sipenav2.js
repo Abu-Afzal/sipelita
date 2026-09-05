@@ -348,22 +348,26 @@ async function fetchIdentitasSekolah() {
     }
   } catch (e) {}
 
-  // Terapkan berurutan (nilai tidak kosong menimpa)
-  let ketemu = false;
+   // Terapkan berurutan (nilai tidak kosong menimpa)
+  let ketemu = false, kop1Explicit = false;
   for (const d of sumber) {
     const x = ekstrakSIG(d);
     if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
     if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
     if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
-    if (x.kop1)   { CONFIG_MADRASAH.kop1 = x.kop1; ketemu = true; }
+    if (x.kop1)   { CONFIG_MADRASAH.kop1 = x.kop1; kop1Explicit = true; ketemu = true; }
     if (x.kop2)   { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
     if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
   }
 
+  // 🏛️ KOP baris 1 OTOMATIS dari kota bila guru tidak mengisi manual
+  if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
+    CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
+  }
+
   console.log(ketemu
-    ? '✅ SIG dimuat → kepala: ' + CONFIG_MADRASAH.kepalaMadrasah + ' | NIP: ' + CONFIG_MADRASAH.nipKepala
+    ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
     : '⚠️ SIG: data identitas tidak ditemukan di sumber mana pun');
-}
 
 // ══════════════════════════════════════════════
 // 🏫 MULTI-SEKOLAH: MUAT IDENTITAS SEKOLAH AKTIF
