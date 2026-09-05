@@ -214,25 +214,41 @@ function updateGreeting() {
 async function fetchNipUser() {
   if (!currentUser) return;
   try {
-    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-    if (userDoc.exists) {
-      const data = userDoc.data();
+    let data = null;
+
+    // 1) doc ID = uid
+    let snap = await db.collection('users').doc(currentUser.uid).get();
+    if (snap.exists) data = snap.data();
+
+    // 2) doc ID = email  ← kasus database ini
+    if (!data) {
+      snap = await db.collection('users').doc(currentUser.email).get();
+      if (snap.exists) data = snap.data();
+    }
+
+    // 3) query field uid / email
+    if (!data) {
+      const q1 = await db.collection('users').where('uid', '==', currentUser.uid).limit(1).get();
+      q1.forEach(d => { if (!data) data = d.data(); });
+    }
+    if (!data) {
+      const q2 = await db.collection('users').where('email', '==', currentUser.email).limit(1).get();
+      q2.forEach(d => { if (!data) data = d.data(); });
+    }
+
+    if (data) {
       const nip = data.nip || data.NIP || data.Nip || '';
       currentUserData.nip = nip;
       if (data.role) currentUserData.role = data.role;
-      if (data.school_id) currentUserData.school_id = data.school_id;
-      if (data.sekolah_id) currentUserData.school_id = data.sekolah_id;
-            
+      if (data.school_id || data.sekolah_id) currentUserData.school_id = data.school_id || data.sekolah_id;
       if (data.nama || data.name || data.displayName) {
         currentUserData.namaResmi = data.nama || data.name || data.displayName;
       }
-      
       localStorage.setItem('sipelita_user', JSON.stringify(currentUserData));
-      
-      console.log('✅ NIP user berhasil dimuat:', nip || '(kosong)');
+      console.log('✅ Data user dimuat:', currentUserData.namaResmi, '| NIP:', nip || '(kosong)');
     }
   } catch (error) {
-    console.warn('⚠️ Gagal mengambil NIP user:', error.message);
+    console.warn('⚠️ Gagal mengambil data user:', error.message);
   }
 }
 
@@ -289,9 +305,9 @@ function ekstrakSIG(d) {
 
 async function fetchIdentitasSekolah() {
   if (!currentUser) return;
-  const sumber = [];   // urutan prioritas terbalik: yang di-apply terakhir menang
+  const sumber = [];
 
-  // 3️⃣ Dokumen sekolah (hasil register.html) — prioritas terendah
+  // 🏫 Dokumen sekolah (register.html) — prioritas terendah
   if (currentUserData.school_id) {
     try {
       const s = await db.collection('sekolah').doc(currentUserData.school_id).get();
@@ -299,36 +315,44 @@ async function fetchIdentitasSekolah() {
     } catch (e) {}
   }
 
-  // 2️⃣ Koleksi SIG (doc per-user dulu, lalu dokumen global)
-  const cols = ['identitas_madrasah','sig','sig_madrasah','identitas','pengaturan',
-                'settings','config','config_madrasah','madrasah','identitas_sekolah'];
+  // 🗂️ Sapuan koleksi SIG — termasuk pengaturan_user!
+  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'sipena2',
+                'pengaturan', 'settings', 'config', 'sig'];
   for (const c of cols) {
-    try {
-      const byId = await db.collection(c).doc(currentUser.uid).get();
-      if (byId.exists) { sumber.push(byId.data()); continue; }
-    } catch (e) {}
-    try {
-      const anyDoc = await db.collection(c).limit(1).get();
-      anyDoc.forEach(d => sumber.push(d.data()));
-    } catch (e) {}
+    // per-user: doc uid → doc email → query uid → query email
+    try { const a = await db.collection(c).doc(currentUser.uid).get();   if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
+    try { const b = await db.collection(c).doc(currentUser.email).get(); if (b.exists) { sumber.push(b.data()); continue; } } catch (e) {}
+    try { const q = await db.collection(c).where('uid', '==', currentUser.uid).limit(1).get();       q.forEach(d => sumber.push(d.data())); } catch (e) {}
+    try { const q = await db.collection(c).where('user_uid', '==', currentUser.uid).limit(1).get();  q.forEach(d => sumber.push(d.data())); } catch (e) {}
+    try { const q = await db.collection(c).where('email', '==', currentUser.email).limit(1).get();   q.forEach(d => sumber.push(d.data())); } catch (e) {}
   }
 
-  // 1️⃣ Dokumen users guru ini (SIG mungkin tersimpan di sini) — prioritas tertinggi
+  // Legacy: dokumen global identitas_madrasah
   try {
-    const u = await db.collection('users').doc(currentUser.uid).get();
-    if (u.exists) sumber.push(u.data());
+    const g = await db.collection('identitas_madrasah').limit(1).get();
+    g.forEach(d => sumber.push(d.data()));
+  } catch (e) {}
+
+  // Dokumen users guru ini (jika SIG menempel di sana) — prioritas tertinggi
+  try {
+    const u1 = await db.collection('users').doc(currentUser.uid).get();
+    if (u1.exists) sumber.push(u1.data());
+    else {
+      const u2 = await db.collection('users').doc(currentUser.email).get();
+      if (u2.exists) sumber.push(u2.data());
+    }
   } catch (e) {}
 
   // Terapkan berurutan (nilai tidak kosong menimpa)
   let ketemu = false;
   for (const d of sumber) {
     const x = ekstrakSIG(d);
-    if (x.kota)    { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
-    if (x.kepala)  { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
-    if (x.nip)     { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
-    if (x.kop1)    { CONFIG_MADRASAH.kop1 = x.kop1; ketemu = true; }
-    if (x.kop2)    { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
-    if (x.alamat)  { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
+    if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
+    if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
+    if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
+    if (x.kop1)   { CONFIG_MADRASAH.kop1 = x.kop1; ketemu = true; }
+    if (x.kop2)   { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
+    if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
   }
 
   console.log(ketemu
