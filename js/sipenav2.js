@@ -2100,7 +2100,7 @@ function cetakRekap() {
         <tbody>${rows}</tbody>
       </table>
       ${ttdHtml}
-      <script>window.print();<\/script>
+      <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 250); };<\/script>
     </body>
     </html>
   `);
