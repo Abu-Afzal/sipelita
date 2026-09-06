@@ -368,6 +368,7 @@ async function fetchIdentitasSekolah() {
   console.log(ketemu
     ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
     : '⚠️ SIG: data identitas tidak ditemukan di sumber mana pun');
+}
 
 // ══════════════════════════════════════════════
 // 🏫 MULTI-SEKOLAH: MUAT IDENTITAS SEKOLAH AKTIF
