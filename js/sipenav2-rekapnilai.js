@@ -321,11 +321,22 @@ function cetakRekapNilai() {
     rows += row;
   });
 
+  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag.png');
   const kopHtml = `
-    <div style="text-align:center; border-bottom:3px double #000; padding-bottom:10px; margin-bottom:16px;">
-      <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
-      <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
-      <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+    <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <tr>
+          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+          </td>
+          <td style="text-align:center; border:none;">
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
+            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+          </td>
+          <td style="width:75px; border:none;"></td>
+        </tr>
+      </table>
     </div>`;
 
   const ttdHtml = `
