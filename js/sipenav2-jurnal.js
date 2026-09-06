@@ -702,7 +702,7 @@ function cetakRekapJurnal() {
     </tr>`;
   });
 
-  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag.png');
+  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
   const kopHtml = `
     <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
       <table style="width:100%; border-collapse:collapse;">

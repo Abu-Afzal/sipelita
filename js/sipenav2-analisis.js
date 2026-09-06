@@ -315,7 +315,7 @@ function cetakAnalisis() {
     return `<tr><td style="${b} text-align:center;">${i + 1}</td><td style="${b}">${d.siswa.student_name}</td><td style="${b} text-align:center; font-weight:bold;">${d.nilai}</td><td style="${b} text-align:center;">${t ? 'Tuntas' : 'Belum Tuntas'}</td><td style="${b} text-align:center;">${t ? 'Pengayaan' : 'Remedial'}</td></tr>`;
   }).join('');
 
-  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag.png');
+  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
   const kopHtml = `
     <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
       <table style="width:100%; border-collapse:collapse;">
