@@ -317,9 +317,9 @@ function cetakAnalisis() {
 
   const kopHtml = `
     <div style="text-align:center; border-bottom:3px double #000; padding-bottom:10px; margin-bottom:16px;">
-      <div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
+      <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
       <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
-      <div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+      <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
     </div>`;
 
   const ttdHtml = `
