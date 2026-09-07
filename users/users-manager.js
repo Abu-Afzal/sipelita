@@ -1,6 +1,6 @@
 import { auth, db } from '../js/firebase-config.js';
 import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, setDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, setDoc, getDocs, collection, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const formTambah = document.getElementById('formTambahUser');
 const btnTambah  = document.getElementById('btnTambah');
@@ -52,7 +52,7 @@ function tampilkanAlert(elementId, pesan, tipe = 'success') {
 }
 
 // ══════════════════════════════════════════════
-// ➕ TAMBAH USER BARU
+// ➕ TAMBAH USER BARU (LANGSUNG ACTIVE)
 // ══════════════════════════════════════════════
 formTambah?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -74,12 +74,16 @@ formTambah?.addEventListener('submit', async (e) => {
             uid: cred.user.uid,
             email, nama, password, role,
             nip, mataPelajaran,
+            status: 'active',                             // ← WAJIB: langsung aktif
+            approvedAt: new Date().toISOString(),         // ← WAJIB
+            approvedBy: auth.currentUser?.email || 'admin',
             createdAt: new Date().toISOString()
         });
 
-        tampilkanAlert('alertTambah', '✅ User baru berhasil disimpan!');
+        tampilkanAlert('alertTambah', '✅ User baru berhasil disimpan & langsung aktif!');
         formTambah.reset();
         loadUsers();
+        loadPendingUsers();
 
     } catch (err) {
         console.error("Error Simpan User:", err);
@@ -94,7 +98,7 @@ formTambah?.addEventListener('submit', async (e) => {
 });
 
 // ══════════════════════════════════════════════
-// 📋 LOAD DAFTAR USER (Dengan Password, NIP, Mapel)
+// 📋 LOAD DAFTAR USER (Dengan Status Badge)
 // ══════════════════════════════════════════════
 async function loadUsers() {
     const tbody = document.getElementById('userTableBody');
@@ -112,7 +116,7 @@ async function loadUsers() {
         if (tableWrap) tableWrap.style.display = 'block';
 
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b;">📭 Belum ada data user.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#64748b;">📭 Belum ada data user.</td></tr>';
             return;
         }
 
@@ -127,7 +131,13 @@ async function loadUsers() {
                 ? '<span class="badge badge-admin">👑 Admin</span>' 
                 : '<span class="badge badge-guru">👤 Guru</span>';
 
-            // Kolom Password dengan toggle & copy
+            // ✅ BADGE STATUS APPROVAL
+            const statusBadge = user.status === 'pending'
+                ? '<span class="badge badge-pending">⏳ Pending</span>'
+                : user.status === 'rejected'
+                    ? '<span class="badge badge-rejected">❌ Ditolak</span>'
+                    : '<span class="badge badge-active">✅ Aktif</span>';
+
             let passwordCell = '';
             if (user.password) {
                 passwordCell = `
@@ -155,6 +165,7 @@ async function loadUsers() {
                 <td>${roleBadge}</td>
                 <td>${user.nip || '-'}</td>
                 <td>${user.mataPelajaran || '-'}</td>
+                <td>${statusBadge}</td>
                 <td>
                     <button class="btn btn-warning btn-sm" onclick="window.bukaModalEdit('${email}')">✏️ Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="window.hapusUser('${email}')" style="margin-left:5px;">🗑️</button>
@@ -270,6 +281,7 @@ window.hapusUser = async (email) => {
         await deleteDoc(doc(db, 'users', email));
         showNotification('✅ User dihapus!', 'success');
         loadUsers();
+        loadPendingUsers();
     } catch (err) {
         alert('❌ Gagal: ' + err.message);
     }
@@ -297,8 +309,97 @@ document.getElementById('btnExportExcel')?.addEventListener('click', () => {
     }
 });
 
-// Ekspor ke window agar bisa dipanggil dari luar
+// ══════════════════════════════════════════════
+// ⏳ APPROVAL PENDAFTAR BARU (dari register.html)
+// ══════════════════════════════════════════════
+window.loadPendingUsers = async () => {
+    const section = document.getElementById('approvalSection');
+    const tbody   = document.getElementById('pendingTbody');
+    const badge   = document.getElementById('pendingCountBadge');
+    if (!section || !tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#94a3b8;">Memuat...</td></tr>';
+
+    try {
+        const snapshot = await getDocs(collection(db, 'users'));
+        const pending = [];
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            if (d.status === 'pending') pending.push({ id: docSnap.id, ...d });
+        });
+
+        if (!pending.length) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+        if (badge) badge.textContent = pending.length + ' pendaftar';
+
+        tbody.innerHTML = pending.map(u => {
+            const tgl = u.createdAt
+                ? new Date(u.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' })
+                : '-';
+            const safeNama = (u.nama || '-').replace(/"/g, '&quot;').replace(/'/g, "\\'");
+            return `
+                <tr>
+                    <td><strong>${u.nama || '-'}</strong></td>
+                    <td>${u.email}</td>
+                    <td>${u.mataPelajaran || '-'}</td>
+                    <td>${u.nip || '-'}</td>
+                    <td>${tgl}</td>
+                    <td style="text-align:center; white-space:nowrap;">
+                        <button class="btn-approve" onclick="window.approveUser('${u.id}', '${safeNama}')">✅ Approve</button>
+                        <button class="btn-reject-approval" onclick="window.rejectUser('${u.id}', '${safeNama}')">❌ Reject</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error("Error load pending:", err);
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#dc2626;">❌ Gagal: ${err.message}</td></tr>`;
+    }
+};
+
+window.approveUser = async (id, nama) => {
+    if (!confirm(`✅ Setujui pendaftaran "${nama}"?\n\nGuru ini langsung bisa login.`)) return;
+    try {
+        await updateDoc(doc(db, 'users', id), {
+            status: 'active',
+            approvedAt: new Date().toISOString(),
+            approvedBy: auth.currentUser?.email || 'admin'
+        });
+        showNotification(`✅ "${nama}" disetujui!`, 'success');
+        window.loadPendingUsers();
+        loadUsers();
+    } catch (err) {
+        alert('❌ Gagal approve: ' + err.message);
+    }
+};
+
+window.rejectUser = async (id, nama) => {
+    const alasan = prompt(`Alasan penolakan untuk "${nama}" (opsional):`);
+    if (alasan === null) return;
+    try {
+        await updateDoc(doc(db, 'users', id), {
+            status: 'rejected',
+            rejectedAt: new Date().toISOString(),
+            rejectedBy: auth.currentUser?.email || 'admin',
+            rejectReason: alasan || ''
+        });
+        showNotification(`❌ "${nama}" ditolak.`, 'error');
+        window.loadPendingUsers();
+        loadUsers();
+    } catch (err) {
+        alert('❌ Gagal reject: ' + err.message);
+    }
+};
+
+// ══════════════════════════════════════════════
+// 🚀 INISIALISASI
+// ══════════════════════════════════════════════
 window.loadUsers = loadUsers;
 loadUsers();
+loadPendingUsers();
 
-console.log('✅ Users manager loaded');
+console.log('✅ Users manager loaded (with approval)');
