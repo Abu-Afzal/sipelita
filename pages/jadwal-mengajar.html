@@ -10,6 +10,7 @@
 <link rel="icon" href="../assets/images/manbtg-app.png">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<!-- RTDB SEMENTARA: hanya untuk migrasi data lama, akan dihapus setelah semua user migrasi -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -326,22 +327,8 @@ const firebaseConfig = {
   appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
 };
 firebase.initializeApp(firebaseConfig);
-
-// 📦 App sekunder (LAMA) — KHUSUS migrasi data lama dari sipelita-digital
-const oldConfig = {
-  apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
-  authDomain: "sipelita-digital.firebaseapp.com",
-  databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "sipelita-digital",
-  storageBucket: "sipelita-digital.firebasestorage.app",
-  messagingSenderId: "787840817745",
-  appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
-};
-const oldApp = firebase.initializeApp(oldConfig, 'lama');
-
-// ✅ FIRESTORE & AUTH dari project BARU, RTDB dari project LAMA (migrasi)
+// ✅ FIRESTORE & AUTH dari project BARU (sipelita-guru)
 const db = firebase.firestore();
-const rtdb = oldApp.database(); // SEMENTARA: hanya untuk baca data lama
 const auth = firebase.auth();
 
 // Firestore collections
