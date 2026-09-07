@@ -345,7 +345,6 @@ let _alarmAudioCtx = null;
 let cachedIndonesianVoice = null;
 let alarmFiredToday = new Set();
 
-function toArr(val){ return val ? Object.keys(val).map(k=>({__key:k,...val[k]})) : []; }
 function nowISO(){ return new Date().toISOString(); }
 
 function toast(msg, type='ok'){
@@ -534,11 +533,6 @@ function loadJadwalGambar(){
   }, err => {
     console.error('❌ Gagal memuat gambar jadwal:', err);
   });
-}
-
-function sanitizeEmail(email){
-  if (!email) return 'guest';
-  return String(email).replace(/[.#$\[\]]/g, '_');
 }
 
 function compressImage(file, maxWidth = 1000, quality = 0.75){
