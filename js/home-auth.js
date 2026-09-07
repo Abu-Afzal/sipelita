@@ -73,13 +73,13 @@ async function cekStatusDanRedirect(userData) {
   // 🎓 KEPALA / WAKIL
   if (userData?.role === 'kepala' || userData?.role === 'wakil') {
     showToast('Selamat datang, Pimpinan Madrasah!', 'success');
-    setTimeout(() => { window.location.href = 'pages/sipena-modern.html'; }, 800);
+    setTimeout(() => { window.location.href = 'pages/index.html'; }, 800);
     return true;
   }
 
   // ✅ GURU AKTIF (default)
   showToast(`Selamat datang, ${baseUser.nama || 'Bapak/Ibu'}!`, 'success');
-  setTimeout(() => { window.location.href = 'pages/sipena-modern.html'; }, 800);
+  setTimeout(() => { window.location.href = 'pages/index.html'; }, 800);
   return true;
 }
 
@@ -120,12 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userData.status === 'rejected') { signOut(auth); localStorage.removeItem('sipelita_user'); return; }
             if (userData.role === 'admin')      { window.location.href = 'admin-users.html'; return; }
           }
-          window.location.href = 'pages/sipena-modern.html';
+          window.location.href = 'pages/index.html';
         }).catch(() => {
-          window.location.href = 'pages/sipena-modern.html';
+          window.location.href = 'pages/index.html';
         });
       } else {
-        window.location.href = 'pages/sipena-modern.html';
+        window.location.href = 'pages/index.html';
       }
       return;
     }
