@@ -105,33 +105,34 @@ async function daftar() {
 
   try {
     sedangDaftar = true;
-
-    // 1️⃣ Buat akun login
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
 
-    // 2️⃣ Simpan profil guru (doc ID = email, sesuai struktur existing)
+    // ✅ Simpan dengan status PENDING
     await db.collection('users').doc(email).set({
       nama: nama,
       email: email,
       nip: nip || '',
       mataPelajaran: mapel,
       role: 'guru',
+      status: 'pending',  // ← WAJIB: menunggu approval admin
       uid: cred.user.uid,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      approvedAt: null,
+      approvedBy: null
     });
 
     msg.style.color = '#059669';
-    msg.textContent = '✅ Pendaftaran berhasil! Mengalihkan ke halaman login...';
+    msg.innerHTML = '✅ Pendaftaran berhasil!<br><small>Akun Anda menunggu persetujuan admin. Silakan cek email atau hubungi admin.</small>';
+    
     setTimeout(async () => {
       await auth.signOut();
-      location.href = 'home.html';
-    }, 1200);
+      location.href = 'pending.html';
+    }, 2000);
   } catch (e) {
     sedangDaftar = false;
     msg.style.color = '#dc2626';
     msg.textContent = '❌ ' + (e.code === 'auth/email-already-in-use'
-      ? 'Email sudah terdaftar — silakan login' : e.message);
+      ? 'Email sudah terdaftar — silakan login atau hubungi admin' : e.message);
   }
 }
 </script>
