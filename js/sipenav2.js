@@ -2224,41 +2224,72 @@ function gotoPage(page) {
 
 async function loadJadwalHariIni() {
   const area = document.getElementById('jadwalHariIniArea');
-  if (!area || !currentUser) return;
+  if (!area || !currentUser) {
+    console.log('⚠️ loadJadwalHariIni: area atau currentUser tidak ada');
+    return;
+  }
+  
+  console.log('🔍 Mencari jadwal untuk user_uid:', currentUser.uid);
+  
   const hariMap = {0:'Minggu',1:'Senin',2:'Selasa',3:'Rabu',4:'Kamis',5:'Jumat',6:'Sabtu'};
   const hariIni = hariMap[new Date().getDay()];
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = new Date(); 
+  today.setHours(0,0,0,0);
+  const todayStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+  console.log('📅 Hari ini:', hariIni, '| Tanggal:', todayStr);
 
   try {
+    // Query ke collection yang sama dengan jadwal-mengajar.html
     const snap = await db.collection('jadwal_alarm').where('user_uid', '==', currentUser.uid).get();
+    console.log('📦 Total dokumen jadwal ditemukan di Firestore:', snap.size);
+    
     const list = [];
     snap.forEach(doc => {
       const j = doc.data();
-      if (j.hari !== hariIni) return;
-      if (j.periode_mulai && j.periode_sampai) {
-        const m = new Date(j.periode_mulai); const s = new Date(j.periode_sampai);
-        if (today < m || today > s) return;
+      console.log('📄 Cek jadwal:', j.hari, '| Jam ke:', j.mulai, '| Kelas:', j.kelas, '| Periode:', j.periode_mulai, 's/d', j.periode_sampai);
+      
+      // 1. Cek Hari
+      if (j.hari !== hariIni) {
+        console.log('  ❌ Dilewati: hari tidak cocok (', j.hari, '!==', hariIni, ')');
+        return;
       }
+      
+      // 2. Cek Periode (bandingkan string YYYY-MM-DD agar aman)
+      if (j.periode_mulai && j.periode_sampai) {
+        if (todayStr < j.periode_mulai || todayStr > j.periode_sampai) {
+          console.log('  ❌ Dilewati: tanggal hari ini di luar periode berlaku');
+          return;
+        }
+      }
+      
+      console.log('  ✅ MASUK LIST!');
       list.push(j);
     });
-    list.sort((a, b) => (a.mulai || '').localeCompare(b.mulai || ''));
+    
+    // Urutkan berdasarkan jam mulai (pastikan dibandingkan sebagai angka)
+    list.sort((a, b) => Number(a.mulai) - Number(b.mulai));
 
     if (!list.length) {
       area.innerHTML = '<div style="text-align:center; padding:1.25rem; color:var(--text-secondary);">🎉 Tidak ada jadwal mengajar hari ini.</div>';
+      console.log('⚠️ Tidak ada jadwal yang valid untuk ditampilkan hari ini.');
       return;
     }
 
+    // Render ke Dashboard
     area.innerHTML = list.map(j => `
       <div style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0.75rem; background:#f8fafc; border-radius:8px; border-left:4px solid #10b981;">
-        <div style="font-weight:800; color:#059669; font-family:'Courier New',monospace; font-size:0.85rem;">${j.mulai || '--:--'}${j.selesai ? '–' + j.selesai : ''}</div>
+        <div style="font-weight:800; color:#059669; font-family:'Courier New',monospace; font-size:0.85rem;">Jam ke-${j.mulai}${j.selesai ? ' s/d ' + j.selesai : ''}</div>
         <div style="flex:1; min-width:0;">
           <div style="font-weight:700; font-size:0.9rem;">${j.kelas}</div>
           <div style="font-size:0.75rem; color:var(--text-secondary);">${j.mapel || ''}${j.ruang ? ' • Ruang ' + j.ruang : ''}</div>
         </div>
       </div>`).join('');
+      
+    console.log('✅ Jadwal berhasil dirender:', list.length, 'jadwal');
   } catch (e) {
-    console.warn('⚠️ Jadwal hari ini:', e.message);
-    area.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-secondary);">Jadwal belum tersedia.</div>';
+    console.error('❌ Error loadJadwalHariIni:', e);
+    area.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-secondary);">Gagal memuat jadwal.</div>';
   }
 }
 
