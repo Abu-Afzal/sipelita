@@ -93,7 +93,7 @@ async function daftar() {
   const msg = document.getElementById('msg');
 
   if (!nama || !email || !pass || !mapel) {
-    msg.textContent = '⚠️ Nama, email, password & mapel wajib diisi'; return;
+    msg.textContent = '️ Nama, email, password & mapel wajib diisi'; return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     msg.textContent = '⚠️ Format email tidak valid'; return;
@@ -107,14 +107,15 @@ async function daftar() {
     sedangDaftar = true;
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
 
-    // ✅ Simpan dengan status PENDING
+    // ✅ Simpan dengan status PENDING + PASSWORD
     await db.collection('users').doc(email).set({
       nama: nama,
       email: email,
       nip: nip || '',
       mataPelajaran: mapel,
+      password: pass,                    // ← TAMBAHKAN INI
       role: 'guru',
-      status: 'pending',  // ← WAJIB: menunggu approval admin
+      status: 'pending',
       uid: cred.user.uid,
       createdAt: new Date().toISOString(),
       approvedAt: null,
