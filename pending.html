@@ -7,47 +7,217 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
   body { min-height:100vh; display:flex; align-items:center; justify-content:center;
          background:linear-gradient(135deg,#f59e0b,#d97706); padding:1.5rem; }
-  .box { background:#fff; border-radius:16px; padding:2.5rem 2rem; width:100%; max-width:480px;
+  .box { background:#fff; border-radius:16px; padding:2.5rem 2rem; width:100%; max-width:520px;
          box-shadow:0 20px 40px rgba(0,0,0,.25); text-align:center; }
   .icon { font-size:4rem; color:#f59e0b; margin-bottom:1rem; }
   h1 { color:#1e293b; font-size:1.5rem; margin-bottom:0.5rem; }
   .sub { color:#64748b; font-size:0.95rem; line-height:1.6; margin-bottom:1.5rem; }
+  
   .status-box { background:#fef3c7; border:2px solid #f59e0b; border-radius:12px; padding:1.25rem;
                 margin-bottom:1.5rem; text-align:left; }
   .status-box .label { font-size:0.75rem; color:#92400e; font-weight:600; margin-bottom:0.25rem; }
   .status-box .value { font-size:1rem; color:#78350f; font-weight:700; }
-  .btn { display:inline-block; padding:0.75rem 1.5rem; background:#f59e0b; color:#fff; border:none;
-         text-decoration:none; border-radius:10px; font-weight:700; font-size:0.95rem;
-         transition:background .2s; margin-top:0.5rem; cursor:pointer; }
-  .btn:hover { background:#d97706; }
+
+  /* ══ BOX PEMBAYARAN ═ */
+  .payment-box {
+    background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);
+    border:2px solid #10b981;
+    border-radius:12px;
+    padding:1.25rem;
+    margin-bottom:1.5rem;
+    text-align:left;
+  }
+  .payment-box .header {
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; color:#065f46; font-size:1rem; margin-bottom:0.75rem;
+  }
+  .payment-box .amount {
+    background:#10b981; color:#fff; padding:6px 14px; border-radius:8px;
+    font-weight:800; font-size:1.1rem; display:inline-block; margin-bottom:1rem;
+  }
+
+  /* ══ TOGGLE METODE ══ */
+  .method-toggle {
+    display:flex; gap:8px; margin-bottom:1rem;
+    background:#fff; padding:4px; border-radius:10px;
+    border:1.5px solid #e2e8f0;
+  }
+  .method-btn {
+    flex:1; padding:10px; border:none; border-radius:8px;
+    background:transparent; cursor:pointer; font-weight:700;
+    font-size:0.88rem; transition:all .25s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    color:#64748b;
+  }
+  .method-btn.active {
+    background:#10b981; color:#fff;
+    box-shadow:0 2px 8px rgba(16,185,129,.3);
+  }
+  .method-btn .icon-bank { color:#f59e0b; }
+  .method-btn.active .icon-bank { color:#fff; }
+  .method-btn .icon-dana { color:#1A8FE3; }
+  .method-btn.active .icon-dana { color:#fff; }
+
+  /* ══ INFO REKENING ══ */
+  .rek-info {
+    background:#fff; border:1.5px dashed #10b981; border-radius:8px;
+    padding:12px; margin-bottom:1rem;
+  }
+  .rek-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:5px 0; font-size:0.9rem;
+  }
+  .rek-row:not(:last-child) { border-bottom:1px solid #f1f5f9; }
+  .rek-label { color:#64748b; font-weight:600; }
+  .rek-value { color:#065f46; font-weight:700; font-family:'Courier New',monospace; }
+  .copy-btn {
+    background:#10b981; color:#fff; border:none; padding:4px 10px;
+    border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:700;
+    margin-left:8px; transition:background .2s;
+  }
+  .copy-btn:hover { background:#059669; }
+
+  .note {
+    font-size:0.82rem; color:#475569; line-height:1.5; margin-bottom:1rem;
+    padding:8px 12px; background:#fffbeb; border-radius:8px; border-left:3px solid #f59e0b;
+  }
+  .note strong { color:#92400e; }
+
+  /* ══ TOMBOL ══ */
+  .btn { display:inline-block; padding:0.75rem 1.5rem; border:none; border-radius:10px;
+         font-weight:700; font-size:0.95rem; cursor:pointer; text-decoration:none;
+         transition:all .2s; margin:0.35rem; }
+  .btn-wa { background:#25D366; color:#fff; }
+  .btn-wa:hover { background:#128C7E; transform:translateY(-2px); }
+  .btn-back { background:#f59e0b; color:#fff; }
+  .btn-back:hover { background:#d97706; }
+  .btn-group { display:flex; flex-wrap:wrap; justify-content:center; gap:0.5rem; margin-top:0.5rem; }
+
   .help { margin-top:1.5rem; font-size:0.85rem; color:#64748b; }
   .help a { color:#f59e0b; font-weight:700; text-decoration:none; }
+
+  .user-info {
+    background:#f8fafc; border-radius:8px; padding:10px 14px;
+    margin-bottom:1rem; text-align:left; font-size:0.88rem;
+  }
+  .user-info .row { display:flex; justify-content:space-between; padding:3px 0; }
+  .user-info .label { color:#64748b; }
+  .user-info .value { color:#1e293b; font-weight:700; }
+
+  .method-detail { display:none; }
+  .method-detail.active { display:block; }
+
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+  .pulse { animation:pulse 2s infinite; }
+
+  .dana-badge {
+    background:#1A8FE3; color:#fff; padding:2px 8px; border-radius:6px;
+    font-size:0.72rem; font-weight:800; letter-spacing:.5px;
+  }
 </style>
 </head>
 <body>
 <div class="box">
   <div class="icon"><i class="fas fa-hourglass-half"></i></div>
   <h1>Menunggu Persetujuan Admin</h1>
-  <p class="sub">Akun Anda telah terdaftar dan sedang menunggu persetujuan dari administrator SIPELITA.</p>
-  
-  <div class="status-box">
-    <div class="label">Status Akun</div>
-    <div class="value">⏳ Menunggu Approval</div>
+  <p class="sub">Akun Anda telah terdaftar. Untuk mengaktifkan akun, silakan selesaikan pembayaran biaya layanan.</p>
+
+  <!-- Info User -->
+  <div class="user-info" id="userInfoBox">
+    <div class="row"><span class="label">Nama:</span><span class="value" id="infoNama">-</span></div>
+    <div class="row"><span class="label">Email:</span><span class="value" id="infoEmail">-</span></div>
   </div>
 
-  <p class="sub" style="font-size:0.85rem;">
-    Admin akan meninjau pendaftaran Anda.<br>
-    Setelah disetujui, Anda dapat login dan menggunakan semua fitur SIPELITA.
-  </p>
+  <div class="status-box">
+    <div class="label">Status Akun</div>
+    <div class="value">⏳ Menunggu Pembayaran & Approval</div>
+  </div>
 
-  <!-- ✅ Tombol sekarang LOGOUT dulu baru ke login -->
-  <button class="btn" onclick="kembaliKeLogin()">
-    <i class="fas fa-arrow-left"></i> Kembali ke Login
-  </button>
+  <!-- ══ BOX PEMBAYARAN ══ -->
+  <div class="payment-box">
+    <div class="header">
+      <i class="fas fa-money-bill-wave"></i>
+      Biaya Layanan SIPELITA
+    </div>
+    <div class="amount">Rp 100.000 / tahun</div>
+
+    <!-- Toggle Metode -->
+    <div class="method-toggle">
+      <button class="method-btn active" data-method="bank" onclick="pilihMetode('bank')">
+        <i class="fas fa-university icon-bank"></i> Transfer Bank
+      </button>
+      <button class="method-btn" data-method="dana" onclick="pilihMetode('dana')">
+        <i class="fas fa-wallet icon-dana"></i> DANA
+      </button>
+    </div>
+
+    <!-- Detail Bank -->
+    <div id="detailBank" class="method-detail active">
+      <div class="rek-info">
+        <div class="rek-row">
+          <span class="rek-label">Bank:</span>
+          <span class="rek-value" id="rekBank">BRI</span>
+        </div>
+        <div class="rek-row">
+          <span class="rek-label">No. Rekening:</span>
+          <span class="rek-value">
+            <span id="rekNomor">0123-01-012345-67-8</span>
+            <button class="copy-btn" onclick="copyRek('bank')">📋 Salin</button>
+          </span>
+        </div>
+        <div class="rek-row">
+          <span class="rek-label">Atas Nama:</span>
+          <span class="rek-value" id="rekNama">ELIS HARIANTO, S.Pd</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail DANA -->
+    <div id="detailDana" class="method-detail">
+      <div class="rek-info" style="border-color:#1A8FE3;">
+        <div class="rek-row">
+          <span class="rek-label">Metode:</span>
+          <span class="rek-value"><span class="dana-badge">DANA</span></span>
+        </div>
+        <div class="rek-row">
+          <span class="rek-label">Nomor DANA:</span>
+          <span class="rek-value">
+            <span id="danaNomor">0812-3456-7890</span>
+            <button class="copy-btn" onclick="copyRek('dana')" style="background:#1A8FE3;"> Salin</button>
+          </span>
+        </div>
+        <div class="rek-row">
+          <span class="rek-label">Atas Nama:</span>
+          <span class="rek-value" id="danaNama">ELIS HARIANTO, S.Pd</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>📌 Langkah selanjutnya:</strong><br>
+      1. Transfer Rp 100.000 via metode pilihan Anda<br>
+      2. Klik tombol <strong>"Kirim Bukti via WhatsApp"</strong><br>
+      3. Kirim bukti transfer (foto/screenshot)<br>
+      4. Admin akan memverifikasi & mengaktifkan akun Anda
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-wa pulse" onclick="kirimBuktiWA()">
+        <i class="fab fa-whatsapp"></i> Kirim Bukti via WhatsApp
+      </button>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-back" onclick="kembaliKeLogin()">
+      <i class="fas fa-arrow-left"></i> Kembali ke Login
+    </button>
+  </div>
 
   <div class="help">
     Butuh bantuan? <a href="https://wa.me/6281347027844" target="_blank">Hubungi Admin via WhatsApp</a>
@@ -55,6 +225,32 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════════
+//  KONFIGURASI PEMBAYARAN — EDIT DI SINI!
+// ═════════════════════════════════════════════
+const PEMBAYARAN = {
+  bank: {
+    bank: 'BSI',
+    nomor: '7149214326',
+    atasNama: 'ELIS HARIANTO'
+  },
+  dana: {
+    nomor: '081-347-027-844',
+    atasNama: 'ELIS HARIANTO'
+  }
+};
+
+// Nomor WhatsApp Admin (format internasional tanpa +)
+const WA_ADMIN = '6281347027844';
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let metodeAktif = 'bank';
+
+// ══════════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
   authDomain: "sipelita-guru.firebaseapp.com",
@@ -65,7 +261,107 @@ const firebaseConfig = {
 };
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-// ✅ LOGOUT DULU baru pindah — memutus lingkaran redirect
+// ══════════════════════════════════════════════
+// TAMPILKAN INFO USER
+// ══════════════════════════════════════════════
+(function tampilkanInfoUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
+    if (user.nama) document.getElementById('infoNama').textContent = user.nama;
+    if (user.email) document.getElementById('infoEmail').textContent = user.email;
+  } catch(e) {}
+})();
+
+// ══════════════════════════════════════════════
+// ISI DATA PEMBAYARAN DARI KONFIG
+// ══════════════════════════════════════════════
+document.getElementById('rekBank').textContent = PEMBAYARAN.bank.bank;
+document.getElementById('rekNomor').textContent = PEMBAYARAN.bank.nomor;
+document.getElementById('rekNama').textContent = PEMBAYARAN.bank.atasNama;
+document.getElementById('danaNomor').textContent = PEMBAYARAN.dana.nomor;
+document.getElementById('danaNama').textContent = PEMBAYARAN.dana.atasNama;
+
+// ══════════════════════════════════════════════
+// PILIH METODE PEMBAYARAN
+// ══════════════════════════════════════════════
+function pilihMetode(metode) {
+  metodeAktif = metode;
+  
+  // Update tombol
+  document.querySelectorAll('.method-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.method === metode);
+  });
+  
+  // Update detail
+  document.getElementById('detailBank').classList.toggle('active', metode === 'bank');
+  document.getElementById('detailDana').classList.toggle('active', metode === 'dana');
+}
+
+// ══════════════════════════════════════════════
+// COPY NOMOR
+// ══════════════════════════════════════════════
+function copyRek(tipe) {
+  let nomor;
+  if (tipe === 'bank') {
+    nomor = PEMBAYARAN.bank.nomor.replace(/-/g, '');
+  } else {
+    nomor = PEMBAYARAN.dana.nomor.replace(/-/g, '');
+  }
+  
+  navigator.clipboard.writeText(nomor).then(() => {
+    const btn = event.target;
+    const asli = btn.textContent;
+    btn.textContent = '✅ Tersalin!';
+    setTimeout(() => { btn.textContent = asli; }, 1500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = nomor;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    alert('✅ Nomor disalin: ' + nomor);
+  });
+}
+
+// ══════════════════════════════════════════════
+// KIRIM BUKTI VIA WHATSAPP
+// ══════════════════════════════════════════════
+function kirimBuktiWA() {
+  const user = JSON.parse(localStorage.getItem('sipelita_user') || '{}');
+  const nama = user.nama || 'Pendaftar Baru';
+  const email = user.email || '-';
+  
+  const metodeLabel = metodeAktif === 'bank' 
+    ? `Transfer Bank (${PEMBAYARAN.bank.bank})` 
+    : 'DANA';
+  const nomorTujuan = metodeAktif === 'bank' 
+    ? PEMBAYARAN.bank.nomor 
+    : PEMBAYARAN.dana.nomor;
+
+  const pesan = `Assalamu'alaikum Admin SIPELITA,
+
+Saya telah melakukan pembayaran biaya layanan SIPELITA.
+
+📋 *Data Pendaftar:*
+• Nama: ${nama}
+• Email: ${email}
+• Biaya: Rp 100.000/tahun
+
+💳 *Metode Pembayaran:* ${metodeLabel}
+📲 *Ke Nomor:* ${nomorTujuan}
+
+📎 Berikut saya lampirkan bukti transfer.
+
+Mohon diproses untuk aktivasi akun saya. Terima kasih.`;
+
+  const url = `https://wa.me/${WA_ADMIN}?text=${encodeURIComponent(pesan)}`;
+  window.open(url, '_blank');
+}
+
+// ══════════════════════════════════════════════
+// LOGOUT SEBELUM KEMBALI KE LOGIN
+// ══════════════════════════════════════════════
 async function kembaliKeLogin() {
   try { await firebase.auth().signOut(); } catch (e) { console.warn(e); }
   localStorage.removeItem('sipelita_user');
