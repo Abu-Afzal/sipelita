@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Menunggu Persetujuan - SIPELITA</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
   body { min-height:100vh; display:flex; align-items:center; justify-content:center;
@@ -18,9 +20,9 @@
                 margin-bottom:1.5rem; text-align:left; }
   .status-box .label { font-size:0.75rem; color:#92400e; font-weight:600; margin-bottom:0.25rem; }
   .status-box .value { font-size:1rem; color:#78350f; font-weight:700; }
-  .btn { display:inline-block; padding:0.75rem 1.5rem; background:#f59e0b; color:#fff;
+  .btn { display:inline-block; padding:0.75rem 1.5rem; background:#f59e0b; color:#fff; border:none;
          text-decoration:none; border-radius:10px; font-weight:700; font-size:0.95rem;
-         transition:background .2s; }
+         transition:background .2s; margin-top:0.5rem; cursor:pointer; }
   .btn:hover { background:#d97706; }
   .help { margin-top:1.5rem; font-size:0.85rem; color:#64748b; }
   .help a { color:#f59e0b; font-weight:700; text-decoration:none; }
@@ -38,15 +40,38 @@
   </div>
 
   <p class="sub" style="font-size:0.85rem;">
-    Admin akan meninjau pendaftaran Anda dalam 1-2 hari kerja.<br>
+    Admin akan meninjau pendaftaran Anda.<br>
     Setelah disetujui, Anda dapat login dan menggunakan semua fitur SIPELITA.
   </p>
 
-  <a href="home.html" class="btn"><i class="fas fa-arrow-left"></i> Kembali ke Login</a>
+  <!-- ✅ Tombol sekarang LOGOUT dulu baru ke login -->
+  <button class="btn" onclick="kembaliKeLogin()">
+    <i class="fas fa-arrow-left"></i> Kembali ke Login
+  </button>
 
   <div class="help">
     Butuh bantuan? <a href="https://wa.me/6281347027844" target="_blank">Hubungi Admin via WhatsApp</a>
   </div>
 </div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+  authDomain: "sipelita-guru.firebaseapp.com",
+  projectId: "sipelita-guru",
+  storageBucket: "sipelita-guru.firebasestorage.app",
+  messagingSenderId: "595996765157",
+  appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+// ✅ LOGOUT DULU baru pindah — memutus lingkaran redirect
+async function kembaliKeLogin() {
+  try { await firebase.auth().signOut(); } catch (e) { console.warn(e); }
+  localStorage.removeItem('sipelita_user');
+  sessionStorage.removeItem('sipelita_user');
+  location.href = 'home.html';
+}
+</script>
 </body>
 </html>
