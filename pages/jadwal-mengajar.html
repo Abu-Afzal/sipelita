@@ -10,8 +10,6 @@
 <link rel="icon" href="../assets/images/manbtg-app.png">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<!-- RTDB SEMENTARA: hanya untuk migrasi data lama, akan dihapus setelah semua user migrasi -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -131,18 +129,6 @@ tr.row-recent td{background:#f1f5f9 !important;}
     <div class="header-user">
       <div class="user-name" id="userDisplay">–</div>
       <a href="../index.html" class="btn-dashboard">← Dashboard SIPELITA</a>
-    </div>
-  </div>
-
-  <!-- ✅ BANNER MIGRASI: otomatis muncul jika ada data lama di RTDB -->
-  <div id="migrasiBanner" style="display:none; background:#fef3c7; border:2px solid #f59e0b; border-radius:12px; padding:16px 20px; margin-bottom:20px; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
-    <div style="flex:1; min-width:220px;">
-      <div style="font-weight:800; color:#92400e; margin-bottom:4px;">📦 Data Lama Ditemukan</div>
-      <div style="font-size:0.88rem; color:#78350f;">Terdapat <strong id="migrasiCount">0</strong> data Anda di sistem lama (RTDB). Pindahkan ke Firestore sekali klik — tanpa input ulang.</div>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-success" id="btnMigrasi">🚀 Migrasikan Sekarang</button>
-      <button class="btn btn-secondary" id="btnMigrasiSkip">Nanti Saja</button>
     </div>
   </div>
 
@@ -480,7 +466,6 @@ function initApp(){
   loadJadwalGambar();
   initDragDrop();
   initVoiceSystem();
-  cekMigrasi(); // ✅ Cek apakah ada data lama di RTDB
 }
 
 function updateDateBar(){
@@ -789,12 +774,6 @@ function bindEvents(){
     openModal('modalTerapkanSemua');
   };
   document.getElementById('btnConfirmTerapkan').onclick = terapkanKeSemua;
-
-  // ✅ MIGRASI DATA LAMA
-  document.getElementById('btnMigrasi').onclick = jalankanMigrasi;
-  document.getElementById('btnMigrasiSkip').onclick = () => {
-    document.getElementById('migrasiBanner').style.display = 'none';
-  };
 
   document.querySelectorAll('.modal').forEach(m=>{ 
     m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('active'); }); 
@@ -1277,108 +1256,6 @@ function initAlarmEngine(){
   scheduleDailyReset();
   
   console.log('🔔 Alarm engine initialized - checking every 1 SECOND');
-}
-
-// ══════════════════════════════════════════════
-// ✅ MIGRASI OTOMATIS: RTDB → FIRESTORE
-// ══════════════════════════════════════════════
-async function cekMigrasi(){
-  if (!currentUserUid || !currentUserEmail) return;
-  if (localStorage.getItem('migrasi_done_' + currentUserUid)) return;
-
-  try {
-    const snapJadwal = await rtdb.ref('jadwal_alarm').once('value');
-    const semua = toArr(snapJadwal.val());
-    const milikSaya = semua.filter(d =>
-      d.user_email === currentUserEmail || d.user_name === currentUser
-    );
-
-    let gambarLama = null;
-    const snapGambar = await rtdb.ref('jadwal_gambar/' + sanitizeEmail(currentUserEmail)).once('value');
-    if (snapGambar.exists()) gambarLama = snapGambar.val();
-
-    if (milikSaya.length === 0 && !gambarLama) return;
-
-    window._dataMigrasi = { jadwal: milikSaya, gambar: gambarLama };
-    document.getElementById('migrasiCount').textContent =
-      milikSaya.length + ' jadwal' + (gambarLama ? ' + 1 gambar' : '');
-    document.getElementById('migrasiBanner').style.display = 'flex';
-  } catch (e) {
-    console.warn('⚠️ Cek migrasi gagal:', e);
-  }
-}
-
-async function jalankanMigrasi(){
-  const data = window._dataMigrasi;
-  if (!data) return;
-
-  const btn = document.getElementById('btnMigrasi');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Memigrasikan...';
-
-  try {
-    const existingSnap = await JADWAL_COLLECTION.where('user_uid', '==', currentUserUid).get();
-    const tandaAda = new Set();
-    existingSnap.forEach(doc => {
-      const j = doc.data();
-      tandaAda.add(`${j.hari}|${j.mulai}|${j.kelas}|${j.periode_mulai || ''}`);
-    });
-
-    const batch = db.batch();
-    let count = 0;
-
-    data.jadwal.forEach(j => {
-      const tanda = `${j.hari}|${j.mulai}|${j.kelas}|${j.periode_mulai || ''}`;
-      if (tandaAda.has(tanda)) return;
-
-      const ref = JADWAL_COLLECTION.doc();
-      batch.set(ref, {
-        hari: j.hari || 'Senin',
-        kelas: j.kelas || '',
-        mulai: j.mulai || '',
-        selesai: j.selesai || '',
-        mapel: j.mapel || '',
-        ruang: j.ruang || '',
-        materi: j.materi || '',
-        user_uid: currentUserUid,
-        user_email: currentUserEmail,
-        user_name: currentUser,
-        periode_mulai: j.periode_mulai || '',
-        periode_sampai: j.periode_sampai || '',
-        created_at: j.created_at || nowISO(),
-        updated_at: nowISO(),
-        migrated_from: 'rtdb'
-      });
-      count++;
-    });
-
-    await batch.commit();
-
-    if (data.gambar) {
-      const fsGambar = await GAMBAR_COLLECTION.doc(currentUserUid).get();
-      if (!fsGambar.exists) {
-        await GAMBAR_COLLECTION.doc(currentUserUid).set({
-          base64: data.gambar.base64,
-          fileName: data.gambar.fileName || '',
-          originalSizeKB: data.gambar.originalSizeKB || 0,
-          sizeKB: data.gambar.sizeKB || 0,
-          uploadedAt: data.gambar.uploadedAt || nowISO(),
-          uploadedBy: currentUser,
-          migrated_from: 'rtdb'
-        });
-      }
-    }
-
-    localStorage.setItem('migrasi_done_' + currentUserUid, 'true');
-    document.getElementById('migrasiBanner').style.display = 'none';
-    toast(`✅ ${count} jadwal berhasil dimigrasikan ke Firestore!`);
-  } catch (e) {
-    console.error('❌ Gagal migrasi:', e);
-    toast('❌ Gagal migrasi: ' + e.message, 'err');
-  }
-
-  btn.disabled = false;
-  btn.innerHTML = '🚀 Migrasikan Sekarang';
 }
 
 // ══════════════════════════════════════════════
