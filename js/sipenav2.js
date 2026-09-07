@@ -2231,42 +2231,55 @@ async function loadJadwalHariIni() {
   const today = new Date(); 
   today.setHours(0,0,0,0);
 
+  console.log('🔍 Mencari jadwal untuk user_uid:', currentUser.uid, '| Hari:', hariIni);
+
   try {
-    // Baca dari collection jadwal_alarm (sama dengan jadwal-mengajar.html)
     const snap = await db.collection('jadwal_alarm')
       .where('user_uid', '==', currentUser.uid)
       .where('hari', '==', hariIni)
       .get();
     
+    console.log('📦 Total dokumen jadwal ditemukan di Firestore:', snap.size);
+    
     const list = [];
     snap.forEach(doc => {
       const j = doc.data();
+      console.log('📄 Cek jadwal:', j.kelas, '| Jam:', j.mulai, '| Periode:', j.periode_mulai, 's/d', j.periode_sampai);
       
-      // Cek periode
+      // Cek periode (handle string "YYYY-MM-DD" atau Timestamp Firestore)
       if (j.periode_mulai && j.periode_sampai) {
-        const mulai = new Date(j.periode_mulai);
-        const sampai = new Date(j.periode_sampai);
-        if (today < mulai || today > sampai) return;
+        const mulai = j.periode_mulai.toDate ? j.periode_mulai.toDate() : new Date(j.periode_mulai);
+        const sampai = j.periode_sampai.toDate ? j.periode_sampai.toDate() : new Date(j.periode_sampai);
+        
+        // Reset jam agar perbandingan murni berdasarkan tanggal
+        mulai.setHours(0,0,0,0);
+        sampai.setHours(0,0,0,0);
+        
+        if (today < mulai || today > sampai) {
+          console.log('  ❌ Dilewati: tanggal hari ini di luar periode berlaku');
+          return;
+        }
       }
       
+      console.log('  ✅ MASUK LIST!');
       list.push(j);
     });
     
-    // Sort by waktu mulai
+    // Sort by waktu mulai (ambil angka jam saja)
     list.sort((a, b) => {
-      const jamA = a.mulai ? a.mulai.split(':')[0] : 0;
-      const jamB = b.mulai ? b.mulai.split(':')[0] : 0;
-      return Number(jamA) - Number(jamB);
+      const jamA = a.mulai ? parseInt(a.mulai.split(':')[0]) : 0;
+      const jamB = b.mulai ? parseInt(b.mulai.split(':')[0]) : 0;
+      return jamA - jamB;
     });
 
     if (!list.length) {
       area.innerHTML = '<div style="text-align:center; padding:1.25rem; color:var(--text-secondary);">🎉 Tidak ada jadwal mengajar hari ini.</div>';
+      console.log('⚠️ Tidak ada jadwal yang valid untuk ditampilkan hari ini.');
       return;
     }
 
-    // Render jadwal
+    // Render jadwal ke Dashboard
     area.innerHTML = list.map(j => {
-      // Format waktu mulai-selesai
       const waktu = j.mulai 
         ? `${j.mulai}${j.selesai ? ' – ' + j.selesai : ''}`
         : (j.jamMulai && j.jamSelesai ? `${j.jamMulai} – ${j.jamSelesai}` : '--:--');
@@ -2280,6 +2293,8 @@ async function loadJadwalHariIni() {
         </div>
       </div>`;
     }).join('');
+    
+    console.log('✅ Jadwal berhasil dirender:', list.length, 'jadwal');
     
   } catch (e) {
     console.error('❌ Error loadJadwalHariIni:', e);
