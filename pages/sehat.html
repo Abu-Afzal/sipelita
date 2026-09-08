@@ -23,10 +23,9 @@
     <a href="../index.html" class="hdr-btn">🏠 Dashboard</a>
     <h1>🏥 SEHAT — UKS Madrasah</h1>
     <div style="display:flex;gap:8px;align-items:center">
-  <span class="hdr-btn" id="accessBadge">👁️</span>
-  <button class="hdr-btn" id="btnSettings" style="display:none">⚙️</button>
-  <span class="hdr-btn" id="petugasBadge">👤</span>
-</div>
+      <!-- ✅ DIGANTI: Menampilkan Nama Sekolah, bukan status pengelola -->
+      <span class="hdr-btn" id="schoolBadge" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:6px; font-size:0.85rem;">🏫 Memuat...</span>
+    </div>
   </div>
 </div>
 
@@ -38,7 +37,7 @@
   <button class="tab" data-tab="apotek">💊 Apotek</button>
   <button class="tab" data-tab="skrining">📏 Skrining</button>
   <button class="tab" data-tab="laporan">📄 Laporan</button>
-  <button class="tab" data-tab="settings" id="tabSettingsBtn" style="display:none">⚙️ Pengelola</button>
+  <!-- ✅ TAB SETTINGS DIHAPUS -->
 </div>
 
 <div class="container">
@@ -205,7 +204,7 @@
     </div>
   </div>
   
-    <!-- LAPORAN -->
+  <!-- LAPORAN -->
   <div id="tab-laporan" style="display:none">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -220,15 +219,7 @@
     </div>
   </div>
 
-  <!-- SETTINGS -->
-  <div id="tab-settings" style="display:none">
-    <div class="card">
-      <h3 style="margin:0 0 12px;color:#0f766e;">⚙️ Pengelola UKS</h3>
-      <p style="font-size:.9rem;color:#64748b">Petugas saat ini: <b id="pengelolaNow">-</b></p>
-      <div class="fg"><label>Pilih Pengelola (1 orang)</label><select id="selPengelola"><option value="">-- Pilih User --</option></select></div>
-      <button class="btn btn-primary" id="btnSimpanPengelola">💾 Tetapkan Pengelola</button>
-    </div>
-  </div>
+  <!-- ✅ TAB SETTINGS DIHAPUS DARI SINI -->
 
 </div>
 
@@ -271,17 +262,9 @@
     </div>
   </div>
 </div>
-<!-- MODAL PENGATURAN PENGELOLA (Admin) -->
-<div class="modal" id="modalSettings"><div class="modal-box">
-  <div class="modal-title">⚙️ Tunjuk Pengelola UKS</div>
-  <div class="fg"><label>Pilih Pengelola (bisa input)</label>
-    <select id="setPengelola"><option value="">-- Pilih User --</option></select></div>
-  <div style="font-size:.82rem;color:#64748b">User lain hanya dapat <b>melihat</b>. Admin selalu punya akses penuh.</div>
-  <div class="modal-foot">
-    <button class="btn btn-secondary" id="btnBatalSettings">Batal</button>
-    <button class="btn btn-primary" id="btnSimpanConfig">💾 Simpan</button>
-  </div>
-</div></div>
+
+<!-- ✅ MODAL SETTINGS DIHAPUS DARI SINI -->
+
 <script type="module" src="../js/sehat-core.js"></script>
 </body>
 </html>
