@@ -171,11 +171,27 @@ async function loadUsers(){
   }catch(e){console.error(e);} 
 }
 
-async function loadConfig(){ 
+async function loadUsers(){ 
   try{ 
-    const g=await db.collection('sehat_config').doc('settings').get(); 
-    if(g.exists()) config={...config,...g.data()}; 
-  }catch(e){console.error(e);} 
+    const s = await db.collection('users').get(); 
+    daftarUsers = []; 
+    s.forEach(d => {
+      const data = d.data();
+      // Hanya ambil user yang punya email
+      if(data.email) {
+        daftarUsers.push({
+          id: d.id, 
+          email: data.email,
+          nama: data.nama || data.namaResmi || '',
+          role: data.role || '',
+          akses_uks: data.akses_uks || false  // ✅ AMBIL FIELD INI
+        });
+      }
+    });
+    console.log('✅ Users loaded:', daftarUsers.length, '| Pengelola UKS:', daftarUsers.filter(u => u.akses_uks).length);
+  } catch(e){
+    console.error('❌ Error load users:', e);
+  } 
 }
 
 // ══════════ DASHBOARD ══════════
@@ -514,17 +530,41 @@ function renderChart(rows){
 }
 
 // ══════════ SETTINGS (Admin Only) ══════════
+// ✅ BENAR - Update field akses_uks di user document
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
-  const email=$('selPengelola').value;
-  const u=daftarUsers.find(x=>x.email===email);
-  config={pengelola_email:email, pengelola_nama:u?(u.nama||email):''};
+  
+  const email = $('selPengelola').value;
+  if(!email){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
+  
+  const u = daftarUsers.find(x => x.email === email);
+  if(!u){ toast('️ User tidak ditemukan!', true); return; }
+  
   try{
+    // 1. Update config
+    config = { pengelola_email: email, pengelola_nama: u.nama || u.namaResmi || email };
     await db.collection('sehat_config').doc('settings').set(config);
-    toast('✅ Pengelola diperbarui!');
-    const pn=$('pengelolaNow'); if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
-    computeAccess();
-  }catch(e){ toast('❌ '+e.message, true); }
+    
+    // 2. ✅ UPDATE USER DOCUMENT dengan field akses_uks
+    await db.collection('users').doc(email).update({
+      akses_uks: true  // ✅ INI YANG PENTING!
+    });
+    
+    toast('✅ Pengelola UKS ditetapkan: ' + (u.nama || u.namaResmi || email));
+    
+    // 3. Update UI
+    const pn = $('pengelolaNow'); 
+    if(pn) pn.textContent = config.pengelola_nama;
+    
+    // 4. Refresh access
+    await computeAccess();
+    
+    // 5. Close modal
+    closeModal('modalSettings');
+    
+  } catch(e){ 
+    toast('❌ Gagal: ' + e.message, true); 
+  }
 }
 
 // ══════════ LAPORAN ══════════
@@ -633,12 +673,36 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.tab==='dashboard') renderDashboard();
   if(t.dataset.tab==='apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab==='skrining') renderSkriningTable();
-  if(t.dataset.tab==='settings'){
-    const sel=$('selPengelola');
-    sel.innerHTML = '<option value="">-- Belum ada pengelola (semua hanya lihat) --</option>' +
-      daftarUsers.map(u=>`<option value="${u.email||''}" ${u.email===config.pengelola_email?'selected':''}>${u.nama||u.email||'-'}</option>`).join('');
-    const pn=$('pengelolaNow'); if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+// ✅ GANTI dengan versi yang lebih robust
+if(t.dataset.tab === 'settings'){
+  const sel = $('selPengelola');
+  
+  // Reload users jika belum ada atau kosong
+  if(!daftarUsers || daftarUsers.length === 0) {
+    await loadUsers();
   }
+  
+  let options = '<option value="">-- Pilih User --</option>';
+  
+  if(daftarUsers.length > 0) {
+    // Filter hanya user yang punya email
+    options += daftarUsers
+      .filter(u => u.email && u.email.trim() !== '')
+      .map(u => {
+        const isSelected = u.email === config.pengelola_email ? 'selected' : '';
+        const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
+        const role = u.role ? ` - ${u.role}` : '';
+        const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
+        return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
+      })
+      .join('');
+  }
+  
+  sel.innerHTML = options;
+  
+  const pn = $('pengelolaNow'); 
+  if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+}
 });
 
 // Close modal on outside click
