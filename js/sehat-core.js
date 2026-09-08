@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// SEHAT CORE - UKS Digital (COMPAT MODE)
+// SEHAT CORE - UKS Digital (COMPAT MODE - FINAL)
 // ══════════════════════════════════════════════
 
 // Ambil Firebase dari global (karena sudah di-load di HTML)
@@ -35,13 +35,24 @@ const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat'
 const isAdmin=()=> String(currentUserRole).toLowerCase()==='admin';
 
 function computeAccess(){
-  // Admin selalu bisa edit, atau user yang ditunjuk sebagai pengelola
-  canEdit = isAdmin() || (currentUserEmail && currentUserEmail===config.pengelola_email);
+  // Admin selalu bisa edit
+  if (isAdmin()) {
+    canEdit = true;
+  } else {
+    // Cek apakah user ini adalah pengelola yang ditunjuk di config
+    const isConfigPengelola = currentUserEmail && currentUserEmail === config.pengelola_email;
+    
+    // Atau cek apakah user ini punya field akses_uks: true di database
+    const currentUserData = daftarUsers.find(u => u.email === currentUserEmail);
+    const hasUksAccess = currentUserData && currentUserData.akses_uks === true;
+    
+    canEdit = isConfigPengelola || hasUksAccess;
+  }
   applyAccess();
 }
 
 function applyAccess(){
-  const ab=$('accessBadge'); if(ab) ab.textContent = canEdit ? '✏️ Pengelola' : '️ Hanya Lihat';
+  const ab=$('accessBadge'); if(ab) ab.textContent = canEdit ? '✏️ Pengelola' : '👁️ Hanya Lihat';
   const bs=$('btnSettings'); if(bs) bs.style.display = isAdmin() ? 'inline-flex' : 'none';
   const ts=$('tabSettingsBtn'); if(ts) ts.style.display = isAdmin() ? 'inline-block' : 'none';
   const bAO=$('btnAddObat'); if(bAO) bAO.style.display = canEdit ? 'inline-flex' : 'none';
@@ -65,7 +76,7 @@ async function initApp(){
   try {
     // Ambil data user dari Firestore
     const userDoc = await db.collection('users').doc(currentUserEmail).get();
-    if(userDoc.exists) {
+    if(userDoc && userDoc.exists) {
       const data = userDoc.data();
       currentUserRole = data.role || '';
       petugas = data.nama || data.namaResmi || currentUserEmail;
@@ -163,14 +174,7 @@ async function loadSkrining(){
   }catch(e){console.error(e);} 
 }
 
-async function loadUsers(){ 
-  try{ 
-    const s=await db.collection('users').get(); 
-    daftarUsers=[]; 
-    s.forEach(d=>daftarUsers.push({id:d.id,...d.data()})); 
-  }catch(e){console.error(e);} 
-}
-
+// ✅ HANYA 1 FUNGSI loadUsers YANG BENAR
 async function loadUsers(){ 
   try{ 
     const s = await db.collection('users').get(); 
@@ -192,6 +196,13 @@ async function loadUsers(){
   } catch(e){
     console.error('❌ Error load users:', e);
   } 
+}
+
+async function loadConfig(){ 
+  try{ 
+    const g=await db.collection('sehat_config').doc('settings').get(); 
+    if(g && g.exists) config={...config,...g.data()}; 
+  }catch(e){console.error(e);} 
 }
 
 // ══════════ DASHBOARD ══════════
@@ -218,7 +229,7 @@ function renderApotekAlertBar(){
   const x=daftarObat.filter(isExpired).length;
   if(m+s+x===0){bar.style.display='none';return;}
   bar.style.display='block';
-  bar.innerHTML=`️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
+  bar.innerHTML=`⚠️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
 }
 
 // ═════════ SEARCH ══════════
@@ -235,7 +246,7 @@ function bindSearch(inputId,dropId,onPick){
 }
 
 // ══════════ KUNJUNGAN ══════════
-bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=`<span class="chip"> ${s.nama} • ${s.kelas||'-'}</span>`;});
+bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;});
 
 $('btnSimpanKunjungan').onclick=async()=>{
   if(!guard())return;
@@ -297,7 +308,7 @@ bindSearch('cariProfil','dropProfil',async s=>{
   selectedProfil=s;$('chipProfil').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;$('formProfil').style.display='block';
   ['pKontak','pAlergi','pPenyakit','pCatatan'].forEach(id=>$(id).value='');$('pGol').value='-';
   try{const g=await db.collection('sehat_profil').doc(sanitizeKey(s.nis||s.id)).get();
-    if(g.exists()){const d=g.data();$('pGol').value=d.golongan_darah||'-';$('pKontak').value=d.kontak_darurat||'';$('pAlergi').value=d.alergi||'';$('pPenyakit').value=d.penyakit_bawaan||'';$('pCatatan').value=d.catatan||'';}}catch(e){}
+    if(g && g.exists){const d=g.data();$('pGol').value=d.golongan_darah||'-';$('pKontak').value=d.kontak_darurat||'';$('pAlergi').value=d.alergi||'';$('pPenyakit').value=d.penyakit_bawaan||'';$('pCatatan').value=d.catatan||'';}}catch(e){}
   renderRiwayatProfil(s);
 });
 
@@ -337,7 +348,7 @@ function renderApotek(){
     <td class="col-aksi"><div style="display:flex;gap:4px">
       <button class="btn btn-primary btn-sm" onclick="window.openStokModal('${o.id}')" ${canEdit?'':'disabled'}>📥</button>
       <button class="btn btn-warning btn-sm" onclick="window.editObat('${o.id}')" ${canEdit?'':'disabled'}>✏️</button>
-      <button class="btn btn-danger btn-sm" onclick="window.hapusObat('${o.id}','${(o.nama||'').replace(/'/g,"\\'")}')" ${canEdit?'':'disabled'}>️</button>
+      <button class="btn btn-danger btn-sm" onclick="window.hapusObat('${o.id}','${(o.nama||'').replace(/'/g,"\\'")}')" ${canEdit?'':'disabled'}>🗑️</button>
     </div></td></tr>`; }).join('')
     : '<tr><td colspan="7" class="empty">Belum ada obat. Klik ➕ Tambah Obat.</td></tr>';
   $('stTotalObat').textContent = daftarObat.length;
@@ -366,7 +377,7 @@ window.openStokModal = id => { if(!guard())return; const o=daftarObat.find(x=>x.
   $('stokObatKey').value=id; $('stokNama').value=o.nama; $('stokQty').value=1; $('stokKet').value=''; $('modalStok').classList.add('show'); };
 
 window.editObat = id => { if(!guard())return; const o=daftarObat.find(x=>x.id===id); if(!o)return;
-  $('obatEditKey').value=id; $('modalObatTitle').textContent='️ Edit Obat';
+  $('obatEditKey').value=id; $('modalObatTitle').textContent='✏️ Edit Obat';
   $('oNama').value=o.nama||''; $('oKategori').value=o.kategori||'Obat'; $('oBentuk').value=o.bentuk||'Tablet';
   $('oStok').value=o.stok||0; $('oSatuan').value=o.satuan||'tablet'; $('oED').value=o.ed||''; $('oMin').value=o.minStok||10;
   $('modalObat').classList.add('show'); };
@@ -433,7 +444,7 @@ function statusGizi(imt){
 
 bindSearch('cariSkrining','dropSkrining', s=>{
   selectedSkrining=s;
-  $('chipSkrining').innerHTML=`<span class="chip"> ${s.nama} • ${s.kelas||'-'}</span>`;
+  $('chipSkrining').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;
   $('sKelas').value = s.kelas || '';
   renderSkriningDetail(s);
 });
@@ -530,7 +541,6 @@ function renderChart(rows){
 }
 
 // ══════════ SETTINGS (Admin Only) ══════════
-// ✅ BENAR - Update field akses_uks di user document
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   
@@ -538,7 +548,7 @@ async function simpanPengelola(){
   if(!email){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
   
   const u = daftarUsers.find(x => x.email === email);
-  if(!u){ toast('️ User tidak ditemukan!', true); return; }
+  if(!u){ toast('⚠️ User tidak ditemukan!', true); return; }
   
   try{
     // 1. Update config
@@ -663,46 +673,56 @@ const btnExportLaporan = $('btnExportLaporan'); if (btnExportLaporan) btnExportL
 const btnBatalSettings = $('btnBatalSettings'); if (btnBatalSettings) btnBatalSettings.onclick = ()=> closeModal('modalSettings');
 const btnSimpanConfig = $('btnSimpanConfig'); if (btnSimpanConfig) btnSimpanConfig.onclick = simpanPengelola;
 
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
-  if(t.dataset.tab==='laporan'){ initFilterLaporan(); renderLaporan(); }
-  ['dashboard','kunjungan','riwayat','profil','apotek','skrining','laporan','settings'].forEach(id=>{
-    const el=$('tab-'+id); if(el) el.style.display=(id===t.dataset.tab)?'block':'none';
+// ✅ PERBAIKAN: Tambahkan 'async' agar 'await loadUsers()' bisa berjalan
+document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); 
+  t.classList.add('active');
+  
+  if(t.dataset.tab === 'laporan'){ 
+    initFilterLaporan(); 
+    renderLaporan(); 
+  }
+  
+  ['dashboard','kunjungan','riwayat','profil','apotek','skrining','laporan','settings'].forEach(id => {
+    const el = $('tab-'+id); 
+    if(el) el.style.display = (id === t.dataset.tab) ? 'block' : 'none';
   });
-  if(t.dataset.tab==='riwayat') renderRiwayat();
-  if(t.dataset.tab==='dashboard') renderDashboard();
-  if(t.dataset.tab==='apotek'){ renderApotek(); renderLogObat(); }
-  if(t.dataset.tab==='skrining') renderSkriningTable();
-// ✅ GANTI dengan versi yang lebih robust
-if(t.dataset.tab === 'settings'){
-  const sel = $('selPengelola');
   
-  // Reload users jika belum ada atau kosong
-  if(!daftarUsers || daftarUsers.length === 0) {
-    await loadUsers();
+  if(t.dataset.tab === 'riwayat') renderRiwayat();
+  if(t.dataset.tab === 'dashboard') renderDashboard();
+  if(t.dataset.tab === 'apotek'){ renderApotek(); renderLogObat(); }
+  if(t.dataset.tab === 'skrining') renderSkriningTable();
+  
+  // ✅ PERBAIKAN: Logika populate dropdown yang robust
+  if(t.dataset.tab === 'settings'){
+    const sel = $('selPengelola');
+    
+    // Reload users jika belum ada atau kosong
+    if(!daftarUsers || daftarUsers.length === 0) {
+      await loadUsers();
+    }
+    
+    let options = '<option value="">-- Pilih User --</option>';
+    
+    if(daftarUsers.length > 0) {
+      // Filter hanya user yang punya email
+      options += daftarUsers
+        .filter(u => u.email && u.email.trim() !== '')
+        .map(u => {
+          const isSelected = u.email === config.pengelola_email ? 'selected' : '';
+          const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
+          const role = u.role ? ` - ${u.role}` : '';
+          const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
+          return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
+        })
+        .join('');
+    }
+    
+    sel.innerHTML = options;
+    
+    const pn = $('pengelolaNow'); 
+    if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
   }
-  
-  let options = '<option value="">-- Pilih User --</option>';
-  
-  if(daftarUsers.length > 0) {
-    // Filter hanya user yang punya email
-    options += daftarUsers
-      .filter(u => u.email && u.email.trim() !== '')
-      .map(u => {
-        const isSelected = u.email === config.pengelola_email ? 'selected' : '';
-        const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
-        const role = u.role ? ` - ${u.role}` : '';
-        const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
-        return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
-      })
-      .join('');
-  }
-  
-  sel.innerHTML = options;
-  
-  const pn = $('pengelolaNow'); 
-  if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
-}
 });
 
 // Close modal on outside click
