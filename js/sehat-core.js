@@ -174,7 +174,7 @@ async function loadUsers(){
 async function loadConfig(){ 
   try{ 
     const g=await db.collection('sehat_config').doc('settings').get(); 
-    if(g.exists()) config={...config,...g.data()}; 
+    if(g && g.exists) config={...config,...g.data()}; 
   }catch(e){console.error(e);} 
 }
 
@@ -633,12 +633,36 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   if(t.dataset.tab==='dashboard') renderDashboard();
   if(t.dataset.tab==='apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab==='skrining') renderSkriningTable();
-  if(t.dataset.tab==='settings'){
-    const sel=$('selPengelola');
-    sel.innerHTML = '<option value="">-- Belum ada pengelola (semua hanya lihat) --</option>' +
-      daftarUsers.map(u=>`<option value="${u.email||''}" ${u.email===config.pengelola_email?'selected':''}>${u.nama||u.email||'-'}</option>`).join('');
-    const pn=$('pengelolaNow'); if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+// ✅ BENAR - dengan fallback jika daftarUsers kosong
+if(t.dataset.tab==='settings'){
+  const sel=$('selPengelola');
+  
+  // Reload users jika belum ada
+  if(daftarUsers.length === 0) {
+    await loadUsers();
   }
+  
+  let options = '<option value="">-- Pilih User --</option>';
+  
+  if(daftarUsers.length > 0) {
+    options += daftarUsers
+      .filter(u => u.email) // Hanya user yang punya email
+      .map(u => {
+        const isSelected = u.email === config.pengelola_email ? 'selected' : '';
+        const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
+        const role = u.role ? ` (${u.role})` : '';
+        return `<option value="${u.email}" ${isSelected}>${nama}${role}</option>`;
+      })
+      .join('');
+  } else {
+    options += '<option value="" disabled>Tidak ada user tersedia</option>';
+  }
+  
+  sel.innerHTML = options;
+  
+  const pn=$('pengelolaNow'); 
+  if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+}
 });
 
 // Close modal on outside click
