@@ -1,20 +1,27 @@
 // ══════════════════════════════════════════════
-// SEHAT CORE - UKS Digital (ISOLASI PER SEKOLAH)
+// SEHAT CORE - UKS Digital (COMPAT MODE)
 // ══════════════════════════════════════════════
-import { auth, db } from "../js/firebase-config.js";
-import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-onAuthStateChanged(auth, u => { if (!u) window.location.href = '../home.html'; });
+// Ambil Firebase dari global (karena sudah di-load di HTML)
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-let masterSiswa=[], kunjunganCache=[], daftarObat=[], logObat=[], skriningCache=[];
-let selectedSiswa=null, selectedProfil=null, selectedSkrining=null;
+// Cek auth
+auth.onAuthStateChanged(u => { 
+  if (!u) {
+    window.location.href = '../home.html';
+  } else {
+    console.log('✅ User logged in:', u.email);
+    initApp();
+  }
+});
 
-// ✅ VARIABEL BARU UNTUK ISOLASI SEKOLAH
-let currentUserUid = '';
-let currentUserEmail = '';
-let currentUserNama = '';
-let userSekolahId = ''; // Kunci isolasi data
+let masterSiswa=[], kunjunganCache=[], daftarObat=[], logObat=[], skriningCache=[], daftarUsers=[];
+let selectedSiswa=null, selectedProfil=null, selectedSkrining=null, petugas='Petugas UKS';
+let currentUserEmail='', currentUserRole='', currentUserUid='';
+let config={ pengelola_email:'', pengelola_nama:'' };
+let canEdit=false;
+let userSekolahId=''; // Untuk isolasi per sekolah
 
 const $=id=>document.getElementById(id);
 const toast=(m,e=false)=>{const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2800);};
@@ -24,12 +31,88 @@ const sanitizeKey=s=>String(s).replace(/[^a-zA-Z0-9_-]/g,'_');
 const isExpired=o=>o.ed&&new Date(o.ed)<new Date();
 const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:['🏠 Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
 
+// ══════════ ROLE / AKSES ══════════
+const isAdmin=()=> String(currentUserRole).toLowerCase()==='admin';
+
+function computeAccess(){
+  // Admin selalu bisa edit, atau user yang ditunjuk sebagai pengelola
+  canEdit = isAdmin() || (currentUserEmail && currentUserEmail===config.pengelola_email);
+  applyAccess();
+}
+
+function applyAccess(){
+  const ab=$('accessBadge'); if(ab) ab.textContent = canEdit ? '✏️ Pengelola' : '️ Hanya Lihat';
+  const bs=$('btnSettings'); if(bs) bs.style.display = isAdmin() ? 'inline-flex' : 'none';
+  const ts=$('tabSettingsBtn'); if(ts) ts.style.display = isAdmin() ? 'inline-block' : 'none';
+  const bAO=$('btnAddObat'); if(bAO) bAO.style.display = canEdit ? 'inline-flex' : 'none';
+  const bSK=$('btnSimpanKunjungan'); if(bSK) bSK.style.display = canEdit ? 'inline-flex' : 'none';
+  const bSP=$('btnSimpanProfil'); if(bSP) bSP.style.display = canEdit ? 'inline-flex' : 'none';
+  const bSS=$('btnSimpanSkrining'); if(bSS) bSS.style.display = canEdit ? 'inline-flex' : 'none';
+  document.querySelectorAll('#formProfil input,#formProfil select,#formProfil textarea').forEach(el=>el.disabled=!canEdit);
+  renderApotek();
+}
+
+const guard=()=>{ if(!canEdit){ toast('⚠️ Anda hanya punya akses LIHAT!', true); return false; } return true; };
+
+// ══════════ INIT APP ══════════
+async function initApp(){
+  const user = auth.currentUser;
+  if(!user) return;
+  
+  currentUserUid = user.uid;
+  currentUserEmail = user.email;
+  
+  try {
+    // Ambil data user dari Firestore
+    const userDoc = await db.collection('users').doc(currentUserEmail).get();
+    if(userDoc.exists()) {
+      const data = userDoc.data();
+      currentUserRole = data.role || '';
+      petugas = data.nama || data.namaResmi || currentUserEmail;
+      userSekolahId = data.school_id || data.sekolah_id || '';
+    }
+    
+    // Update UI
+    const badge = $('schoolBadge');
+    if(badge) badge.textContent = '🏫 ' + (userSekolahId || 'Sekolah');
+    const pBadge = $('petugasBadge');
+    if(pBadge) pBadge.textContent = '👤 ' + petugas;
+    
+    // Load semua data
+    await Promise.all([
+      loadMasterSiswa(), 
+      loadKunjungan(), 
+      loadApotek(), 
+      loadLogObat(), 
+      loadSkrining(), 
+      loadUsers(),
+      loadConfig()
+    ]);
+    
+    computeAccess();
+    renderDashboard(); 
+    renderApotek(); 
+    renderLogObat(); 
+    populateObatSelect(); 
+    renderSkriningTable();
+    
+    // Set tanggal default
+    const vTanggal=$('vTanggal'); if (vTanggal) vTanggal.value=localDate();
+    const vJam=$('vJam'); if (vJam) vJam.value=new Date().toTimeString().slice(0,5);
+    const sTanggal=$('sTanggal'); if (sTanggal) sTanggal.value=localDate();
+    
+    console.log('✅ SEHAT initialized. Sekolah:', userSekolahId, '| Role:', currentUserRole);
+    
+  } catch(e) {
+    console.error('Init Error:', e);
+    toast('❌ Gagal memuat data: ' + e.message, true);
+  }
+}
+
 // ══════════ LOAD DATA (DENGAN FILTER SEKOLAH) ══════════
 async function loadMasterSiswa(){ 
   try{ 
-    // Siswa juga sebaiknya difilter per sekolah jika collection-nya besar, 
-    // tapi untuk sementara kita ambil semua, atau bisa ditambah .where('sekolah_id', '==', userSekolahId) jika field-nya ada.
-    const s=await getDocs(collection(db,'sican_siswa')); 
+    const s=await db.collection('sican_siswa').get(); 
     masterSiswa=[]; 
     s.forEach(d=>masterSiswa.push({id:d.id,...d.data()}));
     masterSiswa.sort((a,b)=>(a.kelas||'').localeCompare(b.kelas||'')||(a.nama||'').localeCompare(b.nama||'')); 
@@ -39,8 +122,9 @@ async function loadMasterSiswa(){
 
 async function loadKunjungan(){ 
   try{ 
-    const q = query(collection(db,'sehat_kunjungan'), where('sekolah_id', '==', userSekolahId));
-    const s=await getDocs(q); 
+    let q = db.collection('sehat_kunjungan');
+    if(userSekolahId) q = q.where('sekolah_id', '==', userSekolahId);
+    const s=await q.get(); 
     kunjunganCache=[]; 
     s.forEach(d=>kunjunganCache.push({id:d.id,...d.data()}));
     kunjunganCache.sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||'')||(b.jam||'').localeCompare(a.jam||'')); 
@@ -49,8 +133,9 @@ async function loadKunjungan(){
 
 async function loadApotek(){ 
   try{ 
-    const q = query(collection(db,'sehat_apotek'), where('sekolah_id', '==', userSekolahId));
-    const s=await getDocs(q); 
+    let q = db.collection('sehat_apotek');
+    if(userSekolahId) q = q.where('sekolah_id', '==', userSekolahId);
+    const s=await q.get(); 
     daftarObat=[]; 
     s.forEach(d=>daftarObat.push({id:d.id,...d.data()}));
     daftarObat.sort((a,b)=>(a.nama||'').localeCompare(b.nama||'')); 
@@ -59,8 +144,9 @@ async function loadApotek(){
 
 async function loadLogObat(){ 
   try{ 
-    const q = query(collection(db,'sehat_apotek_log'), where('sekolah_id', '==', userSekolahId));
-    const s=await getDocs(q); 
+    let q = db.collection('sehat_apotek_log');
+    if(userSekolahId) q = q.where('sekolah_id', '==', userSekolahId);
+    const s=await q.get(); 
     logObat=[]; 
     s.forEach(d=>logObat.push({id:d.id,...d.data()}));
     logObat.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); 
@@ -69,53 +155,27 @@ async function loadLogObat(){
 
 async function loadSkrining(){ 
   try{ 
-    const q = query(collection(db,'sehat_skrining'), where('sekolah_id', '==', userSekolahId));
-    const s=await getDocs(q); 
+    let q = db.collection('sehat_skrining');
+    if(userSekolahId) q = q.where('sekolah_id', '==', userSekolahId);
+    const s=await q.get(); 
     skriningCache=[]; 
     s.forEach(d=>skriningCache.push({id:d.id,...d.data()})); 
   }catch(e){console.error(e);} 
 }
 
-// ══════════ INIT & VALIDASI SEKOLAH ══════════
-async function initApp(){
-  const user = auth.currentUser;
-  if(!user) return;
-  
-  currentUserUid = user.uid;
-  currentUserEmail = user.email;
-  
-  try {
-    // Ambil data user untuk mendapatkan school_id dan nama
-    const userDoc = await getDoc(doc(db, 'users', currentUserEmail)); // Atau doc(db, 'users', currentUserUid) tergantung struktur Anda
-    if(userDoc.exists()) {
-      const data = userDoc.data();
-      currentUserNama = data.nama || data.namaResmi || user.email;
-      userSekolahId = data.school_id || data.sekolah_id || '';
-    }
-    
-    if(!userSekolahId) {
-      alert('⚠️ Akun Anda belum terdaftar di sekolah manapun. Hubungi Admin.');
-      window.location.href = '../index.html';
-      return;
-    }
-    
-    // Update UI Badge
-    const badge = $('schoolBadge');
-    if(badge) badge.textContent = '🏫 ' + (data.nama_sekolah || 'Sekolah Anda'); // Sesuaikan field nama sekolah
-    
-    // Load semua data
-    await Promise.all([loadMasterSiswa(), loadKunjungan(), loadApotek(), loadLogObat(), loadSkrining()]);
-    
-    renderDashboard(); 
-    renderApotek(); 
-    renderLogObat(); 
-    populateObatSelect(); 
-    renderSkriningTable();
-    
-  } catch(e) {
-    console.error('Init Error:', e);
-    toast('❌ Gagal memuat data sekolah', true);
-  }
+async function loadUsers(){ 
+  try{ 
+    const s=await db.collection('users').get(); 
+    daftarUsers=[]; 
+    s.forEach(d=>daftarUsers.push({id:d.id,...d.data()})); 
+  }catch(e){console.error(e);} 
+}
+
+async function loadConfig(){ 
+  try{ 
+    const g=await db.collection('sehat_config').doc('settings').get(); 
+    if(g.exists()) config={...config,...g.data()}; 
+  }catch(e){console.error(e);} 
 }
 
 // ══════════ DASHBOARD ══════════
@@ -142,10 +202,10 @@ function renderApotekAlertBar(){
   const x=daftarObat.filter(isExpired).length;
   if(m+s+x===0){bar.style.display='none';return;}
   bar.style.display='block';
-  bar.innerHTML=`⚠️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
+  bar.innerHTML=`️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
 }
 
-// ══════════ SEARCH ══════════
+// ═════════ SEARCH ══════════
 function bindSearch(inputId,dropId,onPick){
   const input=$(inputId),drop=$(dropId); if(!input||!drop)return;
   input.addEventListener('input',()=>{ const q=input.value.toLowerCase().trim();
@@ -159,9 +219,10 @@ function bindSearch(inputId,dropId,onPick){
 }
 
 // ══════════ KUNJUNGAN ══════════
-bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;});
+bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=`<span class="chip"> ${s.nama} • ${s.kelas||'-'}</span>`;});
 
 $('btnSimpanKunjungan').onclick=async()=>{
+  if(!guard())return;
   if(!selectedSiswa){toast('⚠️ Pilih siswa!',true);return;}
   if(!$('vKeluhan').value.trim()){toast('⚠️ Keluhan wajib!',true);return;}
   const obatId=$('vObatSelect').value,qty=parseInt($('vObatQty').value)||0;
@@ -170,31 +231,24 @@ $('btnSimpanKunjungan').onclick=async()=>{
     if(!ob){toast('⚠️ Obat tidak ditemukan!',true);return;}
     if((ob.stok||0)<qty){toast(`⚠️ Stok ${ob.nama} tidak cukup!`,true);return;}
     obatText=`${ob.nama} ×${qty} ${ob.satuan||''}`; }
-  
   const btn=$('btnSimpanKunjungan');btn.disabled=true;btn.textContent='⏳ Menyimpan...';
   try{
-    // ✅ TAMBAHKAN school_id, guru_uid, guru_nama
-    await addDoc(collection(db,'sehat_kunjungan'),{ 
+    await db.collection('sehat_kunjungan').add({ 
       sekolah_id: userSekolahId,
       guru_uid: currentUserUid,
-      guru_nama: currentUserNama,
+      guru_nama: petugas,
       tanggal:$('vTanggal').value,jam:$('vJam').value,
       siswa_id:selectedSiswa.id,siswa_nis:selectedSiswa.nis||'',siswa_nama:selectedSiswa.nama,siswa_kelas:selectedSiswa.kelas||'',
       keluhan:$('vKeluhan').value.trim(),suhu:$('vSuhu').value||null,tensi:$('vTensi').value||null,
       tindakan:$('vTindakan').value.trim()||null,obat:obatText,obat_id:obatId||'',obat_qty:qty,
-      hasil:$('vHasil').value,catatan:$('vCatatan').value.trim()||null,
-      createdAt:new Date().toISOString()
-    });
-    
+      hasil:$('vHasil').value,catatan:$('vCatatan').value.trim()||null,createdAt:new Date().toISOString()});
     if(ob&&qty>0){ 
-      await updateDoc(doc(db,'sehat_apotek',ob.id),{stok:(ob.stok||0)-qty,updatedAt:new Date().toISOString()});
-      await addDoc(collection(db,'sehat_apotek_log'),{
+      await db.collection('sehat_apotek').doc(ob.id).update({stok:(ob.stok||0)-qty,updatedAt:new Date().toISOString()});
+      await db.collection('sehat_apotek_log').add({
         sekolah_id: userSekolahId,
         guru_uid: currentUserUid,
         obat_id:ob.id,obat_nama:ob.nama,tipe:'keluar',jumlah:qty,
-        keterangan:`Kunjungan: ${selectedSiswa.nama}`,tanggal:$('vTanggal').value,
-        createdAt:new Date().toISOString()
-      }); 
+        keterangan:`Kunjungan: ${selectedSiswa.nama}`,tanggal:$('vTanggal').value,createdAt:new Date().toISOString()}); 
     }
     toast('✅ Kunjungan tersimpan!');
     ['vKeluhan','vSuhu','vTensi','vTindakan','vCatatan'].forEach(id=>$(id).value='');
@@ -226,18 +280,16 @@ function renderRiwayat(){
 bindSearch('cariProfil','dropProfil',async s=>{
   selectedProfil=s;$('chipProfil').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;$('formProfil').style.display='block';
   ['pKontak','pAlergi','pPenyakit','pCatatan'].forEach(id=>$(id).value='');$('pGol').value='-';
-  try{
-    // ✅ Filter profil berdasarkan sekolah juga (opsional, tapi lebih aman)
-    const g=await getDoc(doc(db,'sehat_profil',sanitizeKey(s.nis||s.id)));
-    if(g.exists()){const d=g.data();$('pGol').value=d.golongan_darah||'-';$('pKontak').value=d.kontak_darurat||'';$('pAlergi').value=d.alergi||'';$('pPenyakit').value=d.penyakit_bawaan||'';$('pCatatan').value=d.catatan||'';}
-  }catch(e){}
+  try{const g=await db.collection('sehat_profil').doc(sanitizeKey(s.nis||s.id)).get();
+    if(g.exists()){const d=g.data();$('pGol').value=d.golongan_darah||'-';$('pKontak').value=d.kontak_darurat||'';$('pAlergi').value=d.alergi||'';$('pPenyakit').value=d.penyakit_bawaan||'';$('pCatatan').value=d.catatan||'';}}catch(e){}
   renderRiwayatProfil(s);
 });
 
 $('btnSimpanProfil').onclick=async()=>{
+  if(!guard())return;
   if(!selectedProfil){toast('⚠️ Pilih siswa!',true);return;}
-  await setDoc(doc(db,'sehat_profil',sanitizeKey(selectedProfil.nis||selectedProfil.id)),{
-    sekolah_id: userSekolahId, // ✅ TAMBAHKAN
+  await db.collection('sehat_profil').doc(sanitizeKey(selectedProfil.nis||selectedProfil.id)).set({
+    sekolah_id: userSekolahId,
     guru_uid: currentUserUid,
     siswa_id:selectedProfil.id,nis:selectedProfil.nis||'',nama:selectedProfil.nama,kelas:selectedProfil.kelas||'',
     golongan_darah:$('pGol').value,kontak_darurat:$('pKontak').value.trim(),alergi:$('pAlergi').value.trim(),
@@ -267,9 +319,9 @@ function renderApotek(){
     return `<tr><td><b>${o.nama}</b></td><td>${o.kategori||'-'}</td><td>${o.bentuk||'-'}</td>
     <td><b>${o.stok||0}</b> ${o.satuan||''}</td><td>${formatDate(o.ed)}</td><td><span class="badge ${st.cls}">${st.text}</span></td>
     <td class="col-aksi"><div style="display:flex;gap:4px">
-      <button class="btn btn-primary btn-sm" onclick="window.openStokModal('${o.id}')">📥</button>
-      <button class="btn btn-warning btn-sm" onclick="window.editObat('${o.id}')">✏️</button>
-      <button class="btn btn-danger btn-sm" onclick="window.hapusObat('${o.id}','${(o.nama||'').replace(/'/g,"\\'")}')">🗑️</button>
+      <button class="btn btn-primary btn-sm" onclick="window.openStokModal('${o.id}')" ${canEdit?'':'disabled'}>📥</button>
+      <button class="btn btn-warning btn-sm" onclick="window.editObat('${o.id}')" ${canEdit?'':'disabled'}>✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="window.hapusObat('${o.id}','${(o.nama||'').replace(/'/g,"\\'")}')" ${canEdit?'':'disabled'}>️</button>
     </div></td></tr>`; }).join('')
     : '<tr><td colspan="7" class="empty">Belum ada obat. Klik ➕ Tambah Obat.</td></tr>';
   $('stTotalObat').textContent = daftarObat.length;
@@ -294,32 +346,33 @@ function populateObatSelect(){
   const a=$('vObatSelect'); if(a) a.innerHTML=html;
 }
 
-window.openStokModal = id => { const o=daftarObat.find(x=>x.id===id); if(!o)return;
+window.openStokModal = id => { if(!guard())return; const o=daftarObat.find(x=>x.id===id); if(!o)return;
   $('stokObatKey').value=id; $('stokNama').value=o.nama; $('stokQty').value=1; $('stokKet').value=''; $('modalStok').classList.add('show'); };
 
-window.editObat = id => { const o=daftarObat.find(x=>x.id===id); if(!o)return;
-  $('obatEditKey').value=id; $('modalObatTitle').textContent='✏️ Edit Obat';
+window.editObat = id => { if(!guard())return; const o=daftarObat.find(x=>x.id===id); if(!o)return;
+  $('obatEditKey').value=id; $('modalObatTitle').textContent='️ Edit Obat';
   $('oNama').value=o.nama||''; $('oKategori').value=o.kategori||'Obat'; $('oBentuk').value=o.bentuk||'Tablet';
   $('oStok').value=o.stok||0; $('oSatuan').value=o.satuan||'tablet'; $('oED').value=o.ed||''; $('oMin').value=o.minStok||10;
   $('modalObat').classList.add('show'); };
 
-window.hapusObat = async (id,nama) => { if(!confirm(`Hapus obat "${nama}"?`))return;
-  await deleteDoc(doc(db,'sehat_apotek',id)); toast('✅ Obat dihapus');
+window.hapusObat = async (id,nama) => { if(!guard())return; if(!confirm(`Hapus obat "${nama}"?`))return;
+  await db.collection('sehat_apotek').doc(id).delete(); toast('✅ Obat dihapus');
   await Promise.all([loadApotek(),loadLogObat()]); renderApotek(); renderLogObat(); populateObatSelect(); };
 
 async function simpanObat(){
+  if(!guard())return;
   const nama=$('oNama').value.trim(); if(!nama){ toast('⚠️ Nama obat wajib!', true); return; }
   const data={ 
-    sekolah_id: userSekolahId, // ✅ TAMBAHKAN
+    sekolah_id: userSekolahId,
     guru_uid: currentUserUid,
     nama, kategori:$('oKategori').value, bentuk:$('oBentuk').value, stok:parseInt($('oStok').value)||0,
     satuan:$('oSatuan').value, ed:$('oED').value||'', minStok:parseInt($('oMin').value)||10, updatedAt:new Date().toISOString() 
   };
   const key=$('obatEditKey').value;
   try{
-    if(key){ await updateDoc(doc(db,'sehat_apotek',key), data); toast('✅ Obat diperbarui'); }
-    else { const r=await addDoc(collection(db,'sehat_apotek'), {...data, createdAt:new Date().toISOString()});
-      if(data.stok>0) await addDoc(collection(db,'sehat_apotek_log'), { 
+    if(key){ await db.collection('sehat_apotek').doc(key).update(data); toast('✅ Obat diperbarui'); }
+    else { const r=await db.collection('sehat_apotek').add({...data, createdAt:new Date().toISOString()});
+      if(data.stok>0) await db.collection('sehat_apotek_log').add({ 
         sekolah_id: userSekolahId, guru_uid: currentUserUid,
         obat_id:r.id, obat_nama:nama, tipe:'masuk', jumlah:data.stok, keterangan:'Stok awal', tanggal:localDate(), createdAt:new Date().toISOString() 
       });
@@ -330,12 +383,13 @@ async function simpanObat(){
 }
 
 async function simpanStok(){
+  if(!guard())return;
   const key=$('stokObatKey').value, qty=parseInt($('stokQty').value)||0;
   if(!key||qty<1){ toast('⚠️ Isi jumlah!', true); return; }
   const o=daftarObat.find(x=>x.id===key); if(!o)return;
   try{
-    await updateDoc(doc(db,'sehat_apotek',key), { stok:(o.stok||0)+qty, updatedAt:new Date().toISOString() });
-    await addDoc(collection(db,'sehat_apotek_log'), { 
+    await db.collection('sehat_apotek').doc(key).update({ stok:(o.stok||0)+qty, updatedAt:new Date().toISOString() });
+    await db.collection('sehat_apotek_log').add({ 
       sekolah_id: userSekolahId, guru_uid: currentUserUid,
       obat_id:key, obat_nama:o.nama, tipe:'masuk', jumlah:qty, keterangan:$('stokKet').value||'Penerimaan stok', tanggal:localDate(), createdAt:new Date().toISOString() 
     });
@@ -344,7 +398,7 @@ async function simpanStok(){
   }catch(e){ toast('❌ '+e.message, true); }
 }
 
-// ══════════ SKRINING (TB/BB/IMT) ══════════
+// ═════════ SKRINING ══════════
 function hitungIMT(tbCm, bbKg){
   if(!tbCm||!bbKg) return null;
   const m = tbCm/100;
@@ -363,7 +417,7 @@ function statusGizi(imt){
 
 bindSearch('cariSkrining','dropSkrining', s=>{
   selectedSkrining=s;
-  $('chipSkrining').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;
+  $('chipSkrining').innerHTML=`<span class="chip"> ${s.nama} • ${s.kelas||'-'}</span>`;
   $('sKelas').value = s.kelas || '';
   renderSkriningDetail(s);
 });
@@ -387,16 +441,17 @@ bindSearch('cariSkrining','dropSkrining', s=>{
 });
 
 $('btnSimpanSkrining').onclick = async ()=>{
+  if(!guard())return;
   if(!selectedSkrining){ toast('⚠️ Pilih siswa!', true); return; }
   const tb=parseFloat($('sTinggi').value), bb=parseFloat($('sBerat').value);
   if(!tb||!bb){ toast('⚠️ TB & BB wajib diisi!', true); return; }
   const imt=hitungIMT(tb,bb), st=statusGizi(imt);
   const btn=$('btnSimpanSkrining'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try{
-    await addDoc(collection(db,'sehat_skrining'),{
-      sekolah_id: userSekolahId, // ✅ TAMBAHKAN
+    await db.collection('sehat_skrining').add({
+      sekolah_id: userSekolahId,
       guru_uid: currentUserUid,
-      guru_nama: currentUserNama,
+      guru_nama: petugas,
       siswa_id:selectedSkrining.id, siswa_nis:selectedSkrining.nis||'', siswa_nama:selectedSkrining.nama, siswa_kelas:selectedSkrining.kelas||'',
       tanggal:$('sTanggal').value, tb, bb, imt:parseFloat(imt), status_gizi:st.text,
       catatan:$('sCatatan').value.trim()||'', createdAt:new Date().toISOString()
@@ -437,19 +492,14 @@ function renderChart(rows){
   const minTB=Math.min(...tbs)*0.95, maxTB=Math.max(...tbs)*1.05||1;
   const minBB=Math.min(...bbs)*0.95, maxBB=Math.max(...bbs)*1.05||1;
   const dx = rows.length>1 ? (W-pad*2)/(rows.length-1) : 0;
-
   const pointsTB = rows.map((r,i)=>({ x:pad+i*dx, y:pad+(H-pad*2)*(1-(r.tb-minTB)/(maxTB-minTB||1)), v:r.tb, t:r.tanggal }));
   const pointsBB = rows.map((r,i)=>({ x:pad+i*dx, y:pad+(H-pad*2)*(1-(r.bb-minBB)/(maxBB-minBB||1)), v:r.bb, t:r.tanggal }));
-
   const pathTB = pointsTB.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
   const pathBB = pointsBB.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
-
   const dotsTB = pointsTB.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#0f766e"><title>${p.t}: ${p.v} cm</title></circle>`).join('');
   const dotsBB = pointsBB.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#3b82f6"><title>${p.t}: ${p.v} kg</title></circle>`).join('');
-
   const labels = pointsTB.filter((_,i)=>i===0||i===pointsTB.length-1||pointsTB.length<=6||i%Math.ceil(pointsTB.length/6)===0).map(p=>
     `<text x="${p.x}" y="${H-12}" font-size="10" text-anchor="middle" fill="#64748b">${(p.t||'').slice(5,10)}</text>`).join('');
-
   svg.innerHTML = `
     <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#e2e8f0"/>
     <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#e2e8f0"/>
@@ -463,17 +513,25 @@ function renderChart(rows){
   `;
 }
 
-// ══════════ LAPORAN BULANAN + PDF ══════════
+// ══════════ SETTINGS (Admin Only) ══════════
+async function simpanPengelola(){
+  if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
+  const email=$('selPengelola').value;
+  const u=daftarUsers.find(x=>x.email===email);
+  config={pengelola_email:email, pengelola_nama:u?(u.nama||email):''};
+  try{
+    await db.collection('sehat_config').doc('settings').set(config);
+    toast('✅ Pengelola diperbarui!');
+    const pn=$('pengelolaNow'); if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+    computeAccess();
+  }catch(e){ toast('❌ '+e.message, true); }
+}
+
+// ══════════ LAPORAN ══════════
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const kapitalNama=(n='')=>{const i=n.indexOf(',');return i===-1?n.toUpperCase():n.slice(0,i).toUpperCase()+n.slice(i);};
-
-// ✅ DINAMIS: Ambil dari data user atau fallback ke default
-const MADRASAH = {
-  kemenag: 'KEMENTERIAN AGAMA', // Bisa diupdate nanti dari data sekolah
-  nama: 'MADRASAH', 
-  alamat: 'Alamat Madrasah',
-  kepala: {nama: 'Kepala Madrasah', nip: 'NIP. -'}
-};
+const MADRASAH={kemenag:'KEMENTERIAN AGAMA KABUPATEN BANTAENG',nama:'MADRASAH ALIYAH NEGERI BANTAENG',
+  alamat:'Jl. ... (isi alamat madrasah)',kepala:{nama:'Muhammad Arif Pither, S.Ag.,M.M.,M.Pd',nip:'19710930 200710 1 001'}};
 
 function initFilterLaporan(){
   const b=$('lBulan'),t=$('lTahun'); if(!b||!t)return;
@@ -509,11 +567,12 @@ function exportLaporanPDF(){
   const d=getLaporanData();
   const bn=MONTHS[parseInt(d.pre.slice(5,7))-1], th=d.pre.slice(0,4);
   const tgl=new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-  
+  const petugasNama=config.pengelola_nama||petugas;
+  const pu=daftarUsers.find(u=>u.email===config.pengelola_email)||{};
+  const nipPetugas=pu.nip||'-';
   const kRows=d.kunj.map((k,i)=>`<tr><td>${i+1}</td><td>${k.tanggal}</td><td>${k.siswa_nama}</td><td>${k.siswa_kelas||'-'}</td><td>${k.keluhan||'-'}</td><td>${k.obat||'-'}</td><td>${(hasilLabel[k.hasil]||['-'])[0]}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center">Tidak ada data</td></tr>';
   const sRows=d.skr.map((s,i)=>`<tr><td>${i+1}</td><td>${s.tanggal}</td><td>${s.siswa_nama}</td><td>${s.siswa_kelas||'-'}</td><td>${s.tb}</td><td>${s.bb}</td><td>${s.imt}</td><td>${s.status_gizi||'-'}</td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center">Tidak ada data</td></tr>';
   const lRows=d.log.map((l,i)=>`<tr><td>${i+1}</td><td>${l.tanggal}</td><td>${l.obat_nama}</td><td>${l.tipe==='masuk'?'Masuk':'Keluar'}</td><td>${l.jumlah}</td><td>${l.keterangan||'-'}</td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center">Tidak ada data</td></tr>';
-  
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Laporan UKS ${bn} ${th}</title><style>
     body{font-family:'Times New Roman',serif;font-size:11pt;color:#000;padding:20px}
@@ -531,36 +590,20 @@ function exportLaporanPDF(){
   </div>
   <h3 style="text-align:center">LAPORAN BULANAN UNIT KESEHATAN SEKOLAH</h3>
   <p style="text-align:center"><b>Bulan ${bn} ${th}</b></p>
-
   <h4>A. Rekapitulasi Kunjungan</h4>
   <p>Total kunjungan: <b>${d.kunj.length}</b> • Istirahat: ${d.c.istirahat||0} • Dipulangkan: ${d.c.pulang||0} • Dirujuk: ${d.c.rujukan||0} • Kembali ke kelas: ${d.c.kelas||0}</p>
   <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr></thead>
   <tbody>${kRows}</tbody></table>
-
   <h4>B. Hasil Skrining Kesehatan</h4>
   <p>Total siswa diskrining: <b>${d.skr.length}</b></p>
   <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>TB</th><th>BB</th><th>IMT</th><th>Status</th></tr></thead>
   <tbody>${sRows}</tbody></table>
-
   <h4>C. Penggunaan Obat</h4>
   <table><thead><tr><th>No</th><th>Tanggal</th><th>Obat</th><th>Tipe</th><th>Jumlah</th><th>Keterangan</th></tr></thead>
   <tbody>${lRows}</tbody></table>
-
   <div class="sign">
-    <div class="kiri">
-      Mengetahui,<br>Kepala Madrasah
-      <div class="ttd"></div>
-      <b><u>${kapitalNama(MADRASAH.kepala.nama)}</u></b><br>
-      <b>${MADRASAH.kepala.nip}</b>
-    </div>
-    <div class="kanan">
-      ${MADRASAH.kota || 'Bantaeng'}, &nbsp;&nbsp;&nbsp; ${tgl}
-      <div style="height:22px"></div>
-      Pengelola UKS
-      <div class="ttd"></div>
-      <b><u>${kapitalNama(currentUserNama)}</u></b><br>
-      <b>Guru UKS</b>
-    </div>
+    <div class="kiri">Mengetahui,<br>Kepala Madrasah<div class="ttd"></div><b><u>${kapitalNama(MADRASAH.kepala.nama)}</u></b><br><b>NIP. ${MADRASAH.kepala.nip}</b></div>
+    <div class="kanan">Bantaeng, &nbsp;&nbsp;&nbsp; ${tgl}<div style="height:22px"></div>Pengelola UKS<div class="ttd"></div><b><u>${kapitalNama(petugasNama)}</u></b><br><b>NIP. ${nipPetugas}</b></div>
   </div>
   <script>window.onload=function(){window.print();}<\/script></body></html>`);
   w.document.close();
@@ -568,26 +611,37 @@ function exportLaporanPDF(){
 
 // ══════════ BIND & TABS ══════════
 const btnAddObat = $('btnAddObat');
-if (btnAddObat) btnAddObat.onclick = ()=>{ $('obatEditKey').value=''; $('modalObatTitle').textContent='➕ Tambah Obat';
+if (btnAddObat) btnAddObat.onclick = ()=>{ if(!guard())return; $('obatEditKey').value=''; $('modalObatTitle').textContent='➕ Tambah Obat';
   ['oNama'].forEach(id=>$(id).value=''); $('oStok').value=0; $('oMin').value=10; $('oKategori').value='Obat'; $('oBentuk').value='Tablet'; $('oSatuan').value='tablet'; $('oED').value='';
   $('modalObat').classList.add('show'); };
 const btnBatalObat = $('btnBatalObat'); if (btnBatalObat) btnBatalObat.onclick = ()=> $('modalObat').classList.remove('show');
 const btnSimpanObat = $('btnSimpanObat'); if (btnSimpanObat) btnSimpanObat.onclick = simpanObat;
 const btnBatalStok = $('btnBatalStok'); if (btnBatalStok) btnBatalStok.onclick = ()=> $('modalStok').classList.remove('show');
 const btnSimpanStok = $('btnSimpanStok'); if (btnSimpanStok) btnSimpanStok.onclick = simpanStok;
+const btnSP = $('btnSimpanPengelola'); if (btnSP) btnSP.onclick = simpanPengelola;
 const btnExportLaporan = $('btnExportLaporan'); if (btnExportLaporan) btnExportLaporan.onclick = exportLaporanPDF;
+const btnBatalSettings = $('btnBatalSettings'); if (btnBatalSettings) btnBatalSettings.onclick = ()=> closeModal('modalSettings');
+const btnSimpanConfig = $('btnSimpanConfig'); if (btnSimpanConfig) btnSimpanConfig.onclick = simpanPengelola;
 
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
-    if(t.dataset.tab==='laporan'){ initFilterLaporan(); renderLaporan(); }
-    ['dashboard','kunjungan','riwayat','profil','apotek','skrining','laporan'].forEach(id=>{
-  const el=$('tab-'+id); if(el) el.style.display=(id===t.dataset.tab)?'block':'none';
-});
+  if(t.dataset.tab==='laporan'){ initFilterLaporan(); renderLaporan(); }
+  ['dashboard','kunjungan','riwayat','profil','apotek','skrining','laporan','settings'].forEach(id=>{
+    const el=$('tab-'+id); if(el) el.style.display=(id===t.dataset.tab)?'block':'none';
+  });
   if(t.dataset.tab==='riwayat') renderRiwayat();
   if(t.dataset.tab==='dashboard') renderDashboard();
   if(t.dataset.tab==='apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab==='skrining') renderSkriningTable();
+  if(t.dataset.tab==='settings'){
+    const sel=$('selPengelola');
+    sel.innerHTML = '<option value="">-- Belum ada pengelola (semua hanya lihat) --</option>' +
+      daftarUsers.map(u=>`<option value="${u.email||''}" ${u.email===config.pengelola_email?'selected':''}>${u.nama||u.email||'-'}</option>`).join('');
+    const pn=$('pengelolaNow'); if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+  }
 });
 
-// ══════════ INIT ══════════
-initApp();
+// Close modal on outside click
+document.querySelectorAll('.modal').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); });
+});
