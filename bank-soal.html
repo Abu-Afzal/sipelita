@@ -441,14 +441,21 @@ auth.onAuthStateChanged(user => {
 // Load Soal
 async function loadSoal() {
   try {
+    // ✅ QUERY SEDERHANA TANPA ORDERBY (tidak butuh index)
     const query = db.collection('bank_soal')
-      .where('guru_uid', '==', currentUser.uid)
-      .orderBy('created_at', 'desc');
+      .where('guru_uid', '==', currentUser.uid);
     
     const snapshot = await query.get();
     daftarSoal = [];
     snapshot.forEach(doc => {
       daftarSoal.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // ✅ SORTING DI CLIENT-SIDE (JavaScript)
+    daftarSoal.sort((a, b) => {
+      const timeA = a.created_at?.toDate ? a.created_at.toDate().getTime() : 0;
+      const timeB = b.created_at?.toDate ? b.created_at.toDate().getTime() : 0;
+      return timeB - timeA; // descending
     });
     
     renderSoal();
