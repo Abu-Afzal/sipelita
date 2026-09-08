@@ -65,7 +65,7 @@ async function initApp(){
   try {
     // Ambil data user dari Firestore
     const userDoc = await db.collection('users').doc(currentUserEmail).get();
-    if(userDoc.exists()) {
+    if(userDoc.exists) {
       const data = userDoc.data();
       currentUserRole = data.role || '';
       petugas = data.nama || data.namaResmi || currentUserEmail;
