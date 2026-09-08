@@ -237,6 +237,302 @@ function hideInstallBanner() {
     .login-card { padding: 26px 20px; }
     .welcome h1 { font-size: 1.3rem; }
   }
+
+    /* ─ QUICK PROMO SECTION ── */
+  .quick-promo {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+    border: 1.5px solid #99f6e4;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-top: 18px;
+    text-align: center;
+  }
+  .quick-promo h4 {
+    color: #0e7490;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .promo-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 14px 0;
+    text-align: left;
+  }
+  .promo-benefits li {
+    color: #475569;
+    font-size: 0.85rem;
+    padding: 4px 0;
+    line-height: 1.5;
+  }
+  .promo-benefits li b {
+    color: #0e7490;
+  }
+  .btn-pelajari {
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all .25s ease;
+    box-shadow: 0 4px 12px rgba(8, 145, 178, .25);
+  }
+  .btn-pelajari:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(8, 145, 178, .35);
+  }
+
+  /* ── MODAL POPUP PROMO ── */
+  .modal-overlay-promo {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.6);
+    backdrop-filter: blur(4px);
+    z-index: 10001;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .modal-overlay-promo.active {
+    display: flex;
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-promo-content {
+    background: #fff;
+    border-radius: 18px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 60px rgba(0,0,0,.3);
+    animation: slideUp .3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-promo-header {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: #fff;
+    padding: 24px;
+    text-align: center;
+    border-radius: 18px 18px 0 0;
+    position: relative;
+  }
+  .modal-promo-header h2 {
+    font-size: 1.5rem;
+    margin: 0 0 6px 0;
+  }
+  .modal-promo-header p {
+    margin: 0;
+    opacity: 0.95;
+    font-size: 0.95rem;
+  }
+  .modal-promo-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255,255,255,.2);
+    border: none;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background .2s;
+  }
+  .modal-promo-close:hover {
+    background: rgba(255,255,255,.35);
+  }
+  .modal-promo-body {
+    padding: 24px;
+  }
+  .promo-section {
+    margin-bottom: 22px;
+  }
+  .promo-section h3 {
+    color: #0e7490;
+    font-size: 1.1rem;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0f2fe;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .feature-card {
+    background: #f0fdfa;
+    border: 1px solid #ccfbf1;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: transform .2s;
+  }
+  .feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(8,145,178,.15);
+  }
+  .feature-icon {
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+  }
+  .feature-title {
+    font-weight: 700;
+    color: #0e7490;
+    font-size: 0.88rem;
+    margin-bottom: 3px;
+  }
+  .feature-desc {
+    font-size: 0.78rem;
+    color: #64748b;
+  }
+  .benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .benefits-list li {
+    padding: 7px 0;
+    color: #334155;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .benefits-list li i {
+    color: #10b981;
+    margin-top: 3px;
+  }
+  .pricing-box {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2px solid #f59e0b;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+  .pricing-box .harga {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #92400e;
+    margin: 4px 0;
+  }
+  .pricing-box .periode {
+    font-size: 0.85rem;
+    color: #78350f;
+    margin-bottom: 12px;
+  }
+  .pricing-box .hemat {
+    background: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #166534;
+    font-weight: 600;
+  }
+  .steps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: step;
+  }
+  .steps-list li {
+    counter-increment: step;
+    padding: 10px 10px 10px 50px;
+    position: relative;
+    margin-bottom: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+    color: #334155;
+    font-size: 0.9rem;
+  }
+  .steps-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #0891b2;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .testimoni-card {
+    background: #f8fafc;
+    border-left: 4px solid #0891b2;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    font-style: italic;
+    color: #475569;
+    font-size: 0.88rem;
+  }
+  .testimoni-card .author {
+    font-style: normal;
+    font-weight: 700;
+    color: #0e7490;
+    margin-top: 6px;
+    font-size: 0.82rem;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    color: #fff;
+  }
+  .cta-box h3 {
+    margin: 0 0 10px 0;
+    color: #fff;
+    border: none;
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    background: #fff;
+    color: #0e7490;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 700;
+    margin: 6px;
+    transition: transform .2s;
+  }
+  .cta-btn:hover {
+    transform: scale(1.05);
+  }
+  .cta-btn.wa {
+    background: #25D366;
+    color: #fff;
+  }
+  @media (max-width: 480px) {
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .modal-promo-header h2 {
+      font-size: 1.2rem;
+    }
+  }
 </style>
 </head>
 <body>
@@ -295,9 +591,18 @@ function hideInstallBanner() {
         </form>
       </div>
 
-      <div style="text-align:center; margin-top:0.9rem; font-size:0.83rem; color:#64748b;">
-<a href="register.html" style="color:#059669; font-weight:700; text-decoration:none;">DAFTAR DI SINI</a>
-</div>
+      <!-- ═══ SECTION PROMO DI BAWAH FORM ═══ -->
+      <div class="quick-promo">
+        <h4>✨ Kenapa SIPELITA GURU?</h4>
+        <ul class="promo-benefits">
+          <li>✅ <b>Banyak guru</b> sudah bergabung</li>
+          <li>✅ Hemat <b>10 jam/minggu</b> untuk administrasi</li>
+          <li>✅ Hanya <b>Rp 100.000/tahun</b> (Rp 8.333/bulan)</li>
+        </ul>
+        <button class="btn-pelajari" onclick="openModalPromo()">
+          <i class="fas fa-info-circle"></i> Pelajari Lebih Lanjut
+        </button>
+      </div>
 
       <a class="help-link" href="https://wa.me/6281347027844" target="_blank">
         <i class="fab fa-whatsapp"></i> Butuh bantuan? Hubungi Admin
@@ -381,6 +686,130 @@ function hideInstallBanner() {
 
     btnKirim.addEventListener('click', kirim);
     inputReset.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); kirim(); } });
+  </script>
+    <!-- ═══ MODAL POPUP PELAJARI LEBIH LANJUT ═══ -->
+  <div class="modal-overlay-promo" id="modalPromo">
+    <div class="modal-promo-content">
+      <div class="modal-promo-header">
+        <button class="modal-promo-close" onclick="closeModalPromo()">✕</button>
+        <h2>🎓 SIPELITA GURU</h2>
+        <p>Solusi Administrasi Mengajar Modern</p>
+      </div>
+      <div class="modal-promo-body">
+
+        <!-- FITUR UNGGULAN -->
+        <div class="promo-section">
+          <h3><i class="fas fa-star"></i> Fitur Unggulan</h3>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">📋</div>
+              <div class="feature-title">Absensi Digital</div>
+              <div class="feature-desc">Dengan foto siswa</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">⭐</div>
+              <div class="feature-title">Penilaian Otomatis</div>
+              <div class="feature-desc">Formatif & Sumatif</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon"></div>
+              <div class="feature-title">Jadwal + Alarm</div>
+              <div class="feature-desc">Pengingat suara</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon"></div>
+              <div class="feature-title">Analisis Nilai</div>
+              <div class="feature-desc">Grafik otomatis</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">📝</div>
+              <div class="feature-title">Jurnal Mengajar</div>
+              <div class="feature-desc">Online & terintegrasi</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">📄</div>
+              <div class="feature-title">Cetak PDF</div>
+              <div class="feature-desc">Berkop sekolah</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KEUNTUNGAN -->
+        <div class="promo-section">
+          <h3><i class="fas fa-check-circle"></i> Keuntungan untuk Anda</h3>
+          <ul class="benefits-list">
+            <li><i class="fas fa-check"></i> <span><b>Hemat 10 jam/minggu</b> — tidak perlu lagi lembur untuk administrasi</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Akses di mana saja</b> — dari HP, tablet, atau laptop</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Laporan profesional</b> — PDF berkop sekolah siap cetak</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Data aman</b> — tersimpan di cloud dengan enkripsi</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Support 24/7</b> — tim kami siap membantu kapan saja</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Update berkala</b> — fitur baru setiap bulan</span></li>
+          </ul>
+        </div>
+
+        <!-- HARGA -->
+        <div class="promo-section">
+          <div class="pricing-box">
+            <div style="font-size:0.85rem; color:#78350f; font-weight:600;">💰 INVESTASI TERJANGKAU</div>
+            <div class="harga">Rp 100.000</div>
+            <div class="periode">per tahun / per akun guru</div>
+            <div class="hemat">✨ = Hanya Rp 8.333/bulan (lebih murah dari 1x makan!)</div>
+          </div>
+        </div>
+
+        <!-- CARA DAFTAR -->
+        <div class="promo-section">
+          <h3><i class="fas fa-list-ol"></i> Cara Daftar (3 Langkah Mudah)</h3>
+          <ol class="steps-list">
+            <li>Klik tombol <b>"Daftar di sini"</b> dan isi data diri Anda</li>
+            <li>Lakukan transfer biaya layanan <b>Rp 100.000/tahun</b></li>
+            <li>Admin akan approve dalam <b>&lt; 24 jam</b> — langsung bisa pakai!</li>
+          </ol>
+        </div>
+
+        <!-- TESTIMONI -->
+        <div class="promo-section">
+          <h3><i class="fas fa-comments"></i> Apa Kata Mereka?</h3>
+          <div class="testimoni-card">
+            "Sejak pakai SIPELITA, saya hemat 2 jam setiap hari untuk administrasi. Fitur alarmnya juga sangat membantu!"
+            <div class="author">— Bu Ani, Guru SMA Jakarta</div>
+          </div>
+          <div class="testimoni-card">
+            "Laporan PDF-nya profesional banget, langsung bisa ditandatangani Kepala Sekolah. Sangat recommended!"
+            <div class="author">— Pak Budi, Guru MAN Bantaeng</div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-box">
+          <h3>🚀 Mulai Perjalanan Digital Anda!</h3>
+          <p style="margin-bottom:14px; font-size:0.9rem;">Bergabunglah dengan 500+ guru yang sudah merasakan kemudahan</p>
+          <a href="register.html" class="cta-btn">📝 Daftar Sekarang</a>
+          <a href="https://wa.me/6281347027844" class="cta-btn wa" target="_blank">💬 Tanya Admin</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT MODAL -->
+  <script>
+    function openModalPromo() {
+      document.getElementById('modalPromo').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModalPromo() {
+      document.getElementById('modalPromo').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    // Tutup modal saat klik di luar
+    document.getElementById('modalPromo').addEventListener('click', function(e) {
+      if (e.target === this) closeModalPromo();
+    });
+    // Tutup dengan tombol ESC
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeModalPromo();
+    });
   </script>
 </body>
 </html>
