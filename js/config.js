@@ -61,7 +61,6 @@ const CONFIG = {
         { icon: '🎓', title: 'SIBEL', desc: 'Sistem Belajar Digital', color: '#d8b580', page: 'pages/elearning.html' },
         { icon: '📁', title: 'E-DOKUMEN', desc: 'Brankas Dokumen & Arsip', color: '#1e88e5', page: 'pages/edokumen.html' },
         { icon: '🏥', title: 'SEHAT', desc: 'Sistem Informasi Kesehatan', color: '#e91e63', page: 'pages/sehat.html' },
-        { icon: '📚', title: 'JURNAL KELAS', desc: 'Catatan & Laporan PBM', color: '#2cc0c0', page: 'pages/jurnal-online.html' },
         { icon: '🏆', title: 'EKSKUL', desc: 'Laporan Ekstrakurikuler', color: '#d64413', page: 'pages/ekskul.html' },
         { 
             icon: '📗',  // ← Tetap tambahkan icon sebagai fallback
