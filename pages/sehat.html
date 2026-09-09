@@ -126,12 +126,11 @@
   <!-- PROFIL -->
   <div id="tab-profil" style="display:none">
     <div class="card">
-      <div class="fg search-wrap">
-        <label>Cari Siswa untuk Profil Kesehatan</label>
-        <input type="text" id="cariProfil" placeholder="Ketik nama siswa..." autocomplete="off">
-        <div class="search-drop" id="dropProfil"></div>
-        <div id="chipProfil"></div>
-      </div>
+      <div class="grid2">
+  <div class="fg"><label>Nama Siswa *</label><input type="text" id="pNamaSiswa" placeholder="Ketik nama siswa..." required></div>
+  <div class="fg"><label>Kelas *</label><input type="text" id="pKelasSiswa" placeholder="Contoh: X IPA 1" required></div>
+</div>
+<p style="font-size:0.8rem; color:#64748b; margin-top:-10px; margin-bottom:10px;">💡 Ketik Nama & Kelas yang sama untuk memperbarui data profil yang sudah ada.</p>
       <div id="formProfil" style="display:none">
         <div class="grid2">
           <div class="fg"><label>Golongan Darah</label>
@@ -178,12 +177,10 @@
   <div id="tab-skrining" style="display:none">
     <div class="card">
       <h3 style="margin:0 0 15px;color:#0f766e;">📏 Skrining Kesehatan (DDJS)</h3>
-      <div class="fg search-wrap">
-        <label>Cari Siswa</label>
-        <input type="text" id="cariSkrining" placeholder="Ketik nama siswa..." autocomplete="off">
-        <div class="search-drop" id="dropSkrining"></div>
-        <div id="chipSkrining"></div>
-      </div>
+      <div class="grid2">
+  <div class="fg"><label>Nama Siswa *</label><input type="text" id="sNamaSiswa" placeholder="Ketik nama siswa..." required></div>
+  <div class="fg"><label>Kelas *</label><input type="text" id="sKelasSiswa" placeholder="Contoh: X IPA 1" required></div>
+</div>
       <div class="chart-box" id="chartCard" style="display:none">
         <div style="font-size:.85rem;font-weight:700;color:#0f766e;margin-bottom:6px">📈 Grafik Pertumbuhan <span id="chartInfo"></span></div>
         <svg id="chartSvg" viewBox="0 0 600 220" style="width:100%;height:auto"></svg>

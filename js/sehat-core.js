@@ -1,12 +1,10 @@
 // ══════════════════════════════════════════════
-// SEHAT CORE - UKS Digital (COMPAT MODE - FINAL FIXED)
+// SEHAT CORE - UKS Digital (INPUT MANUAL - FINAL)
 // ══════════════════════════════════════════════
 
-// Ambil Firebase dari global (karena sudah di-load di HTML)
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Cek auth
 auth.onAuthStateChanged(u => { 
   if (!u) {
     window.location.href = '../home.html';
@@ -16,12 +14,11 @@ auth.onAuthStateChanged(u => {
   }
 });
 
-let masterSiswa=[], kunjunganCache=[], daftarObat=[], logObat=[], skriningCache=[], daftarUsers=[];
-let selectedSiswa=null, selectedProfil=null, selectedSkrining=null, petugas='Petugas UKS';
+let kunjunganCache=[], daftarObat=[], logObat=[], skriningCache=[], daftarUsers=[];
 let currentUserEmail='', currentUserRole='', currentUserUid='';
 let config={ pengelola_email:'', pengelola_nama:'' };
 let canEdit=false;
-let userSekolahId=''; // Untuk isolasi per sekolah
+let userSekolahId=''; 
 
 const $=id=>document.getElementById(id);
 const toast=(m,e=false)=>{const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2800);};
@@ -31,7 +28,6 @@ const sanitizeKey=s=>String(s).replace(/[^a-zA-Z0-9_-]/g,'_');
 const isExpired=o=>o.ed&&new Date(o.ed)<new Date();
 const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:['🏠 Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
 
-// ══════════ ROLE / AKSES ══════════
 const isAdmin=()=> String(currentUserRole).toLowerCase()==='admin';
 
 function computeAccess(){
@@ -53,13 +49,18 @@ function applyAccess(){
   const bSK=$('btnSimpanKunjungan'); if(bSK) bSK.style.display = canEdit ? 'inline-flex' : 'none';
   const bSP=$('btnSimpanProfil'); if(bSP) bSP.style.display = canEdit ? 'inline-flex' : 'none';
   const bSS=$('btnSimpanSkrining'); if(bSS) bSS.style.display = canEdit ? 'inline-flex' : 'none';
-  document.querySelectorAll('#formProfil input,#formProfil select,#formProfil textarea').forEach(el=>el.disabled=!canEdit);
+  
+  // Disable form inputs if not canEdit
+  ['vNamaSiswa','vKelasSiswa','vKeluhan','vSuhu','vTensi','vTindakan','vObatSelect','vObatQty','vHasil','vCatatan',
+   'pNamaSiswa','pKelasSiswa','pGol','pKontak','pAlergi','pPenyakit','pCatatan',
+   'sNamaSiswa','sKelasSiswa','sTinggi','sBerat','sCatatan'].forEach(id => {
+    if($(id)) $(id).disabled = !canEdit;
+  });
   renderApotek();
 }
 
 const guard=()=>{ if(!canEdit){ toast('⚠️ Anda hanya punya akses LIHAT!', true); return false; } return true; };
 
-// ══════════ INIT APP ══════════
 async function initApp(){
   const user = auth.currentUser;
   if(!user) return;
@@ -72,18 +73,15 @@ async function initApp(){
     if(userDoc && userDoc.exists) {
       const data = userDoc.data();
       currentUserRole = data.role || '';
-      petugas = data.nama || data.namaResmi || currentUserEmail;
       userSekolahId = data.school_id || data.sekolah_id || '';
     }
     
     const badge = $('schoolBadge');
     if(badge) badge.textContent = '🏫 ' + (userSekolahId || 'Sekolah');
     const pBadge = $('petugasBadge');
-    if(pBadge) pBadge.textContent = '👤 ' + petugas;
+    if(pBadge) pBadge.textContent = '👤 ' + (userDoc.data()?.nama || userDoc.data()?.namaResmi || currentUserEmail);
     
-    await Promise.all([
-      loadMasterSiswa(), loadKunjungan(), loadApotek(), loadLogObat(), loadSkrining(), loadUsers(), loadConfig()
-    ]);
+    await Promise.all([ loadKunjungan(), loadApotek(), loadLogObat(), loadSkrining(), loadUsers(), loadConfig() ]);
     
     computeAccess();
     renderDashboard(); renderApotek(); renderLogObat(); populateObatSelect(); renderSkriningTable();
@@ -100,16 +98,6 @@ async function initApp(){
 }
 
 // ══════════ LOAD DATA (DENGAN FILTER SEKOLAH) ══════════
-async function loadMasterSiswa(){ 
-  try{ 
-    const s=await db.collection('sican_siswa').get(); 
-    masterSiswa=[]; 
-    s.forEach(d=>masterSiswa.push({id:d.id,...d.data()}));
-    masterSiswa.sort((a,b)=>(a.kelas||'').localeCompare(b.kelas||'')||(a.nama||'').localeCompare(b.nama||'')); 
-    const el=$('statSiswa'); if(el) el.textContent=masterSiswa.length; 
-  }catch(e){console.error(e);} 
-}
-
 async function loadKunjungan(){ 
   try{ 
     let q = db.collection('sehat_kunjungan');
@@ -166,7 +154,6 @@ async function loadUsers(){
         });
       }
     });
-    console.log('✅ Users loaded:', daftarUsers.length, '| Pengelola UKS:', daftarUsers.filter(u => u.akses_uks).length);
   } catch(e){ console.error('❌ Error load users:', e); } 
 }
 
@@ -185,6 +172,11 @@ function renderDashboard(){
   const sp=$('statPerlu'); if(sp) sp.textContent=hi.filter(k=>k.hasil==='istirahat'||k.hasil==='rujukan').length;
   const sb=$('statBulan'); if(sb) sb.textContent=kunjunganCache.filter(k=>(k.tanggal||'').startsWith(bulan)).length;
   const ss=$('statSkrining'); if(ss) ss.textContent=skriningCache.filter(k=>(k.tanggal||'').startsWith(tahun)).length;
+  
+  // Hitung total siswa unik dari kunjungan
+  const uniqueSiswa = new Set(kunjunganCache.map(k => k.siswa_nama + '_' + k.siswa_kelas));
+  const sts=$('statSiswa'); if(sts) sts.textContent=uniqueSiswa.size;
+
   const rows=kunjunganCache.slice(0,8);
   $('listTerbaru').innerHTML=rows.length?rows.map(k=>{const [hl,bc]=hasilLabel[k.hasil]||['-','b-kelas'];
     return `<div class="row-item"><div><b>${k.siswa_nama}</b> <span style="color:#94a3b8;font-size:.8rem">${k.siswa_kelas||''}</span>
@@ -204,20 +196,7 @@ function renderApotekAlertBar(){
   bar.innerHTML=`⚠️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
 }
 
-function bindSearch(inputId,dropId,onPick){
-  const input=$(inputId),drop=$(dropId); if(!input||!drop)return;
-  input.addEventListener('input',()=>{ const q=input.value.toLowerCase().trim();
-    if(q.length<1){drop.style.display='none';return;}
-    const res=masterSiswa.filter(s=>(s.nama||'').toLowerCase().includes(q)||(s.kelas||'').toLowerCase().includes(q)||(s.nis||'').toLowerCase().includes(q)).slice(0,10);
-    drop.innerHTML=res.length?res.map(s=>`<div class="search-item" data-id="${s.id}"><b>${s.nama}</b> — ${s.kelas||'-'}</div>`).join(''):'<div class="search-item">Tidak ditemukan</div>';
-    drop.style.display='block';
-    drop.querySelectorAll('.search-item').forEach(el=>el.onclick=()=>{const s=masterSiswa.find(x=>x.id===el.dataset.id);onPick(s);drop.style.display='none';input.value='';});
-  });
-  document.addEventListener('click',e=>{if(!e.target.closest('#'+inputId))drop.style.display='none';});
-}
-
-// ══════════ KUNJUNGAN ══════════
-
+// ══════════ KUNJUNGAN (INPUT MANUAL) ══════════
 $('btnSimpanKunjungan').onclick=async()=>{
   if(!guard())return;
   
@@ -227,91 +206,87 @@ $('btnSimpanKunjungan').onclick=async()=>{
   if(!namaSiswa){ toast('⚠️ Nama siswa wajib diisi!', true); return; }
   if(!kelasSiswa){ toast('⚠️ Kelas wajib diisi!', true); return; }
   if(!$('vKeluhan').value.trim()){ toast('⚠️ Keluhan wajib!', true); return; }
-  const obatId=$('vObatSelect').value,qty=parseInt($('vObatQty').value)||0;
-  let ob=null,obatText='';
-  if(obatId&&qty>0){ ob=daftarObat.find(x=>x.id===obatId);
+  
+  const obatId=$('vObatSelect').value, qty=parseInt($('vObatQty').value)||0;
+  let ob=null, obatText='';
+  if(obatId&&qty>0){ 
+    ob=daftarObat.find(x=>x.id===obatId);
     if(!ob){toast('⚠️ Obat tidak ditemukan!',true);return;}
     if((ob.stok||0)<qty){toast(`⚠️ Stok ${ob.nama} tidak cukup!`,true);return;}
-    obatText=`${ob.nama} ×${qty} ${ob.satuan||''}`; }
-  const btn=$('btnSimpanKunjungan');btn.disabled=true;btn.textContent='⏳ Menyimpan...';
+    obatText=`${ob.nama} ×${qty} ${ob.satuan||''}`; 
+  }
+  
+  const btn=$('btnSimpanKunjungan'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try{
     await db.collection('sehat_kunjungan').add({ 
-      sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: petugas,
-      tanggal:$('vTanggal').value,jam:$('vJam').value,
- siswa_nama: namaSiswa,
-siswa_kelas: kelasSiswa,
-// Tidak perlu siswa_id dan siswa_nis karena input manual
-      keluhan:$('vKeluhan').value.trim(),suhu:$('vSuhu').value||null,tensi:$('vTensi').value||null,
-      tindakan:$('vTindakan').value.trim()||null,obat:obatText,obat_id:obatId||'',obat_qty:qty,
-      hasil:$('vHasil').value,catatan:$('vCatatan').value.trim()||null,createdAt:new Date().toISOString()});
+      sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: $('petugasBadge').textContent.replace('👤 ','').trim(),
+      tanggal:$('vTanggal').value, jam:$('vJam').value,
+      siswa_nama: namaSiswa, siswa_kelas: kelasSiswa,
+      keluhan:$('vKeluhan').value.trim(), suhu:$('vSuhu').value||null, tensi:$('vTensi').value||null,
+      tindakan:$('vTindakan').value.trim()||null, obat:obatText, obat_id:obatId||'', obat_qty:qty,
+      hasil:$('vHasil').value, catatan:$('vCatatan').value.trim()||null, createdAt:new Date().toISOString()
+    });
+    
     if(ob&&qty>0){ 
-      await db.collection('sehat_apotek').doc(ob.id).update({stok:(ob.stok||0)-qty,updatedAt:new Date().toISOString()});
+      await db.collection('sehat_apotek').doc(ob.id).update({stok:(ob.stok||0)-qty, updatedAt:new Date().toISOString()});
       await db.collection('sehat_apotek_log').add({
         sekolah_id: userSekolahId, guru_uid: currentUserUid,
-        obat_id:ob.id,obat_nama:ob.nama,tipe:'keluar',jumlah:qty,
-        keterangan:`Kunjungan: ${selectedSiswa.nama}`,tanggal:$('vTanggal').value,createdAt:new Date().toISOString()}); 
+        obat_id:ob.id, obat_nama:ob.nama, tipe:'keluar', jumlah:qty,
+        keterangan:`Kunjungan: ${namaSiswa}`, tanggal:$('vTanggal').value, createdAt:new Date().toISOString()
+      }); 
     }
+    
     toast('✅ Kunjungan tersimpan!');
+    $('vNamaSiswa').value=''; $('vKelasSiswa').value='';
     ['vKeluhan','vSuhu','vTensi','vTindakan','vCatatan'].forEach(id=>$(id).value='');
-    $('vObatSelect').value='';$('vObatQty').value=1;$('chipSiswa').innerHTML='';selectedSiswa=null;
-    await Promise.all([loadKunjungan(),loadApotek(),loadLogObat()]);
-    renderDashboard();renderRiwayat();renderApotek();renderLogObat();populateObatSelect();
+    $('vObatSelect').value=''; $('vObatQty').value=1;
+    
+    await Promise.all([loadKunjungan(), loadApotek(), loadLogObat()]);
+    renderDashboard(); renderRiwayat(); renderApotek(); renderLogObat(); populateObatSelect();
   }catch(e){toast('❌ '+e.message,true);}
-  finally{btn.disabled=false;btn.textContent='💾 Simpan Kunjungan';}
+  finally{btn.disabled=false; btn.textContent='💾 Simpan Kunjungan';}
 };
 
-// ══════════ RIWAYAT & PROFIL ══════════
+// ══════════ RIWAYAT ══════════
 function initFilterRiwayat(){
   const names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   $('fBulan').innerHTML=names.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
-  const y=new Date().getFullYear();$('fTahun').innerHTML=[y-1,y,y+1].map(v=>`<option>${v}</option>`).join('');
+  const y=new Date().getFullYear(); $('fTahun').innerHTML=[y-1,y,y+1].map(v=>`<option>${v}</option>`).join('');
   $('fBulan').value=String(new Date().getMonth()+1).padStart(2,'0');
   ['fBulan','fTahun','fNama'].forEach(id=>$(id).addEventListener('input',renderRiwayat));
 }
 
 function renderRiwayat(){
-  const pre=$('fTahun').value+'-'+$('fBulan').value,q=$('fNama').value.toLowerCase();
+  const pre=$('fTahun').value+'-'+$('fBulan').value, q=$('fNama').value.toLowerCase();
   const rows=kunjunganCache.filter(k=>(k.tanggal||'').startsWith(pre)&&(!q||(k.siswa_nama||'').toLowerCase().includes(q)));
   $('tbodyRiwayat').innerHTML=rows.length?rows.map(k=>{const [hl,bc]=hasilLabel[k.hasil]||['-','b-kelas'];
     return `<tr><td>${k.tanggal}</td><td><b>${k.siswa_nama}</b></td><td>${k.siswa_kelas||'-'}</td><td>${k.keluhan||'-'}</td><td>${k.obat||'-'}</td><td><span class="badge ${bc}">${hl}</span></td></tr>`;}).join('')
     :'<tr><td colspan="6" class="empty">Tidak ada data.</td></tr>';
 }
 
-<div class="grid2">
-  <div class="fg">
-    <label>Nama Siswa *</label>
-    <input type="text" id="pNamaSiswa" placeholder="Ketik nama siswa..." required>
-  </div>
-  <div class="fg">
-    <label>Kelas *</label>
-    <input type="text" id="pKelasSiswa" placeholder="Contoh: X IPA 1" required>
-  </div>
-</div>
-  selectedProfil=s;$('chipProfil').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;$('formProfil').style.display='block';
-  ['pKontak','pAlergi','pPenyakit','pCatatan'].forEach(id=>$(id).value='');$('pGol').value='-';
-  try{const g=await db.collection('sehat_profil').doc(sanitizeKey(s.nis||s.id)).get();
-    if(g && g.exists){const d=g.data();$('pGol').value=d.golongan_darah||'-';$('pKontak').value=d.kontak_darurat||'';$('pAlergi').value=d.alergi||'';$('pPenyakit').value=d.penyakit_bawaan||'';$('pCatatan').value=d.catatan||'';}}catch(e){}
-  renderRiwayatProfil(s);
-});
-
+// ══════════ PROFIL (INPUT MANUAL) ══════════
 $('btnSimpanProfil').onclick=async()=>{
   if(!guard())return;
-  if(!selectedProfil){toast('⚠️ Pilih siswa!',true);return;}
-  await db.collection('sehat_profil').doc(sanitizeKey(selectedProfil.nis||selectedProfil.id)).set({
+  const namaSiswa = $('pNamaSiswa').value.trim();
+  const kelasSiswa = $('pKelasSiswa').value.trim();
+  if(!namaSiswa || !kelasSiswa) { toast('⚠️ Nama dan Kelas wajib diisi!', true); return; }
+  
+  // Gunakan kombinasi nama dan kelas sebagai ID dokumen agar bisa di-update
+  const docId = sanitizeKey(namaSiswa + '_' + kelasSiswa);
+  
+  await db.collection('sehat_profil').doc(docId).set({
     sekolah_id: userSekolahId, guru_uid: currentUserUid,
-    siswa_id:selectedProfil.id,nis:selectedProfil.nis||'',nama:selectedProfil.nama,kelas:selectedProfil.kelas||'',
-    golongan_darah:$('pGol').value,kontak_darurat:$('pKontak').value.trim(),alergi:$('pAlergi').value.trim(),
-    penyakit_bawaan:$('pPenyakit').value.trim(),catatan:$('pCatatan').value.trim(),updatedAt:new Date().toISOString()
-  });
-  toast('✅ Profil tersimpan!');
+    nama: namaSiswa, kelas: kelasSiswa,
+    golongan_darah:$('pGol').value, kontak_darurat:$('pKontak').value.trim(),
+    alergi:$('pAlergi').value.trim(), penyakit_bawaan:$('pPenyakit').value.trim(),
+    catatan:$('pCatatan').value.trim(), updatedAt:new Date().toISOString()
+  }, { merge: true });
+  
+  toast('✅ Profil tersimpan/diperbarui!');
+  $('pNamaSiswa').value=''; $('pKelasSiswa').value='';
+  $('pGol').value='-'; $('pKontak').value=''; $('pAlergi').value='';
+  $('pPenyakit').value=''; $('pCatatan').value='';
 };
-
-function renderRiwayatProfil(s){
-  const rows=kunjunganCache.filter(k=>(k.siswa_nis===s.nis)||(k.siswa_nama===s.nama)||(k.siswa_id===s.id));
-  $('riwayatProfil').innerHTML = rows.length ? '<h4 style="color:#0f766e">📒 Riwayat Kunjungan</h4><table><thead><tr><th>Tanggal</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr></thead><tbody>'+
-    rows.map(k=>{ const [hl,bc]=hasilLabel[k.hasil]||['-','b-kelas']; return `<tr><td>${k.tanggal}</td><td>${k.keluhan||'-'}</td><td>${k.obat||'-'}</td><td><span class="badge ${bc}">${hl}</span></td></tr>`; }).join('')+'</tbody></table>'
-    : '<div class="empty">Belum ada riwayat.</div>';
-}
 
 // ══════════ APOTEK ══════════
 function statusObat(o){
@@ -398,7 +373,7 @@ async function simpanStok(){
   }catch(e){ toast('❌ '+e.message, true); }
 }
 
-// ══════════ SKRINING ══════════
+// ══════════ SKRINING (INPUT MANUAL) ══════════
 function hitungIMT(tbCm, bbKg){ if(!tbCm||!bbKg) return null; const m = tbCm/100; return (bbKg/(m*m)).toFixed(1); }
 function statusGizi(imt){
   if(!imt) return {text:'-', cls:'b-kelas'};
@@ -409,10 +384,6 @@ function statusGizi(imt){
   if(v < 27) return {text:'🟡 Agak Gemuk', cls:'b-amber'};
   return {text:'🔴 Obesitas', cls:'b-red'};
 }
-
-bindSearch('cariSkrining','dropSkrining', s=>{
-  selectedSkrining=s; $('chipSkrining').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`; $('sKelas').value = s.kelas || ''; renderSkriningDetail(s);
-});
 
 ['sTinggi','sBerat'].forEach(id=>{
   const el=$(id); if(el) el.addEventListener('input', ()=>{
@@ -429,20 +400,26 @@ bindSearch('cariSkrining','dropSkrining', s=>{
 
 $('btnSimpanSkrining').onclick = async ()=>{
   if(!guard())return;
-  if(!selectedSkrining){ toast('⚠️ Pilih siswa!', true); return; }
+  const namaSiswa = $('sNamaSiswa').value.trim();
+  const kelasSiswa = $('sKelasSiswa').value.trim();
+  if(!namaSiswa || !kelasSiswa) { toast('⚠️ Nama dan Kelas wajib diisi!', true); return; }
+  
   const tb=parseFloat($('sTinggi').value), bb=parseFloat($('sBerat').value);
   if(!tb||!bb){ toast('⚠️ TB & BB wajib diisi!', true); return; }
+  
   const imt=hitungIMT(tb,bb), st=statusGizi(imt);
   const btn=$('btnSimpanSkrining'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try{
     await db.collection('sehat_skrining').add({
-      sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: petugas,
-      siswa_id:selectedSkrining.id, siswa_nis:selectedSkrining.nis||'', siswa_nama:selectedSkrining.nama, siswa_kelas:selectedSkrining.kelas||'',
-      tanggal:$('sTanggal').value, tb, bb, imt:parseFloat(imt), status_gizi:st.text, catatan:$('sCatatan').value.trim()||'', createdAt:new Date().toISOString()
+      sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: $('petugasBadge').textContent.replace('👤 ','').trim(),
+      siswa_nama: namaSiswa, siswa_kelas: kelasSiswa,
+      tanggal:$('sTanggal').value, tb, bb, imt:parseFloat(imt), status_gizi:st.text,
+      catatan:$('sCatatan').value.trim()||'', createdAt:new Date().toISOString()
     });
     toast('✅ Skrining tersimpan!');
-    $('sTinggi').value=''; $('sBerat').value=''; $('sCatatan').value=''; $('sImt').textContent='-'; $('sStatus').textContent='-'; $('sKelas').value='';
-    $('chipSkrining').innerHTML=''; selectedSkrining=null;
+    $('sNamaSiswa').value=''; $('sKelasSiswa').value='';
+    $('sTinggi').value=''; $('sBerat').value=''; $('sCatatan').value=''; 
+    $('sImt').textContent='-'; $('sStatus').textContent='-';
     await loadSkrining(); renderDashboard(); renderSkriningTable();
   }catch(e){ toast('❌ '+e.message, true); }
   finally{ btn.disabled=false; btn.textContent='💾 Simpan Skrining'; }
@@ -456,96 +433,47 @@ function renderSkriningTable(){
   }).join('') : '<tr><td colspan="7" class="empty">Belum ada data skrining.</td></tr>';
 }
 
-function renderSkriningDetail(s){
-  const rows = skriningCache.filter(k=>(k.siswa_nis===s.nis)||(k.siswa_id===s.id));
-  rows.sort((a,b)=>(a.tanggal||'').localeCompare(b.tanggal||''));
-  const card=$('chartCard'), info=$('chartInfo');
-  if(!card) return;
-  if(rows.length<1){ card.style.display='none'; return; }
-  card.style.display='block';
-  if(info) info.textContent = `— ${s.nama}`;
-  
-  const svg=$('chartSvg'); if(!svg) return;
-  const W=600, H=220, pad=40;
-  const tbs=rows.map(r=>r.tb), bbs=rows.map(r=>r.bb);
-  const minTB=Math.min(...tbs)*0.95, maxTB=Math.max(...tbs)*1.05||1;
-  const minBB=Math.min(...bbs)*0.95, maxBB=Math.max(...bbs)*1.05||1;
-  const dx = rows.length>1 ? (W-pad*2)/(rows.length-1) : 0;
-  const pointsTB = rows.map((r,i)=>({ x:pad+i*dx, y:pad+(H-pad*2)*(1-(r.tb-minTB)/(maxTB-minTB||1)), v:r.tb, t:r.tanggal }));
-  const pointsBB = rows.map((r,i)=>({ x:pad+i*dx, y:pad+(H-pad*2)*(1-(r.bb-minBB)/(maxBB-minBB||1)), v:r.bb, t:r.tanggal }));
-  const pathTB = pointsTB.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
-  const pathBB = pointsBB.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
-  const dotsTB = pointsTB.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#0f766e"><title>${p.t}: ${p.v} cm</title></circle>`).join('');
-  const dotsBB = pointsBB.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#3b82f6"><title>${p.t}: ${p.v} kg</title></circle>`).join('');
-  const labels = pointsTB.filter((_,i)=>i===0||i===pointsTB.length-1||pointsTB.length<=6||i%Math.ceil(pointsTB.length/6)===0).map(p=>
-    `<text x="${p.x}" y="${H-12}" font-size="10" text-anchor="middle" fill="#64748b">${(p.t||'').slice(5,10)}</text>`).join('');
-  svg.innerHTML = `<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#e2e8f0"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#e2e8f0"/><path d="${pathTB}" fill="none" stroke="#0f766e" stroke-width="2"/><path d="${pathBB}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,2"/>${dotsTB}${dotsBB}${labels}<text x="${pad}" y="${pad-5}" font-size="10" fill="#0f766e">TB ${maxTB.toFixed(0)}</text><text x="${pad}" y="${H-pad+14}" font-size="10" fill="#0f766e">TB ${minTB.toFixed(0)}</text><text x="${W-pad}" y="${pad-5}" font-size="10" fill="#3b82f6" text-anchor="end">BB ${maxBB.toFixed(0)}</text><text x="${W-pad}" y="${H-pad+14}" font-size="10" fill="#3b82f6" text-anchor="end">BB ${minBB.toFixed(0)}</text>`;
-}
-
-// ══════════ SETTINGS (Admin Only - TAB VERSION) ══════════
+// ══════════ SETTINGS (Admin Only) ══════════
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
-  
-  const emailBaru = $('selPengelola').value; // ✅ FIXED: Menggunakan ID dari Tab
+  const emailBaru = $('selPengelola').value;
   if(!emailBaru){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
-  
   const userBaru = daftarUsers.find(x => x.email === emailBaru);
   if(!userBaru){ toast('⚠️ User tidak ditemukan!', true); return; }
   
   try{
-    // 1. Cabut akses pengelola lama
     if(config.pengelola_email && config.pengelola_email !== emailBaru){
       await db.collection('users').doc(config.pengelola_email).update({ akses_uks: false });
     }
-    
-    // 2. Beri akses pengelola baru
     config = { pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru };
     await db.collection('sehat_config').doc('settings').set(config);
     await db.collection('users').doc(emailBaru).update({ akses_uks: true });
     
     toast('✅ Pengelola UKS diganti: ' + config.pengelola_nama);
-    
-    // 3. Update UI
     $('pengelolaNow').textContent = config.pengelola_nama;
-    await loadUsers();
-    await computeAccess();
-    updateTabSettingsUI();
-    
-  } catch(e){ 
-    toast('❌ Gagal: ' + e.message, true); 
-  }
+    await loadUsers(); computeAccess(); updateTabSettingsUI();
+  } catch(e){ toast('❌ Gagal: ' + e.message, true); }
 }
 
 async function cabutAksesPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   if(!config.pengelola_email){ toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
-  
-  if(!confirm(`❌ Cabut akses UKS dari "${config.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)) return;
+  if(!confirm(`❌ Cabut akses UKS dari "${config.pengelola_nama}"?`)) return;
   
   try{
     await db.collection('users').doc(config.pengelola_email).update({ akses_uks: false });
     await db.collection('sehat_config').doc('settings').set({ pengelola_email: '', pengelola_nama: '' });
-    
     config = { pengelola_email: '', pengelola_nama: '' };
     toast('✅ Akses pengelola UKS telah dicabut!');
-    
-    await loadUsers();
-    await computeAccess();
-    updateTabSettingsUI();
-    
+    await loadUsers(); computeAccess(); updateTabSettingsUI();
     if($('selPengelola')) $('selPengelola').value = '';
     if($('pengelolaNow')) $('pengelolaNow').textContent = 'Belum ada';
-    
-  } catch(e){ 
-    toast('❌ Gagal: ' + e.message, true); 
-  }
+  } catch(e){ toast('❌ Gagal: ' + e.message, true); }
 }
 
 function updateTabSettingsUI(){
   const btnCabut = $('btnCabutAksesTab');
-  if(btnCabut){
-    btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
-  }
+  if(btnCabut) btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
 }
 
 // ══════════ LAPORAN ══════════
@@ -588,7 +516,7 @@ function exportLaporanPDF(){
   const d=getLaporanData();
   const bn=MONTHS[parseInt(d.pre.slice(5,7))-1], th=d.pre.slice(0,4);
   const tgl=new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-  const petugasNama=config.pengelola_nama||petugas;
+  const petugasNama=config.pengelola_nama||$('petugasBadge').textContent.replace('👤 ','').trim();
   const pu=daftarUsers.find(u=>u.email===config.pengelola_email)||{};
   const nipPetugas=pu.nip||'-';
   const kRows=d.kunj.map((k,i)=>`<tr><td>${i+1}</td><td>${k.tanggal}</td><td>${k.siswa_nama}</td><td>${k.siswa_kelas||'-'}</td><td>${k.keluhan||'-'}</td><td>${k.obat||'-'}</td><td>${(hasilLabel[k.hasil]||['-'])[0]}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center">Tidak ada data</td></tr>';
@@ -652,11 +580,9 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   if(t.dataset.tab === 'apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab === 'skrining') renderSkriningTable();
   
-  // ✅ LOGIKA TAB SETTINGS YANG DIPERBAIKI
   if(t.dataset.tab === 'settings'){
     const selTab = $('selPengelola');
     if(!daftarUsers || daftarUsers.length === 0) await loadUsers();
-    
     let options = '<option value="">-- Pilih User --</option>';
     if(daftarUsers.length > 0) {
       options += daftarUsers.filter(u => u.email && u.email.trim() !== '').map(u => {
@@ -667,10 +593,8 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
         return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
       }).join('');
     }
-    
     if(selTab) selTab.innerHTML = options;
     if($('pengelolaNow')) $('pengelolaNow').textContent = config.pengelola_nama || 'Belum ada';
-    
     updateTabSettingsUI();
   }
 });
