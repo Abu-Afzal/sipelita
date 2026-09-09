@@ -544,29 +544,40 @@ function renderChart(rows){
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   
-  const email = $('selPengelola').value;
-  if(!email){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
+  const emailBaru = $('selPengelola').value;
+  if(!emailBaru){ toast('️ Pilih user terlebih dahulu!', true); return; }
   
-  const u = daftarUsers.find(x => x.email === email);
-  if(!u){ toast('⚠️ User tidak ditemukan!', true); return; }
+  const userBaru = daftarUsers.find(x => x.email === emailBaru);
+  if(!userBaru){ toast('⚠️ User tidak ditemukan!', true); return; }
   
   try{
-    // 1. Update config
-    config = { pengelola_email: email, pengelola_nama: u.nama || u.namaResmi || email };
+    // 1. ✅ CABUT AKSES PENGELOLA LAMA
+    if(config.pengelola_email && config.pengelola_email !== emailBaru){
+      await db.collection('users').doc(config.pengelola_email).update({
+        akses_uks: false  // Cabut akses lama
+      });
+      console.log('✅ Akses pengelola lama dicabut:', config.pengelola_email);
+    }
+    
+    // 2. BERI AKSES PENGELOLA BARU
+    config = { 
+      pengelola_email: emailBaru, 
+      pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru 
+    };
     await db.collection('sehat_config').doc('settings').set(config);
     
-    // 2. ✅ UPDATE USER DOCUMENT dengan field akses_uks
-    await db.collection('users').doc(email).update({
-      akses_uks: true  // ✅ INI YANG PENTING!
+    await db.collection('users').doc(emailBaru).update({
+      akses_uks: true  // Beri akses baru
     });
     
-    toast('✅ Pengelola UKS ditetapkan: ' + (u.nama || u.namaResmi || email));
+    toast('✅ Pengelola UKS diganti: ' + (userBaru.nama || userBaru.namaResmi || emailBaru));
     
     // 3. Update UI
     const pn = $('pengelolaNow'); 
     if(pn) pn.textContent = config.pengelola_nama;
     
-    // 4. Refresh access
+    // 4. Refresh access & reload users
+    await loadUsers();
     await computeAccess();
     
     // 5. Close modal
