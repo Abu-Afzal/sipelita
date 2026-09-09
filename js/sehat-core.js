@@ -544,17 +544,18 @@ function renderChart(rows){
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   
-  const emailBaru = $('selPengelola').value;
-  if(!emailBaru){ toast('️ Pilih user terlebih dahulu!', true); return; }
+  // ✅ PERBAIKAN: 'setPengelola' bukan 'selPengelola'
+  const emailBaru = $('setPengelola').value;
+  if(!emailBaru){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
   
   const userBaru = daftarUsers.find(x => x.email === emailBaru);
-  if(!userBaru){ toast('⚠️ User tidak ditemukan!', true); return; }
+  if(!userBaru){ toast('️ User tidak ditemukan!', true); return; }
   
   try{
     // 1. ✅ CABUT AKSES PENGELOLA LAMA
     if(config.pengelola_email && config.pengelola_email !== emailBaru){
       await db.collection('users').doc(config.pengelola_email).update({
-        akses_uks: false  // Cabut akses lama
+        akses_uks: false
       });
       console.log('✅ Akses pengelola lama dicabut:', config.pengelola_email);
     }
@@ -567,7 +568,7 @@ async function simpanPengelola(){
     await db.collection('sehat_config').doc('settings').set(config);
     
     await db.collection('users').doc(emailBaru).update({
-      akses_uks: true  // Beri akses baru
+      akses_uks: true
     });
     
     toast('✅ Pengelola UKS diganti: ' + (userBaru.nama || userBaru.namaResmi || emailBaru));
@@ -579,6 +580,7 @@ async function simpanPengelola(){
     // 4. Refresh access & reload users
     await loadUsers();
     await computeAccess();
+    updateModalSettingsUI();
     
     // 5. Close modal
     closeModal('modalSettings');
@@ -742,10 +744,17 @@ const btnBatalObat = $('btnBatalObat'); if (btnBatalObat) btnBatalObat.onclick =
 const btnSimpanObat = $('btnSimpanObat'); if (btnSimpanObat) btnSimpanObat.onclick = simpanObat;
 const btnBatalStok = $('btnBatalStok'); if (btnBatalStok) btnBatalStok.onclick = ()=> $('modalStok').classList.remove('show');
 const btnSimpanStok = $('btnSimpanStok'); if (btnSimpanStok) btnSimpanStok.onclick = simpanStok;
-const btnSP = $('btnSimpanPengelola'); if (btnSP) btnSP.onclick = simpanPengelola;
+
+// ✅ PERBAIKAN: Hapus referensi ke btnSimpanPengelola (tidak ada di HTML baru)
+// const btnSP = $('btnSimpanPengelola'); if (btnSP) btnSP.onclick = simpanPengelola;
+
 const btnExportLaporan = $('btnExportLaporan'); if (btnExportLaporan) btnExportLaporan.onclick = exportLaporanPDF;
 const btnBatalSettings = $('btnBatalSettings'); if (btnBatalSettings) btnBatalSettings.onclick = ()=> closeModal('modalSettings');
 const btnSimpanConfig = $('btnSimpanConfig'); if (btnSimpanConfig) btnSimpanConfig.onclick = simpanPengelola;
+
+// ✅ TAMBAHKAN: Binding untuk tombol Cabut Akses
+const btnCabutAkses = $('btnCabutAkses'); 
+if (btnCabutAkses) btnCabutAkses.onclick = cabutAksesPengelola;
 
 // ✅ PERBAIKAN: Tambahkan 'async' agar 'await loadUsers()' bisa berjalan
 document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
