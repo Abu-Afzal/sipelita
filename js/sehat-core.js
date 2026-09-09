@@ -512,42 +512,167 @@ function renderLaporan(){
   <p style="font-size:.85rem;color:#64748b">📌 Klik <b>📄 Export PDF</b> untuk mencetak laporan lengkap bulan ini.</p>`;
 }
 
-function exportLaporanPDF(){
-  const d=getLaporanData();
-  const bn=MONTHS[parseInt(d.pre.slice(5,7))-1], th=d.pre.slice(0,4);
-  const tgl=new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-  const petugasNama=config.pengelola_nama||$('petugasBadge').textContent.replace('👤 ','').trim();
-  const pu=daftarUsers.find(u=>u.email===config.pengelola_email)||{};
-  const nipPetugas=pu.nip||'-';
-  const kRows=d.kunj.map((k,i)=>`<tr><td>${i+1}</td><td>${k.tanggal}</td><td>${k.siswa_nama}</td><td>${k.siswa_kelas||'-'}</td><td>${k.keluhan||'-'}</td><td>${k.obat||'-'}</td><td>${(hasilLabel[k.hasil]||['-'])[0]}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center">Tidak ada data</td></tr>';
-  const sRows=d.skr.map((s,i)=>`<tr><td>${i+1}</td><td>${s.tanggal}</td><td>${s.siswa_nama}</td><td>${s.siswa_kelas||'-'}</td><td>${s.tb}</td><td>${s.bb}</td><td>${s.imt}</td><td>${s.status_gizi||'-'}</td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center">Tidak ada data</td></tr>';
-  const lRows=d.log.map((l,i)=>`<tr><td>${i+1}</td><td>${l.tanggal}</td><td>${l.obat_nama}</td><td>${l.tipe==='masuk'?'Masuk':'Keluar'}</td><td>${l.jumlah}</td><td>${l.keterangan||'-'}</td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center">Tidak ada data</td></tr>';
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Laporan UKS ${bn} ${th}</title><style>
-    body{font-family:'Times New Roman',serif;font-size:11pt;color:#000;padding:20px}
-    .kop{text-align:center;border-bottom:3px double #000;padding-bottom:8px;margin-bottom:14px}
-    .kop h2{margin:2px 0;font-size:14pt}.kop h3{margin:2px 0;font-size:12pt}.kop p{margin:2px 0;font-size:9pt}
-    h4{margin:14px 0 6px} table{width:100%;border-collapse:collapse;font-size:10pt}
-    th,td{border:1px solid #000;padding:5px;text-align:left} th{background:#eee}
-    .sign{display:flex;justify-content:space-between;margin-top:30px}
-    .sign div{text-align:left;line-height:1.5}.sign .kiri{width:48%;padding-top:22px}.sign .kanan{width:34%}.sign .ttd{height:70px}
-  </style></head><body>
-  <div class="kop"><h2>${MADRASAH.kemenag}</h2><h3>${MADRASAH.nama}</h3><p>${MADRASAH.alamat}</p></div>
-  <h3 style="text-align:center">LAPORAN BULANAN UNIT KESEHATAN SEKOLAH</h3>
-  <p style="text-align:center"><b>Bulan ${bn} ${th}</b></p>
+// ══════════ LAPORAN PDF (DINAMIS BERDASARKAN SIG) ══════════
+async function exportLaporanPDF(){
+  const d = getLaporanData();
+  const bn = MONTHS[parseInt(d.pre.slice(5,7))-1];
+  const th = d.pre.slice(0,4);
+  const tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+  
+  // 1. Ambil data pengelola saat ini
+  const pengelolaData = daftarUsers.find(u => u.email === config.pengelola_email) || {};
+  const pengelolaNama = config.pengelola_nama || $('petugasBadge').textContent.replace('👤 ','').trim();
+  const pengelolaNip = pengelolaData.nip || '-';
+  
+  // 2. Default data madrasah (fallback jika data SIG belum terisi)
+  let sekolahData = {
+    nama: 'MADRASAH ALIYAH NEGERI BANTAENG',
+    alamat: 'Jl. ... (isi alamat madrasah)',
+    kepala_nama: 'Muhammad Arif Pither, S.Ag.,M.M.,M.Pd',
+    kepala_nip: '19710930 200710 1 001'
+  };
+  
+  // 3. ✅ AMBIL DATA MADRASAH DINAMIS DARI COLLECTION 'sekolah' (SIG)
+  try {
+    if (userSekolahId) {
+      // Coba ambil dari collection 'sekolah' (atau ganti 'madrasah' jika nama collection Anda berbeda)
+      const sekolahDoc = await db.collection('sekolah').doc(userSekolahId).get();
+      if (sekolahDoc.exists) {
+        const data = sekolahDoc.data();
+        sekolahData = {
+          nama: data.nama || data.nama_madrasah || sekolahData.nama,
+          alamat: data.alamat || data.alamat_lengkap || sekolahData.alamat,
+          kepala_nama: data.kepala_nama || data.nama_kepala || sekolahData.kepala_nama,
+          kepala_nip: data.kepala_nip || data.nip_kepala || sekolahData.kepala_nip
+        };
+      }
+    }
+  } catch(e) {
+    console.error('Gagal ambil data sekolah dari SIG:', e);
+  }
+
+  // 4. Siapkan baris tabel
+  const kRows = d.kunj.map((k,i) => `<tr>
+    <td style="text-align:center">${i+1}</td>
+    <td>${k.tanggal}</td>
+    <td>${k.siswa_nama}</td>
+    <td style="text-align:center">${k.siswa_kelas||'-'}</td>
+    <td>${k.keluhan||'-'}</td>
+    <td>${k.obat||'-'}</td>
+    <td style="text-align:center">${(hasilLabel[k.hasil]||['-'])[0]}</td>
+  </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;font-style:italic">Tidak ada data</td></tr>';
+  
+  const sRows = d.skr.map((s,i) => `<tr>
+    <td style="text-align:center">${i+1}</td>
+    <td>${s.tanggal}</td>
+    <td>${s.siswa_nama}</td>
+    <td style="text-align:center">${s.siswa_kelas||'-'}</td>
+    <td style="text-align:right">${s.tb}</td>
+    <td style="text-align:right">${s.bb}</td>
+    <td style="text-align:right">${s.imt}</td>
+    <td style="text-align:center">${s.status_gizi||'-'}</td>
+  </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;font-style:italic">Tidak ada data</td></tr>';
+  
+  const lRows = d.log.map((l,i) => `<tr>
+    <td style="text-align:center">${i+1}</td>
+    <td>${l.tanggal}</td>
+    <td>${l.obat_nama}</td>
+    <td style="text-align:center">${l.tipe==='masuk'?'Masuk':'Keluar'}</td>
+    <td style="text-align:right">${l.jumlah}</td>
+    <td>${l.keterangan||'-'}</td>
+  </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;font-style:italic">Tidak ada data</td></tr>';
+
+  // 5. Generate HTML Laporan
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Laporan UKS ${bn} ${th}</title>
+  <style>
+    @page { size: A4; margin: 15mm 15mm; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.4; }
+    .kop { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 16px; }
+    .kop h2 { margin: 2px 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+    .kop h3 { margin: 2px 0; font-size: 12pt; font-weight: bold; }
+    .kop p { margin: 2px 0; font-size: 10pt; }
+    .judul { text-align: center; margin: 20px 0 10px; }
+    .judul h3 { font-size: 12pt; font-weight: bold; margin: 5px 0; text-transform: uppercase; }
+    .judul p { font-size: 11pt; margin: 3px 0; }
+    .info { margin: 15px 0; font-size: 11pt; }
+    .info b { font-weight: bold; }
+    h4 { margin: 15px 0 8px; font-size: 11pt; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 15px; }
+    th, td { border: 1px solid #000; padding: 5px 8px; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; font-weight: bold; text-align: center; }
+    .sign { display: flex; justify-content: space-between; margin-top: 30px; }
+    .sign div { text-align: left; line-height: 1.6; }
+    .sign .kiri { width: 48%; }
+    .sign .kanan { width: 48%; text-align: center; }
+    .sign .ttd { height: 70px; }
+    .sign b { font-weight: bold; }
+    .sign u { text-decoration: underline; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div class="kop">
+    <h2>KEMENTERIAN AGAMA KABUPATEN BANTAENG</h2>
+    <h3>${sekolahData.nama.toUpperCase()}</h3>
+    <p>${sekolahData.alamat}</p>
+  </div>
+  
+  <div class="judul">
+    <h3>Laporan Bulanan Unit Kesehatan Sekolah (UKS)</h3>
+    <p>Bulan <b>${bn} ${th}</b></p>
+  </div>
+  
+  <div class="info">
+    <p>Pembina UKS: <b>${pengelolaNama}</b> (NIP: ${pengelolaNip})</p>
+  </div>
+  
   <h4>A. Rekapitulasi Kunjungan</h4>
-  <p>Total kunjungan: <b>${d.kunj.length}</b> • Istirahat: ${d.c.istirahat||0} • Dipulangkan: ${d.c.pulang||0} • Dirujuk: ${d.c.rujukan||0} • Kembali ke kelas: ${d.c.kelas||0}</p>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr></thead><tbody>${kRows}</tbody></table>
+  <p>Total kunjungan: <b>${d.kunj.length}</b> • Istirahat: <b>${d.c.istirahat||0}</b> • Dipulangkan: <b>${d.c.pulang||0}</b> • Dirujuk: <b>${d.c.rujukan||0}</b> • Kembali ke kelas: <b>${d.c.kelas||0}</b></p>
+  <table>
+    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Nama</th><th style="width:10%">Kelas</th><th>Keluhan</th><th>Obat</th><th style="width:12%">Hasil</th></tr></thead>
+    <tbody>${kRows}</tbody>
+  </table>
+  
   <h4>B. Hasil Skrining Kesehatan</h4>
   <p>Total siswa diskrining: <b>${d.skr.length}</b></p>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>TB</th><th>BB</th><th>IMT</th><th>Status</th></tr></thead><tbody>${sRows}</tbody></table>
+  <table>
+    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:8%;text-align:right">TB (cm)</th><th style="width:8%;text-align:right">BB (kg)</th><th style="width:7%;text-align:right">IMT</th><th style="width:12%">Status</th></tr></thead>
+    <tbody>${sRows}</tbody>
+  </table>
+  
   <h4>C. Penggunaan Obat</h4>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Obat</th><th>Tipe</th><th>Jumlah</th><th>Keterangan</th></tr></thead><tbody>${lRows}</tbody></table>
+  <table>
+    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Obat</th><th style="width:10%">Tipe</th><th style="width:8%;text-align:right">Jumlah</th><th>Keterangan</th></tr></thead>
+    <tbody>${lRows}</tbody>
+  </table>
+  
   <div class="sign">
-    <div class="kiri">Mengetahui,<br>Kepala Madrasah<div class="ttd"></div><b><u>${kapitalNama(MADRASAH.kepala.nama)}</u></b><br><b>NIP. ${MADRASAH.kepala.nip}</b></div>
-    <div class="kanan">Bantaeng, &nbsp;&nbsp;&nbsp; ${tgl}<div style="height:22px"></div>Pengelola UKS<div class="ttd"></div><b><u>${kapitalNama(petugasNama)}</u></b><br><b>NIP. ${nipPetugas}</b></div>
+    <div class="kiri">
+      <p>Mengetahui,<br>Kepala Madrasah</p>
+      <div class="ttd"></div>
+      <p><b><u>${kapitalNama(sekolahData.kepala_nama)}</u></b><br>
+      <b>NIP. ${sekolahData.kepala_nip}</b></p>
+    </div>
+    <div class="kanan">
+      <p>Bantaeng, ${tgl}</p>
+      <div class="ttd"></div>
+      <p>Pengelola UKS<br><br>
+      <b><u>${kapitalNama(pengelolaNama)}</u></b><br>
+      <b>NIP. ${pengelolaNip}</b></p>
+    </div>
   </div>
-  <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 500);
+    }
+  <\/script>
+</body>
+</html>`);
   w.document.close();
 }
 
