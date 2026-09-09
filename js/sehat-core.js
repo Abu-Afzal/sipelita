@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// SEHAT CORE - UKS Digital (COMPAT MODE - FINAL)
+// SEHAT CORE - UKS Digital (COMPAT MODE - FINAL FIXED)
 // ══════════════════════════════════════════════
 
 // Ambil Firebase dari global (karena sudah di-load di HTML)
@@ -29,7 +29,7 @@ const localDate=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getM
 const formatDate=s=>s?new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'-';
 const sanitizeKey=s=>String(s).replace(/[^a-zA-Z0-9_-]/g,'_');
 const isExpired=o=>o.ed&&new Date(o.ed)<new Date();
-const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:['🏠 Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
+const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:[' Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
 
 // ══════════ ROLE / AKSES ══════════
 const isAdmin=()=> String(currentUserRole).toLowerCase()==='admin';
@@ -174,27 +174,25 @@ async function loadSkrining(){
   }catch(e){console.error(e);} 
 }
 
-// ✅ HANYA 1 FUNGSI loadUsers YANG BENAR
 async function loadUsers(){ 
   try{ 
     const s = await db.collection('users').get(); 
     daftarUsers = []; 
     s.forEach(d => {
       const data = d.data();
-      // Hanya ambil user yang punya email
       if(data.email) {
         daftarUsers.push({
           id: d.id, 
           email: data.email,
           nama: data.nama || data.namaResmi || '',
           role: data.role || '',
-          akses_uks: data.akses_uks || false  // ✅ AMBIL FIELD INI
+          akses_uks: data.akses_uks || false
         });
       }
     });
     console.log('✅ Users loaded:', daftarUsers.length, '| Pengelola UKS:', daftarUsers.filter(u => u.akses_uks).length);
   } catch(e){
-    console.error('❌ Error load users:', e);
+    console.error(' Error load users:', e);
   } 
 }
 
@@ -250,12 +248,12 @@ bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=
 
 $('btnSimpanKunjungan').onclick=async()=>{
   if(!guard())return;
-  if(!selectedSiswa){toast('⚠️ Pilih siswa!',true);return;}
-  if(!$('vKeluhan').value.trim()){toast('⚠️ Keluhan wajib!',true);return;}
+  if(!selectedSiswa){toast('️ Pilih siswa!',true);return;}
+  if(!$('vKeluhan').value.trim()){toast('️ Keluhan wajib!',true);return;}
   const obatId=$('vObatSelect').value,qty=parseInt($('vObatQty').value)||0;
   let ob=null,obatText='';
   if(obatId&&qty>0){ ob=daftarObat.find(x=>x.id===obatId);
-    if(!ob){toast('⚠️ Obat tidak ditemukan!',true);return;}
+    if(!ob){toast('️ Obat tidak ditemukan!',true);return;}
     if((ob.stok||0)<qty){toast(`⚠️ Stok ${ob.nama} tidak cukup!`,true);return;}
     obatText=`${ob.nama} ×${qty} ${ob.satuan||''}`; }
   const btn=$('btnSimpanKunjungan');btn.disabled=true;btn.textContent='⏳ Menyimpan...';
@@ -425,7 +423,7 @@ async function simpanStok(){
   }catch(e){ toast('❌ '+e.message, true); }
 }
 
-// ═════════ SKRINING ══════════
+// ═════════ SKRINING ═════════
 function hitungIMT(tbCm, bbKg){
   if(!tbCm||!bbKg) return null;
   const m = tbCm/100;
@@ -473,7 +471,7 @@ $('btnSimpanSkrining').onclick = async ()=>{
   const tb=parseFloat($('sTinggi').value), bb=parseFloat($('sBerat').value);
   if(!tb||!bb){ toast('⚠️ TB & BB wajib diisi!', true); return; }
   const imt=hitungIMT(tb,bb), st=statusGizi(imt);
-  const btn=$('btnSimpanSkrining'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
+  const btn=$('btnSimpanSkrining'); btn.disabled=true; btn.textContent=' Menyimpan...';
   try{
     await db.collection('sehat_skrining').add({
       sekolah_id: userSekolahId,
@@ -540,16 +538,16 @@ function renderChart(rows){
   `;
 }
 
-// ══════════ SETTINGS (Admin Only) ══════════
+// ══════════ SETTINGS (Admin Only) ═════════
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   
-  // ✅ PERBAIKAN: 'setPengelola' bukan 'selPengelola'
+  // ✅ PERBAIKAN: Ganti 'selPengelola' menjadi 'setPengelola'
   const emailBaru = $('setPengelola').value;
   if(!emailBaru){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
   
   const userBaru = daftarUsers.find(x => x.email === emailBaru);
-  if(!userBaru){ toast('️ User tidak ditemukan!', true); return; }
+  if(!userBaru){ toast('⚠️ User tidak ditemukan!', true); return; }
   
   try{
     // 1. ✅ CABUT AKSES PENGELOLA LAMA
@@ -590,7 +588,6 @@ async function simpanPengelola(){
   }
 }
 
-// ✅ FUNGSI BARU: Cabut akses pengelola tanpa ganti user
 async function cabutAksesPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   
@@ -604,12 +601,10 @@ async function cabutAksesPengelola(){
   }
   
   try{
-    // 1. Cabut akses user lama
     await db.collection('users').doc(config.pengelola_email).update({
       akses_uks: false
     });
     
-    // 2. Hapus config pengelola
     await db.collection('sehat_config').doc('settings').set({
       pengelola_email: '',
       pengelola_nama: ''
@@ -619,20 +614,17 @@ async function cabutAksesPengelola(){
     
     toast('✅ Akses pengelola UKS telah dicabut!');
     
-    // 3. Update UI
     await loadUsers();
     await computeAccess();
     updateModalSettingsUI();
     
-    // 4. Close modal
     closeModal('modalSettings');
     
   } catch(e){ 
-    toast(' Gagal: ' + e.message, true); 
+    toast('❌ Gagal: ' + e.message, true); 
   }
 }
 
-// ✅ FUNGSI BARU: Update UI modal settings
 function updateModalSettingsUI(){
   const infoBox = $('infoPengelolaAktif');
   const namaBox = $('namaPengelolaAktif');
@@ -648,12 +640,11 @@ function updateModalSettingsUI(){
   }
   
   if(btnCabut){
-    // Tampilkan tombol "Cabut Akses" hanya jika ada pengelola aktif
     btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
   }
 }
 
-// ══════════ LAPORAN ══════════
+// ══════════ LAPORAN ═════════
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const kapitalNama=(n='')=>{const i=n.indexOf(',');return i===-1?n.toUpperCase():n.slice(0,i).toUpperCase()+n.slice(i);};
 const MADRASAH={kemenag:'KEMENTERIAN AGAMA KABUPATEN BANTAENG',nama:'MADRASAH ALIYAH NEGERI BANTAENG',
@@ -744,19 +735,12 @@ const btnBatalObat = $('btnBatalObat'); if (btnBatalObat) btnBatalObat.onclick =
 const btnSimpanObat = $('btnSimpanObat'); if (btnSimpanObat) btnSimpanObat.onclick = simpanObat;
 const btnBatalStok = $('btnBatalStok'); if (btnBatalStok) btnBatalStok.onclick = ()=> $('modalStok').classList.remove('show');
 const btnSimpanStok = $('btnSimpanStok'); if (btnSimpanStok) btnSimpanStok.onclick = simpanStok;
-
-// ✅ PERBAIKAN: Hapus referensi ke btnSimpanPengelola (tidak ada di HTML baru)
-// const btnSP = $('btnSimpanPengelola'); if (btnSP) btnSP.onclick = simpanPengelola;
-
+const btnSP = $('btnSimpanPengelola'); if (btnSP) btnSP.onclick = simpanPengelola;
 const btnExportLaporan = $('btnExportLaporan'); if (btnExportLaporan) btnExportLaporan.onclick = exportLaporanPDF;
 const btnBatalSettings = $('btnBatalSettings'); if (btnBatalSettings) btnBatalSettings.onclick = ()=> closeModal('modalSettings');
 const btnSimpanConfig = $('btnSimpanConfig'); if (btnSimpanConfig) btnSimpanConfig.onclick = simpanPengelola;
+const btnCabutAkses = $('btnCabutAkses'); if (btnCabutAkses) btnCabutAkses.onclick = cabutAksesPengelola;
 
-// ✅ TAMBAHKAN: Binding untuk tombol Cabut Akses
-const btnCabutAkses = $('btnCabutAkses'); 
-if (btnCabutAkses) btnCabutAkses.onclick = cabutAksesPengelola;
-
-// ✅ PERBAIKAN: Tambahkan 'async' agar 'await loadUsers()' bisa berjalan
 document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); 
   t.classList.add('active');
@@ -776,41 +760,37 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   if(t.dataset.tab === 'apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab === 'skrining') renderSkriningTable();
   
-  // ✅ PERBAIKAN: Logika populate dropdown yang robust
-if(t.dataset.tab === 'settings'){
-  const sel = $('setPengelola');
-  
-  // Reload users jika belum ada atau kosong
-  if(!daftarUsers || daftarUsers.length === 0) {
-    await loadUsers();
+  if(t.dataset.tab === 'settings'){
+    const sel = $('setPengelola');
+    
+    if(!daftarUsers || daftarUsers.length === 0) {
+      await loadUsers();
+    }
+    
+    let options = '<option value="">-- Pilih User --</option>';
+    
+    if(daftarUsers.length > 0) {
+      options += daftarUsers
+        .filter(u => u.email && u.email.trim() !== '')
+        .map(u => {
+          const isSelected = u.email === config.pengelola_email ? 'selected' : '';
+          const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
+          const role = u.role ? ` - ${u.role}` : '';
+          const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
+          return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
+        })
+        .join('');
+    }
+    
+    sel.innerHTML = options;
+    
+    const pn = $('pengelolaNow'); 
+    if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+    
+    updateModalSettingsUI();
   }
-  
-  let options = '<option value="">-- Pilih User --</option>';
-  
-  if(daftarUsers.length > 0) {
-    options += daftarUsers
-      .filter(u => u.email && u.email.trim() !== '')
-      .map(u => {
-        const isSelected = u.email === config.pengelola_email ? 'selected' : '';
-        const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
-        const role = u.role ? ` - ${u.role}` : '';
-        const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
-        return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
-      })
-      .join('');
-  }
-  
-  sel.innerHTML = options;
-  
-  const pn = $('pengelolaNow'); 
-  if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
-  
-  // ✅ PANGGIL FUNGSI UPDATE UI
-  updateModalSettingsUI();
-}
 });
 
-// Close modal on outside click
 document.querySelectorAll('.modal').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); });
 });
