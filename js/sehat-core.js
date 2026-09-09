@@ -403,6 +403,12 @@ $('btnSimpanKunjungan').onclick=async()=>{
   finally{btn.disabled=false; btn.textContent='💾 Simpan Kunjungan';}
 };
 
+// Event listener untuk tombol Cari Profil
+const btnCariProfil = $('btnCariProfil');
+if(btnCariProfil) {
+  btnCariProfil.onclick = cariProfilSiswa;
+}
+
 function initFilterRiwayat(){
   const names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   $('fBulan').innerHTML=names.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
