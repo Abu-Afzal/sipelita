@@ -1,9 +1,165 @@
 // ══════════════════════════════════════════════
-// SEHAT CORE - UKS Digital (INPUT MANUAL - FINAL)
+// SEHAT CORE - UKS Digital (SIG INTEGRATED)
 // ══════════════════════════════════════════════
 
 const db = firebase.firestore();
 const auth = firebase.auth();
+
+// ══════════════════════════════════════════════
+// ✏️ KONFIGURASI MADRASAH (KOP & TTD PDF) - SIG
+// ══════════════════════════════════════════════
+const CONFIG_MADRASAH = {
+  logo: '',
+  kop1: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
+  kop2: 'MADRASAH ALIYAH NEGERI BANTAENG',
+  alamat: 'Jl. ... (isi alamat madrasah)',
+  kota: 'Bantaeng',
+  kepalaMadrasah: '................................................',
+  nipKepala: 'NIP. ............................................'
+};
+
+const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.Sos','M.Sos','S.Kom','M.Kom',
+  'S.E','M.M','MM','S.S','M.Hum','S.Mat','M.Mat','S.T','M.T','S.H','M.H','S.Psi','M.Psi','S.IP','M.AP',
+  'Dra','Drs','Dr','Prof','H','Hj'];
+
+function rapikanGelar(token) {
+  let t = token.trim();
+  if (!t) return '';
+  const adaTitikAkhir = t.endsWith('.');
+  const clean = t.replace(/\.+$/, '');
+  const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
+  if (found) return found + (adaTitikAkhir ? '.' : '');
+  if (clean.includes('.')) {
+    return clean.split('.').map(seg =>
+      seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()
+    ).join('.');
+  }
+  return clean.length <= 2 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+}
+
+function formatNamaGelar(text) {
+  if (!text) return '';
+  const parts = text.split(',');
+  const GELAR_DEPAN = ['Drs','Dra','Dr','Prof','H','Hj','Ir','KH'];
+  let tokens = parts[0].trim().split(/\s+/);
+  const depan = [];
+  while (tokens.length) {
+    const t = tokens[0].replace(/\.+$/, '');
+    const m = GELAR_DEPAN.find(g => g.toLowerCase() === t.toLowerCase());
+    if (m) { depan.push(m + '.'); tokens.shift(); } else break;
+  }
+  const namaInti = tokens.join(' ').toUpperCase();
+  const belakang = parts.slice(1).map(rapikanGelar).filter(Boolean).join(',');
+  let hasil = (depan.length ? depan.join(' ') + ' ' : '') + namaInti;
+  if (belakang) hasil += ', ' + belakang;
+  return hasil;
+}
+
+function formatKapital(text, mode) {
+  if (!text) return '';
+  if (mode === 'upper') return formatNamaGelar(text);
+  if (mode === 'lower') return text.toLowerCase();
+  if (mode === 'title') return text.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
+  return text;
+}
+
+function ekstrakSIG(d) {
+  const hasil = { kota:'', kepala:'', nip:'', kop1:'', kop2:'', alamat:'' };
+  for (const [k, v] of Object.entries(d || {})) {
+    if (typeof v !== 'string' || !v) continue;
+    const key = k.toLowerCase();
+    const isKepalaKey = key.includes('kamad') || key.includes('kepala') || key.includes('kepsek');
+
+    if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
+    if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
+    if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
+    if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
+    if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
+    if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
+  }
+  return hasil;
+}
+
+async function fetchIdentitasSekolah() {
+  if (!currentUserEmail) return;
+  const sumber = [];
+
+  if (userSekolahId) {
+    try {
+      const s = await db.collection('sekolah').doc(userSekolahId).get();
+      if (s.exists) sumber.push(s.data());
+    } catch (e) {}
+  }
+
+  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'sehat_config',
+                'pengaturan', 'settings', 'config', 'sig'];
+  for (const c of cols) {
+    try { const a = await db.collection(c).doc(currentUserEmail).get();   if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
+    try { const q = await db.collection(c).where('email', '==', currentUserEmail).limit(1).get(); q.forEach(d => sumber.push(d.data())); } catch (e) {}
+  }
+
+  try {
+    const g = await db.collection('identitas_madrasah').limit(1).get();
+    g.forEach(d => sumber.push(d.data()));
+  } catch (e) {}
+
+  try {
+    const u1 = await db.collection('users').doc(currentUserEmail).get();
+    if (u1.exists) sumber.push(u1.data());
+  } catch (e) {}
+
+  let ketemu = false, kop1Explicit = false;
+  for (const d of sumber) {
+    const x = ekstrakSIG(d);
+    if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
+    if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
+    if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
+    if (x.kop1)   { CONFIG_MADRASAH.kop1 = x.kop1; kop1Explicit = true; ketemu = true; }
+    if (x.kop2)   { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
+    if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
+  }
+
+  if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
+    CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
+  }
+
+  console.log(ketemu
+    ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
+    : '⚠️ SIG: data identitas tidak ditemukan di sumber mana pun');
+}
+
+async function fetchSekolahAktif() {
+  if (!currentUserEmail || !userSekolahId) return;
+  
+  try {
+    const sdoc = await db.collection('sekolah').doc(userSekolahId).get();
+    if (!sdoc.exists) return;
+    
+    const d = sdoc.data();
+    console.log('🏫 Data sekolah aktif ditemukan:', d);
+    
+    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
+    if (d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
+    else if (d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
+    if (d.alamat) CONFIG_MADRASAH.alamat = d.alamat;
+    if (d.kota) CONFIG_MADRASAH.kota = d.kota;
+    if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
+    if (d.kepala_nip) {
+      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') 
+        ? d.kepala_nip 
+        : 'NIP. ' + d.kepala_nip;
+    }
+    
+    console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override:', {
+      kop2: CONFIG_MADRASAH.kop2,
+      kepala: CONFIG_MADRASAH.kepalaMadrasah
+    });
+  } catch (e) {
+    console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
+  }
+}
 
 auth.onAuthStateChanged(u => { 
   if (!u) {
@@ -50,7 +206,6 @@ function applyAccess(){
   const bSP=$('btnSimpanProfil'); if(bSP) bSP.style.display = canEdit ? 'inline-flex' : 'none';
   const bSS=$('btnSimpanSkrining'); if(bSS) bSS.style.display = canEdit ? 'inline-flex' : 'none';
   
-  // Disable form inputs if not canEdit
   ['vNamaSiswa','vKelasSiswa','vKeluhan','vSuhu','vTensi','vTindakan','vObatSelect','vObatQty','vHasil','vCatatan',
    'pNamaSiswa','pKelasSiswa','pGol','pKontak','pAlergi','pPenyakit','pCatatan',
    'sNamaSiswa','sKelasSiswa','sTinggi','sBerat','sCatatan'].forEach(id => {
@@ -59,7 +214,7 @@ function applyAccess(){
   renderApotek();
 }
 
-const guard=()=>{ if(!canEdit){ toast('⚠️ Anda hanya punya akses LIHAT!', true); return false; } return true; };
+const guard=()=>{ if(!canEdit){ toast('️ Anda hanya punya akses LIHAT!', true); return false; } return true; };
 
 async function initApp(){
   const user = auth.currentUser;
@@ -77,9 +232,13 @@ async function initApp(){
     }
     
     const badge = $('schoolBadge');
-    if(badge) badge.textContent = '🏫 ' + (userSekolahId || 'Sekolah');
+    if(badge) badge.textContent = ' ' + (userSekolahId || 'Sekolah');
     const pBadge = $('petugasBadge');
-    if(pBadge) pBadge.textContent = '👤 ' + (userDoc.data()?.nama || userDoc.data()?.namaResmi || currentUserEmail);
+    if(pBadge) pBadge.textContent = ' ' + (userDoc.data()?.nama || userDoc.data()?.namaResmi || currentUserEmail);
+    
+    // ✅ LOAD SIG DATA
+    await fetchIdentitasSekolah();
+    await fetchSekolahAktif();
     
     await Promise.all([ loadKunjungan(), loadApotek(), loadLogObat(), loadSkrining(), loadUsers(), loadConfig() ]);
     
@@ -97,7 +256,6 @@ async function initApp(){
   }
 }
 
-// ══════════ LOAD DATA (DENGAN FILTER SEKOLAH) ══════════
 async function loadKunjungan(){ 
   try{ 
     let q = db.collection('sehat_kunjungan');
@@ -150,7 +308,8 @@ async function loadUsers(){
       if(data.email) {
         daftarUsers.push({
           id: d.id, email: data.email, nama: data.nama || data.namaResmi || '',
-          role: data.role || '', akses_uks: data.akses_uks || false
+          role: data.role || '', akses_uks: data.akses_uks || false,
+          nip: data.nip || ''
         });
       }
     });
@@ -164,7 +323,6 @@ async function loadConfig(){
   }catch(e){console.error(e);} 
 }
 
-// ══════════ DASHBOARD & UTILS ══════════
 function renderDashboard(){
   const today=localDate(), bulan=today.slice(0,7), tahun=today.slice(0,4);
   const hi=kunjunganCache.filter(k=>k.tanggal===today);
@@ -173,7 +331,6 @@ function renderDashboard(){
   const sb=$('statBulan'); if(sb) sb.textContent=kunjunganCache.filter(k=>(k.tanggal||'').startsWith(bulan)).length;
   const ss=$('statSkrining'); if(ss) ss.textContent=skriningCache.filter(k=>(k.tanggal||'').startsWith(tahun)).length;
   
-  // Hitung total siswa unik dari kunjungan
   const uniqueSiswa = new Set(kunjunganCache.map(k => k.siswa_nama + '_' + k.siswa_kelas));
   const sts=$('statSiswa'); if(sts) sts.textContent=uniqueSiswa.size;
 
@@ -196,15 +353,14 @@ function renderApotekAlertBar(){
   bar.innerHTML=`⚠️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
 }
 
-// ══════════ KUNJUNGAN (INPUT MANUAL) ══════════
 $('btnSimpanKunjungan').onclick=async()=>{
   if(!guard())return;
   
   const namaSiswa = $('vNamaSiswa').value.trim();
   const kelasSiswa = $('vKelasSiswa').value.trim();
   
-  if(!namaSiswa){ toast('⚠️ Nama siswa wajib diisi!', true); return; }
-  if(!kelasSiswa){ toast('⚠️ Kelas wajib diisi!', true); return; }
+  if(!namaSiswa){ toast('️ Nama siswa wajib diisi!', true); return; }
+  if(!kelasSiswa){ toast('️ Kelas wajib diisi!', true); return; }
   if(!$('vKeluhan').value.trim()){ toast('⚠️ Keluhan wajib!', true); return; }
   
   const obatId=$('vObatSelect').value, qty=parseInt($('vObatQty').value)||0;
@@ -247,7 +403,6 @@ $('btnSimpanKunjungan').onclick=async()=>{
   finally{btn.disabled=false; btn.textContent='💾 Simpan Kunjungan';}
 };
 
-// ══════════ RIWAYAT ══════════
 function initFilterRiwayat(){
   const names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   $('fBulan').innerHTML=names.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
@@ -264,14 +419,12 @@ function renderRiwayat(){
     :'<tr><td colspan="6" class="empty">Tidak ada data.</td></tr>';
 }
 
-// ══════════ PROFIL (INPUT MANUAL) ══════════
 $('btnSimpanProfil').onclick=async()=>{
   if(!guard())return;
   const namaSiswa = $('pNamaSiswa').value.trim();
   const kelasSiswa = $('pKelasSiswa').value.trim();
   if(!namaSiswa || !kelasSiswa) { toast('⚠️ Nama dan Kelas wajib diisi!', true); return; }
   
-  // Gunakan kombinasi nama dan kelas sebagai ID dokumen agar bisa di-update
   const docId = sanitizeKey(namaSiswa + '_' + kelasSiswa);
   
   await db.collection('sehat_profil').doc(docId).set({
@@ -288,7 +441,6 @@ $('btnSimpanProfil').onclick=async()=>{
   $('pPenyakit').value=''; $('pCatatan').value='';
 };
 
-// ══════════ APOTEK ══════════
 function statusObat(o){
   if(isExpired(o)) return {text:'❌ Kadaluarsa', cls:'b-red'};
   if(o.ed && (new Date(o.ed)-new Date())/86400000/30<=3) return {text:'⚠️ Segera ED', cls:'b-amber'};
@@ -317,7 +469,7 @@ function renderLogObat(){
   const list=$('listLogObat'); if(!list) return;
   const rows=logObat.slice(0,8);
   list.innerHTML = rows.length ? rows.map(l=>`
-    <div class="row-item"><div><b>${l.tipe==='masuk'?'📥':'📤'} ${l.obat_nama}</b> ×${l.jumlah}
+    <div class="row-item"><div><b>${l.tipe==='masuk'?'📥':''} ${l.obat_nama}</b> ×${l.jumlah}
       <div style="font-size:.8rem;color:#64748b">${l.keterangan||''} • ${l.tanggal||''}</div></div>
       <span class="badge ${l.tipe==='masuk'?'b-green':'b-red'}">${l.tipe==='masuk'?'MASUK':'KELUAR'}</span></div>`).join('')
     : '<div class="empty">Belum ada log stok.</div>';
@@ -362,7 +514,7 @@ async function simpanObat(){
 async function simpanStok(){
   if(!guard())return;
   const key=$('stokObatKey').value, qty=parseInt($('stokQty').value)||0;
-  if(!key||qty<1){ toast('⚠️ Isi jumlah!', true); return; }
+  if(!key||qty<1){ toast('️ Isi jumlah!', true); return; }
   const o=daftarObat.find(x=>x.id===key); if(!o)return;
   try{
     await db.collection('sehat_apotek').doc(key).update({ stok:(o.stok||0)+qty, updatedAt:new Date().toISOString() });
@@ -373,7 +525,6 @@ async function simpanStok(){
   }catch(e){ toast('❌ '+e.message, true); }
 }
 
-// ══════════ SKRINING (INPUT MANUAL) ══════════
 function hitungIMT(tbCm, bbKg){ if(!tbCm||!bbKg) return null; const m = tbCm/100; return (bbKg/(m*m)).toFixed(1); }
 function statusGizi(imt){
   if(!imt) return {text:'-', cls:'b-kelas'};
@@ -422,7 +573,7 @@ $('btnSimpanSkrining').onclick = async ()=>{
     $('sImt').textContent='-'; $('sStatus').textContent='-';
     await loadSkrining(); renderDashboard(); renderSkriningTable();
   }catch(e){ toast('❌ '+e.message, true); }
-  finally{ btn.disabled=false; btn.textContent='💾 Simpan Skrining'; }
+  finally{ btn.disabled=false; btn.textContent=' Simpan Skrining'; }
 };
 
 function renderSkriningTable(){
@@ -433,7 +584,6 @@ function renderSkriningTable(){
   }).join('') : '<tr><td colspan="7" class="empty">Belum ada data skrining.</td></tr>';
 }
 
-// ══════════ SETTINGS (Admin Only) ══════════
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   const emailBaru = $('selPengelola').value;
@@ -476,11 +626,7 @@ function updateTabSettingsUI(){
   if(btnCabut) btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
 }
 
-// ══════════ LAPORAN ══════════
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-const kapitalNama=(n='')=>{const i=n.indexOf(',');return i===-1?n.toUpperCase():n.slice(0,i).toUpperCase()+n.slice(i);};
-const MADRASAH={kemenag:'KEMENTERIAN AGAMA KABUPATEN BANTAENG',nama:'MADRASAH ALIYAH NEGERI BANTAENG',
-  alamat:'Jl. ... (isi alamat madrasah)',kepala:{nama:'Muhammad Arif Pither, S.Ag.,M.M.,M.Pd',nip:'19710930 200710 1 001'}};
 
 function initFilterLaporan(){
   const b=$('lBulan'),t=$('lTahun'); if(!b||!t)return;
@@ -512,46 +658,26 @@ function renderLaporan(){
   <p style="font-size:.85rem;color:#64748b">📌 Klik <b>📄 Export PDF</b> untuk mencetak laporan lengkap bulan ini.</p>`;
 }
 
-// ══════════ LAPORAN PDF (DINAMIS BERDASARKAN SIG) ══════════
+// ══════════════════════════════════════════════
+// 📄 EXPORT PDF LAPORAN (SIG INTEGRATED)
+// ══════════════════════════════════════════════
 async function exportLaporanPDF(){
   const d = getLaporanData();
   const bn = MONTHS[parseInt(d.pre.slice(5,7))-1];
   const th = d.pre.slice(0,4);
-  const tgl = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+  const today = new Date();
+  const tglSurat = `${today.getDate()} ${NAMA_BULAN[today.getMonth()]} ${today.getFullYear()}`;
   
-  // 1. Ambil data pengelola saat ini
+  // Ambil data pengelola
   const pengelolaData = daftarUsers.find(u => u.email === config.pengelola_email) || {};
   const pengelolaNama = config.pengelola_nama || $('petugasBadge').textContent.replace('👤 ','').trim();
-  const pengelolaNip = pengelolaData.nip || '-';
+  const rawNipPengelola = pengelolaData.nip || '';
+  const nipPengelola = rawNipPengelola 
+    ? (rawNipPengelola.startsWith('NIP.') ? rawNipPengelola : 'NIP. ' + rawNipPengelola)
+    : 'NIP. ............................................';
+  const namaPengelolaCetak = formatKapital(pengelolaNama, 'upper');
   
-  // 2. Default data madrasah (fallback jika data SIG belum terisi)
-  let sekolahData = {
-    nama: 'MADRASAH ALIYAH NEGERI BANTAENG',
-    alamat: 'Jl. ... (isi alamat madrasah)',
-    kepala_nama: 'Muhammad Arif Pither, S.Ag.,M.M.,M.Pd',
-    kepala_nip: '19710930 200710 1 001'
-  };
-  
-  // 3. ✅ AMBIL DATA MADRASAH DINAMIS DARI COLLECTION 'sekolah' (SIG)
-  try {
-    if (userSekolahId) {
-      // Coba ambil dari collection 'sekolah' (atau ganti 'madrasah' jika nama collection Anda berbeda)
-      const sekolahDoc = await db.collection('sekolah').doc(userSekolahId).get();
-      if (sekolahDoc.exists) {
-        const data = sekolahDoc.data();
-        sekolahData = {
-          nama: data.nama || data.nama_madrasah || sekolahData.nama,
-          alamat: data.alamat || data.alamat_lengkap || sekolahData.alamat,
-          kepala_nama: data.kepala_nama || data.nama_kepala || sekolahData.kepala_nama,
-          kepala_nip: data.kepala_nip || data.nip_kepala || sekolahData.kepala_nip
-        };
-      }
-    }
-  } catch(e) {
-    console.error('Gagal ambil data sekolah dari SIG:', e);
-  }
-
-  // 4. Siapkan baris tabel
+  // Siapkan baris tabel
   const kRows = d.kunj.map((k,i) => `<tr>
     <td style="text-align:center">${i+1}</td>
     <td>${k.tanggal}</td>
@@ -582,101 +708,113 @@ async function exportLaporanPDF(){
     <td>${l.keterangan||'-'}</td>
   </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;font-style:italic">Tidak ada data</td></tr>';
 
-  // 5. Generate HTML Laporan
-  const w = window.open('','_blank');
-  w.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Laporan UKS ${bn} ${th}</title>
-  <style>
-    @page { size: A4; margin: 15mm 15mm; }
-    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.4; }
-    .kop { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 16px; }
-    .kop h2 { margin: 2px 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-    .kop h3 { margin: 2px 0; font-size: 12pt; font-weight: bold; }
-    .kop p { margin: 2px 0; font-size: 10pt; }
-    .judul { text-align: center; margin: 20px 0 10px; }
-    .judul h3 { font-size: 12pt; font-weight: bold; margin: 5px 0; text-transform: uppercase; }
-    .judul p { font-size: 11pt; margin: 3px 0; }
-    .info { margin: 15px 0; font-size: 11pt; }
-    .info b { font-weight: bold; }
-    h4 { margin: 15px 0 8px; font-size: 11pt; font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 15px; }
-    th, td { border: 1px solid #000; padding: 5px 8px; text-align: left; vertical-align: top; }
-    th { background: #f0f0f0; font-weight: bold; text-align: center; }
-    .sign { display: flex; justify-content: space-between; margin-top: 30px; }
-    .sign div { text-align: left; line-height: 1.6; }
-    .sign .kiri { width: 48%; }
-    .sign .kanan { width: 48%; text-align: center; }
-    .sign .ttd { height: 70px; }
-    .sign b { font-weight: bold; }
-    .sign u { text-decoration: underline; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-  </style>
-</head>
-<body>
-  <div class="kop">
-    <h2>KEMENTERIAN AGAMA KABUPATEN BANTAENG</h2>
-    <h3>${sekolahData.nama.toUpperCase()}</h3>
-    <p>${sekolahData.alamat}</p>
-  </div>
-  
-  <div class="judul">
-    <h3>Laporan Bulanan Unit Kesehatan Sekolah (UKS)</h3>
-    <p>Bulan <b>${bn} ${th}</b></p>
-  </div>
-  
-  <div class="info">
-    <p>Pembina UKS: <b>${pengelolaNama}</b> (NIP: ${pengelolaNip})</p>
-  </div>
-  
-  <h4>A. Rekapitulasi Kunjungan</h4>
-  <p>Total kunjungan: <b>${d.kunj.length}</b> • Istirahat: <b>${d.c.istirahat||0}</b> • Dipulangkan: <b>${d.c.pulang||0}</b> • Dirujuk: <b>${d.c.rujukan||0}</b> • Kembali ke kelas: <b>${d.c.kelas||0}</b></p>
-  <table>
-    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Nama</th><th style="width:10%">Kelas</th><th>Keluhan</th><th>Obat</th><th style="width:12%">Hasil</th></tr></thead>
-    <tbody>${kRows}</tbody>
-  </table>
-  
-  <h4>B. Hasil Skrining Kesehatan</h4>
-  <p>Total siswa diskrining: <b>${d.skr.length}</b></p>
-  <table>
-    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:8%;text-align:right">TB (cm)</th><th style="width:8%;text-align:right">BB (kg)</th><th style="width:7%;text-align:right">IMT</th><th style="width:12%">Status</th></tr></thead>
-    <tbody>${sRows}</tbody>
-  </table>
-  
-  <h4>C. Penggunaan Obat</h4>
-  <table>
-    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Obat</th><th style="width:10%">Tipe</th><th style="width:8%;text-align:right">Jumlah</th><th>Keterangan</th></tr></thead>
-    <tbody>${lRows}</tbody>
-  </table>
-  
-  <div class="sign">
-    <div class="kiri">
-      <p>Mengetahui,<br>Kepala Madrasah</p>
-      <div class="ttd"></div>
-      <p><b><u>${kapitalNama(sekolahData.kepala_nama)}</u></b><br>
-      <b>NIP. ${sekolahData.kepala_nip}</b></p>
-    </div>
-    <div class="kanan">
-      <p>Bantaeng, ${tgl}</p>
-      <div class="ttd"></div>
-      <p>Pengelola UKS<br><br>
-      <b><u>${kapitalNama(pengelolaNama)}</u></b><br>
-      <b>NIP. ${pengelolaNip}</b></p>
-    </div>
-  </div>
-  
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 500);
-    }
-  <\/script>
-</body>
-</html>`);
-  w.document.close();
+  // KOP Surat dengan Logo
+  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
+  const kopHtml = `
+    <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <tr>
+          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+          </td>
+          <td style="text-align:center; border:none;">
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
+            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+          </td>
+          <td style="width:75px; border:none;"></td>
+        </tr>
+      </table>
+    </div>`;
+
+  // Tanda Tangan
+  const OFFSET_KOTA = 22;
+  const SPASI_TTD = 60;
+  const GESER_KANAN = 100;
+  const ttdHtml = `
+    <table style="width:100%; margin-top:28px; font-size:12pt;">
+      <tr>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:${OFFSET_KOTA}px;">
+          Mengetahui,<br>Kepala Madrasah
+          <div style="height:${SPASI_TTD}px;"></div>
+          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, 'upper')}</span></u></b><br><b style="font-size:11pt;">${CONFIG_MADRASAH.nipKepala}</b>
+        </td>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:${GESER_KANAN}px;">
+          ${CONFIG_MADRASAH.kota}, ${tglSurat}
+          <div style="height:${OFFSET_KOTA}px;"></div>
+          Pengelola UKS
+          <div style="height:${SPASI_TTD}px;"></div>
+          <b><u><span style="font-size:10pt;">${namaPengelolaCetak}</span></u></b><br><b style="font-size:11pt;">${nipPengelola}</b>
+        </td>
+      </tr>
+    </table>`;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+    <head><title>Laporan UKS ${bn} ${th}</title></head>
+    <body style="font-family: 'Times New Roman', serif; font-size: 12pt; padding: 24px; color:#000;">
+      ${kopHtml}
+      <div style="text-align:center; margin:0 0 12px;">
+        <div style="font-size:12pt; font-weight:bold; text-decoration:underline;">LAPORAN BULANAN UNIT KESEHATAN SEKOLAH (UKS)</div>
+        <div style="font-size:11pt; margin-top:4px;">Bulan <b>${bn} ${th}</b></div>
+      </div>
+      <div style="margin-bottom:12px; font-size:11pt;">
+        <p>Pengelola UKS: <b>${namaPengelolaCetak}</b> (${nipPengelola})</p>
+      </div>
+      
+      <div style="font-size:11pt; font-weight:bold; margin-top:15px;">A. Rekapitulasi Kunjungan</div>
+      <p style="font-size:11pt;">Total kunjungan: <b>${d.kunj.length}</b> • Istirahat: <b>${d.c.istirahat||0}</b> • Dipulangkan: <b>${d.c.pulang||0}</b> • Dirujuk: <b>${d.c.rujukan||0}</b> • Kembali ke kelas: <b>${d.c.kelas||0}</b></p>
+      <table style="width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:15px;">
+        <thead><tr>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">No</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Tanggal</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Nama</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Kelas</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Keluhan</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Obat</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Hasil</th>
+        </tr></thead>
+        <tbody>${kRows}</tbody>
+      </table>
+      
+      <div style="font-size:11pt; font-weight:bold; margin-top:15px;">B. Hasil Skrining Kesehatan</div>
+      <p style="font-size:11pt;">Total siswa diskrining: <b>${d.skr.length}</b></p>
+      <table style="width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:15px;">
+        <thead><tr>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">No</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Tanggal</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Nama</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Kelas</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">TB (cm)</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">BB (kg)</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">IMT</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Status</th>
+        </tr></thead>
+        <tbody>${sRows}</tbody>
+      </table>
+      
+      <div style="font-size:11pt; font-weight:bold; margin-top:15px;">C. Penggunaan Obat</div>
+      <table style="width:100%; border-collapse:collapse; font-size:11pt; margin-bottom:15px;">
+        <thead><tr>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">No</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Tanggal</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Obat</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Tipe</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Jumlah</th>
+          <th style="border:1px solid #000; padding:5px; background:#f0f0f0; text-align:center;">Keterangan</th>
+        </tr></thead>
+        <tbody>${lRows}</tbody>
+      </table>
+      
+      ${ttdHtml}
+      <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 250); };<\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
 
-// ══════════ BIND & TABS ══════════
 const btnAddObat = $('btnAddObat');
 if (btnAddObat) btnAddObat.onclick = ()=>{ if(!guard())return; $('obatEditKey').value=''; $('modalObatTitle').textContent='➕ Tambah Obat';
   ['oNama'].forEach(id=>$(id).value=''); $('oStok').value=0; $('oMin').value=10; $('oKategori').value='Obat'; $('oBentuk').value='Tablet'; $('oSatuan').value='tablet'; $('oED').value='';
