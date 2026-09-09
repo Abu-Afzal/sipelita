@@ -25,12 +25,11 @@
 
 <div class="header">
   <div class="header-inner">
-    <a href="../index.html" class="hdr-btn"> Dashboard</a>
+    <a href="../index.html" class="hdr-btn">🏠 Dashboard</a>
     <h1>🏥 SEHAT — UKS Madrasah</h1>
     <div style="display:flex;gap:8px;align-items:center">
       <span class="hdr-btn" id="schoolBadge" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:6px; font-size:0.85rem;">🏫 Memuat...</span>
       <span class="hdr-btn" id="accessBadge">👁️</span>
-      <!-- ✅ TOMBOL SETTINGS HANYA MUNCUL UNTUK ADMIN -->
       <span class="hdr-btn" id="petugasBadge">👤</span>
     </div>
   </div>
@@ -38,14 +37,14 @@
 
 <div class="tabs">
   <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-  <button class="tab" data-tab="kunjungan"> Kunjungan</button>
+  <button class="tab" data-tab="kunjungan">➕ Kunjungan</button>
   <button class="tab" data-tab="riwayat">📒 Riwayat</button>
   <button class="tab" data-tab="profil">👤 Profil</button>
   <button class="tab" data-tab="apotek">💊 Apotek</button>
   <button class="tab" data-tab="skrining">📏 Skrining</button>
-  <button class="tab" data-tab="laporan"> Laporan</button>
+  <button class="tab" data-tab="laporan">📄 Laporan</button>
   <!-- ✅ TAB SETTINGS HANYA MUNCUL UNTUK ADMIN -->
-  <button class="tab" data-tab="settings" id="tabSettingsBtn" style="display:none">️ Pengelola</button>
+  <button class="tab" data-tab="settings" id="tabSettingsBtn" style="display:none">⚙️ Pengelola</button>
 </div>
 
 <div class="container">
@@ -174,7 +173,7 @@
   <!-- SKRINING -->
   <div id="tab-skrining" style="display:none">
     <div class="card">
-      <h3 style="margin:0 0 15px;color:#0f766e;"> Skrining Kesehatan (DDJS)</h3>
+      <h3 style="margin:0 0 15px;color:#0f766e;">📏 Skrining Kesehatan (DDJS)</h3>
       <div class="fg search-wrap">
         <label>Cari Siswa</label>
         <input type="text" id="cariSkrining" placeholder="Ketik nama siswa..." autocomplete="off">
@@ -199,7 +198,7 @@
         <div class="fg"><label>Status Gizi</label><div class="imt-box" id="sStatus">-</div></div>
       </div>
       <div class="fg"><label>Catatan</label><input type="text" id="sCatatan"></div>
-      <button class="btn btn-primary" id="btnSimpanSkrining"> Simpan Skrining</button>
+      <button class="btn btn-primary" id="btnSimpanSkrining">💾 Simpan Skrining</button>
     </div>
     <div class="card">
       <h3 style="margin:0 0 12px;color:#0f766e;">📒 Riwayat Skrining</h3>
@@ -227,13 +226,25 @@
     </div>
   </div>
 
-  <!-- ✅ TAB SETTINGS - HANYA UNTUK ADMIN -->
+  <!-- ✅ TAB SETTINGS - HANYA UNTUK ADMIN (DIPERBAIKI & DILENGKAPI) -->
   <div id="tab-settings" style="display:none">
     <div class="card">
       <h3 style="margin:0 0 12px;color:#0f766e;">⚙️ Pengelola UKS</h3>
-      <p style="font-size:.9rem;color:#64748b">Petugas saat ini: <b id="pengelolaNow">-</b></p>
-      <div class="fg"><label>Pilih Pengelola (1 orang)</label><select id="selPengelola"><option value="">-- Pilih User --</option></select></div>
-      <button class="btn btn-primary" id="btnSimpanPengelola">💾 Tetapkan Pengelola</button>
+      <p style="font-size:.9rem;color:#64748b; margin-bottom:16px;">
+        Petugas saat ini: <b id="pengelolaNow" style="color:#0f766e;">-</b>
+      </p>
+      
+      <div class="fg">
+        <label>Pilih Pengelola Baru</label>
+        <select id="selPengelola">
+          <option value="">-- Pilih User --</option>
+        </select>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn btn-primary" id="btnSimpanPengelola" style="flex:1;">💾 Tetapkan Pengelola</button>
+        <button class="btn btn-danger" id="btnCabutAksesTab" style="display:none;">🚫 Cabut Akses</button>
+      </div>
     </div>
   </div>
 
@@ -267,43 +278,20 @@
 <!-- MODAL STOK -->
 <div class="modal" id="modalStok">
   <div class="modal-box">
-    <div class="modal-title"> Terima / Tambah Stok</div>
+    <div class="modal-title">📥 Terima / Tambah Stok</div>
     <input type="hidden" id="stokObatKey">
     <div class="fg"><label>Obat</label><input type="text" id="stokNama" disabled></div>
     <div class="fg"><label>Jumlah Masuk *</label><input type="number" id="stokQty" min="1" value="1"></div>
     <div class="fg"><label>Keterangan</label><input type="text" id="stokKet" placeholder="Contoh: Pembelian dana BOS"></div>
     <div class="modal-foot">
       <button class="btn btn-secondary" id="btnBatalStok">Batal</button>
-      <button class="btn btn-primary" id="btnSimpanStok"> Tambah Stok</button>
-    </div>
-  </div>
-</div>
-    
-    <!-- ✅ INFO PENGELOLA SAAT INI -->
-    <div id="infoPengelolaAktif" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;margin-bottom:16px;display:none;">
-      <div style="font-size:.85rem;color:#166534;font-weight:600;margin-bottom:4px;">
-        👤 Pengelola Aktif Saat Ini:
-      </div>
-      <div style="font-size:1rem;color:#14532d;font-weight:700;" id="namaPengelolaAktif">-</div>
-    </div>
-    
-    <div class="modal-foot" style="justify-content:space-between;">
-      <!-- ✅ TOMBOL CABUT AKSES (Muncul jika ada pengelola aktif) -->
-      <button class="btn btn-danger" id="btnCabutAkses" style="display:none;" onclick="cabutAksesPengelola()">
-        🚫 Cabut Akses
-      </button>
-      
-      <div style="flex:1"></div>
-      
-      <button class="btn btn-secondary" id="btnBatalSettings" onclick="closeModal('modalSettings')">Batal</button>
-      <button class="btn btn-primary" id="btnSimpanConfig">💾 Simpan</button>
+      <button class="btn btn-primary" id="btnSimpanStok">📥 Tambah Stok</button>
     </div>
   </div>
 </div>
 
-<!-- ✅ FIREBASE INIT + SEHAT CORE (COMPAT MODE) -->
+<!-- ✅ FIREBASE INIT -->
 <script>
-// Inisialisasi Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
   authDomain: "sipelita-guru.firebaseapp.com",
@@ -313,7 +301,6 @@ firebase.initializeApp({
   appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
 });
 
-// Helper modal
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 </script>

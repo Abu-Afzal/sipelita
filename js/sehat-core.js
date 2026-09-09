@@ -29,23 +29,18 @@ const localDate=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getM
 const formatDate=s=>s?new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'-';
 const sanitizeKey=s=>String(s).replace(/[^a-zA-Z0-9_-]/g,'_');
 const isExpired=o=>o.ed&&new Date(o.ed)<new Date();
-const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:[' Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
+const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:['🏠 Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
 
 // ══════════ ROLE / AKSES ══════════
 const isAdmin=()=> String(currentUserRole).toLowerCase()==='admin';
 
 function computeAccess(){
-  // Admin selalu bisa edit
   if (isAdmin()) {
     canEdit = true;
   } else {
-    // Cek apakah user ini adalah pengelola yang ditunjuk di config
     const isConfigPengelola = currentUserEmail && currentUserEmail === config.pengelola_email;
-    
-    // Atau cek apakah user ini punya field akses_uks: true di database
     const currentUserData = daftarUsers.find(u => u.email === currentUserEmail);
     const hasUksAccess = currentUserData && currentUserData.akses_uks === true;
-    
     canEdit = isConfigPengelola || hasUksAccess;
   }
   applyAccess();
@@ -53,7 +48,6 @@ function computeAccess(){
 
 function applyAccess(){
   const ab=$('accessBadge'); if(ab) ab.textContent = canEdit ? '✏️ Pengelola' : '👁️ Hanya Lihat';
-  const bs=$('btnSettings'); if(bs) bs.style.display = isAdmin() ? 'inline-flex' : 'none';
   const ts=$('tabSettingsBtn'); if(ts) ts.style.display = isAdmin() ? 'inline-block' : 'none';
   const bAO=$('btnAddObat'); if(bAO) bAO.style.display = canEdit ? 'inline-flex' : 'none';
   const bSK=$('btnSimpanKunjungan'); if(bSK) bSK.style.display = canEdit ? 'inline-flex' : 'none';
@@ -74,7 +68,6 @@ async function initApp(){
   currentUserEmail = user.email;
   
   try {
-    // Ambil data user dari Firestore
     const userDoc = await db.collection('users').doc(currentUserEmail).get();
     if(userDoc && userDoc.exists) {
       const data = userDoc.data();
@@ -83,37 +76,23 @@ async function initApp(){
       userSekolahId = data.school_id || data.sekolah_id || '';
     }
     
-    // Update UI
     const badge = $('schoolBadge');
     if(badge) badge.textContent = '🏫 ' + (userSekolahId || 'Sekolah');
     const pBadge = $('petugasBadge');
     if(pBadge) pBadge.textContent = '👤 ' + petugas;
     
-    // Load semua data
     await Promise.all([
-      loadMasterSiswa(), 
-      loadKunjungan(), 
-      loadApotek(), 
-      loadLogObat(), 
-      loadSkrining(), 
-      loadUsers(),
-      loadConfig()
+      loadMasterSiswa(), loadKunjungan(), loadApotek(), loadLogObat(), loadSkrining(), loadUsers(), loadConfig()
     ]);
     
     computeAccess();
-    renderDashboard(); 
-    renderApotek(); 
-    renderLogObat(); 
-    populateObatSelect(); 
-    renderSkriningTable();
+    renderDashboard(); renderApotek(); renderLogObat(); populateObatSelect(); renderSkriningTable();
     
-    // Set tanggal default
     const vTanggal=$('vTanggal'); if (vTanggal) vTanggal.value=localDate();
     const vJam=$('vJam'); if (vJam) vJam.value=new Date().toTimeString().slice(0,5);
     const sTanggal=$('sTanggal'); if (sTanggal) sTanggal.value=localDate();
     
     console.log('✅ SEHAT initialized. Sekolah:', userSekolahId, '| Role:', currentUserRole);
-    
   } catch(e) {
     console.error('Init Error:', e);
     toast('❌ Gagal memuat data: ' + e.message, true);
@@ -182,18 +161,13 @@ async function loadUsers(){
       const data = d.data();
       if(data.email) {
         daftarUsers.push({
-          id: d.id, 
-          email: data.email,
-          nama: data.nama || data.namaResmi || '',
-          role: data.role || '',
-          akses_uks: data.akses_uks || false
+          id: d.id, email: data.email, nama: data.nama || data.namaResmi || '',
+          role: data.role || '', akses_uks: data.akses_uks || false
         });
       }
     });
     console.log('✅ Users loaded:', daftarUsers.length, '| Pengelola UKS:', daftarUsers.filter(u => u.akses_uks).length);
-  } catch(e){
-    console.error(' Error load users:', e);
-  } 
+  } catch(e){ console.error('❌ Error load users:', e); } 
 }
 
 async function loadConfig(){ 
@@ -203,7 +177,7 @@ async function loadConfig(){
   }catch(e){console.error(e);} 
 }
 
-// ══════════ DASHBOARD ══════════
+// ══════════ DASHBOARD & UTILS ══════════
 function renderDashboard(){
   const today=localDate(), bulan=today.slice(0,7), tahun=today.slice(0,4);
   const hi=kunjunganCache.filter(k=>k.tanggal===today);
@@ -230,7 +204,6 @@ function renderApotekAlertBar(){
   bar.innerHTML=`⚠️ <b>Apotek:</b> ${m} stok menipis • ${s} segera ED • ${x} kadaluarsa — buka tab 💊 Apotek.`;
 }
 
-// ═════════ SEARCH ══════════
 function bindSearch(inputId,dropId,onPick){
   const input=$(inputId),drop=$(dropId); if(!input||!drop)return;
   input.addEventListener('input',()=>{ const q=input.value.toLowerCase().trim();
@@ -248,20 +221,18 @@ bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=
 
 $('btnSimpanKunjungan').onclick=async()=>{
   if(!guard())return;
-  if(!selectedSiswa){toast('️ Pilih siswa!',true);return;}
-  if(!$('vKeluhan').value.trim()){toast('️ Keluhan wajib!',true);return;}
+  if(!selectedSiswa){toast('⚠️ Pilih siswa!',true);return;}
+  if(!$('vKeluhan').value.trim()){toast('⚠️ Keluhan wajib!',true);return;}
   const obatId=$('vObatSelect').value,qty=parseInt($('vObatQty').value)||0;
   let ob=null,obatText='';
   if(obatId&&qty>0){ ob=daftarObat.find(x=>x.id===obatId);
-    if(!ob){toast('️ Obat tidak ditemukan!',true);return;}
+    if(!ob){toast('⚠️ Obat tidak ditemukan!',true);return;}
     if((ob.stok||0)<qty){toast(`⚠️ Stok ${ob.nama} tidak cukup!`,true);return;}
     obatText=`${ob.nama} ×${qty} ${ob.satuan||''}`; }
   const btn=$('btnSimpanKunjungan');btn.disabled=true;btn.textContent='⏳ Menyimpan...';
   try{
     await db.collection('sehat_kunjungan').add({ 
-      sekolah_id: userSekolahId,
-      guru_uid: currentUserUid,
-      guru_nama: petugas,
+      sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: petugas,
       tanggal:$('vTanggal').value,jam:$('vJam').value,
       siswa_id:selectedSiswa.id,siswa_nis:selectedSiswa.nis||'',siswa_nama:selectedSiswa.nama,siswa_kelas:selectedSiswa.kelas||'',
       keluhan:$('vKeluhan').value.trim(),suhu:$('vSuhu').value||null,tensi:$('vTensi').value||null,
@@ -270,8 +241,7 @@ $('btnSimpanKunjungan').onclick=async()=>{
     if(ob&&qty>0){ 
       await db.collection('sehat_apotek').doc(ob.id).update({stok:(ob.stok||0)-qty,updatedAt:new Date().toISOString()});
       await db.collection('sehat_apotek_log').add({
-        sekolah_id: userSekolahId,
-        guru_uid: currentUserUid,
+        sekolah_id: userSekolahId, guru_uid: currentUserUid,
         obat_id:ob.id,obat_nama:ob.nama,tipe:'keluar',jumlah:qty,
         keterangan:`Kunjungan: ${selectedSiswa.nama}`,tanggal:$('vTanggal').value,createdAt:new Date().toISOString()}); 
     }
@@ -284,7 +254,7 @@ $('btnSimpanKunjungan').onclick=async()=>{
   finally{btn.disabled=false;btn.textContent='💾 Simpan Kunjungan';}
 };
 
-// ══════════ RIWAYAT ══════════
+// ══════════ RIWAYAT & PROFIL ══════════
 function initFilterRiwayat(){
   const names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   $('fBulan').innerHTML=names.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
@@ -301,7 +271,6 @@ function renderRiwayat(){
     :'<tr><td colspan="6" class="empty">Tidak ada data.</td></tr>';
 }
 
-// ══════════ PROFIL ══════════
 bindSearch('cariProfil','dropProfil',async s=>{
   selectedProfil=s;$('chipProfil').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;$('formProfil').style.display='block';
   ['pKontak','pAlergi','pPenyakit','pCatatan'].forEach(id=>$(id).value='');$('pGol').value='-';
@@ -314,8 +283,7 @@ $('btnSimpanProfil').onclick=async()=>{
   if(!guard())return;
   if(!selectedProfil){toast('⚠️ Pilih siswa!',true);return;}
   await db.collection('sehat_profil').doc(sanitizeKey(selectedProfil.nis||selectedProfil.id)).set({
-    sekolah_id: userSekolahId,
-    guru_uid: currentUserUid,
+    sekolah_id: userSekolahId, guru_uid: currentUserUid,
     siswa_id:selectedProfil.id,nis:selectedProfil.nis||'',nama:selectedProfil.nama,kelas:selectedProfil.kelas||'',
     golongan_darah:$('pGol').value,kontak_darurat:$('pKontak').value.trim(),alergi:$('pAlergi').value.trim(),
     penyakit_bawaan:$('pPenyakit').value.trim(),catatan:$('pCatatan').value.trim(),updatedAt:new Date().toISOString()
@@ -387,20 +355,14 @@ window.hapusObat = async (id,nama) => { if(!guard())return; if(!confirm(`Hapus o
 async function simpanObat(){
   if(!guard())return;
   const nama=$('oNama').value.trim(); if(!nama){ toast('⚠️ Nama obat wajib!', true); return; }
-  const data={ 
-    sekolah_id: userSekolahId,
-    guru_uid: currentUserUid,
-    nama, kategori:$('oKategori').value, bentuk:$('oBentuk').value, stok:parseInt($('oStok').value)||0,
-    satuan:$('oSatuan').value, ed:$('oED').value||'', minStok:parseInt($('oMin').value)||10, updatedAt:new Date().toISOString() 
-  };
+  const data={ sekolah_id: userSekolahId, guru_uid: currentUserUid, nama, kategori:$('oKategori').value, bentuk:$('oBentuk').value, stok:parseInt($('oStok').value)||0,
+    satuan:$('oSatuan').value, ed:$('oED').value||'', minStok:parseInt($('oMin').value)||10, updatedAt:new Date().toISOString() };
   const key=$('obatEditKey').value;
   try{
     if(key){ await db.collection('sehat_apotek').doc(key).update(data); toast('✅ Obat diperbarui'); }
     else { const r=await db.collection('sehat_apotek').add({...data, createdAt:new Date().toISOString()});
-      if(data.stok>0) await db.collection('sehat_apotek_log').add({ 
-        sekolah_id: userSekolahId, guru_uid: currentUserUid,
-        obat_id:r.id, obat_nama:nama, tipe:'masuk', jumlah:data.stok, keterangan:'Stok awal', tanggal:localDate(), createdAt:new Date().toISOString() 
-      });
+      if(data.stok>0) await db.collection('sehat_apotek_log').add({ sekolah_id: userSekolahId, guru_uid: currentUserUid,
+        obat_id:r.id, obat_nama:nama, tipe:'masuk', jumlah:data.stok, keterangan:'Stok awal', tanggal:localDate(), createdAt:new Date().toISOString() });
       toast('✅ Obat ditambahkan'); }
     $('modalObat').classList.remove('show');
     await Promise.all([loadApotek(),loadLogObat()]); renderApotek(); renderLogObat(); populateObatSelect(); renderApotekAlertBar();
@@ -414,22 +376,15 @@ async function simpanStok(){
   const o=daftarObat.find(x=>x.id===key); if(!o)return;
   try{
     await db.collection('sehat_apotek').doc(key).update({ stok:(o.stok||0)+qty, updatedAt:new Date().toISOString() });
-    await db.collection('sehat_apotek_log').add({ 
-      sekolah_id: userSekolahId, guru_uid: currentUserUid,
-      obat_id:key, obat_nama:o.nama, tipe:'masuk', jumlah:qty, keterangan:$('stokKet').value||'Penerimaan stok', tanggal:localDate(), createdAt:new Date().toISOString() 
-    });
+    await db.collection('sehat_apotek_log').add({ sekolah_id: userSekolahId, guru_uid: currentUserUid,
+      obat_id:key, obat_nama:o.nama, tipe:'masuk', jumlah:qty, keterangan:$('stokKet').value||'Penerimaan stok', tanggal:localDate(), createdAt:new Date().toISOString() });
     $('modalStok').classList.remove('show'); toast('✅ Stok ditambah');
     await Promise.all([loadApotek(),loadLogObat()]); renderApotek(); renderLogObat(); populateObatSelect(); renderApotekAlertBar();
   }catch(e){ toast('❌ '+e.message, true); }
 }
 
-// ═════════ SKRINING ═════════
-function hitungIMT(tbCm, bbKg){
-  if(!tbCm||!bbKg) return null;
-  const m = tbCm/100;
-  return (bbKg/(m*m)).toFixed(1);
-}
-
+// ══════════ SKRINING ══════════
+function hitungIMT(tbCm, bbKg){ if(!tbCm||!bbKg) return null; const m = tbCm/100; return (bbKg/(m*m)).toFixed(1); }
 function statusGizi(imt){
   if(!imt) return {text:'-', cls:'b-kelas'};
   const v = parseFloat(imt);
@@ -441,10 +396,7 @@ function statusGizi(imt){
 }
 
 bindSearch('cariSkrining','dropSkrining', s=>{
-  selectedSkrining=s;
-  $('chipSkrining').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;
-  $('sKelas').value = s.kelas || '';
-  renderSkriningDetail(s);
+  selectedSkrining=s; $('chipSkrining').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`; $('sKelas').value = s.kelas || ''; renderSkriningDetail(s);
 });
 
 ['sTinggi','sBerat'].forEach(id=>{
@@ -454,13 +406,8 @@ bindSearch('cariSkrining','dropSkrining', s=>{
     const imtBox=$('sImt'), statusBox=$('sStatus');
     if(imtBox) imtBox.textContent = imt ? imt : '-';
     if(statusBox){
-      if(imt){
-        const st=statusGizi(imt);
-        statusBox.textContent=st.text;
-        statusBox.className='imt-box '+st.cls;
-      } else {
-        statusBox.textContent='-'; statusBox.className='imt-box';
-      }
+      if(imt){ const st=statusGizi(imt); statusBox.textContent=st.text; statusBox.className='imt-box '+st.cls; } 
+      else { statusBox.textContent='-'; statusBox.className='imt-box'; }
     }
   });
 });
@@ -471,15 +418,12 @@ $('btnSimpanSkrining').onclick = async ()=>{
   const tb=parseFloat($('sTinggi').value), bb=parseFloat($('sBerat').value);
   if(!tb||!bb){ toast('⚠️ TB & BB wajib diisi!', true); return; }
   const imt=hitungIMT(tb,bb), st=statusGizi(imt);
-  const btn=$('btnSimpanSkrining'); btn.disabled=true; btn.textContent=' Menyimpan...';
+  const btn=$('btnSimpanSkrining'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try{
     await db.collection('sehat_skrining').add({
-      sekolah_id: userSekolahId,
-      guru_uid: currentUserUid,
-      guru_nama: petugas,
+      sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: petugas,
       siswa_id:selectedSkrining.id, siswa_nis:selectedSkrining.nis||'', siswa_nama:selectedSkrining.nama, siswa_kelas:selectedSkrining.kelas||'',
-      tanggal:$('sTanggal').value, tb, bb, imt:parseFloat(imt), status_gizi:st.text,
-      catatan:$('sCatatan').value.trim()||'', createdAt:new Date().toISOString()
+      tanggal:$('sTanggal').value, tb, bb, imt:parseFloat(imt), status_gizi:st.text, catatan:$('sCatatan').value.trim()||'', createdAt:new Date().toISOString()
     });
     toast('✅ Skrining tersimpan!');
     $('sTinggi').value=''; $('sBerat').value=''; $('sCatatan').value=''; $('sImt').textContent='-'; $('sStatus').textContent='-'; $('sKelas').value='';
@@ -493,9 +437,7 @@ function renderSkriningTable(){
   const rows = [...skriningCache].sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||''));
   $('tbodySkrining').innerHTML = rows.length ? rows.map(r=>{
     const st=statusGizi(r.imt);
-    return `<tr><td>${r.tanggal}</td><td><b>${r.siswa_nama}</b></td><td>${r.siswa_kelas||'-'}</td>
-      <td>${r.tb} cm</td><td>${r.bb} kg</td><td>${r.imt}</td>
-      <td><span class="badge ${st.cls}">${r.status_gizi||st.text}</span></td></tr>`;
+    return `<tr><td>${r.tanggal}</td><td><b>${r.siswa_nama}</b></td><td>${r.siswa_kelas||'-'}</td><td>${r.tb} cm</td><td>${r.bb} kg</td><td>${r.imt}</td><td><span class="badge ${st.cls}">${r.status_gizi||st.text}</span></td></tr>`;
   }).join('') : '<tr><td colspan="7" class="empty">Belum ada data skrining.</td></tr>';
 }
 
@@ -507,10 +449,7 @@ function renderSkriningDetail(s){
   if(rows.length<1){ card.style.display='none'; return; }
   card.style.display='block';
   if(info) info.textContent = `— ${s.nama}`;
-  renderChart(rows);
-}
-
-function renderChart(rows){
+  
   const svg=$('chartSvg'); if(!svg) return;
   const W=600, H=220, pad=40;
   const tbs=rows.map(r=>r.tb), bbs=rows.map(r=>r.bb);
@@ -525,63 +464,37 @@ function renderChart(rows){
   const dotsBB = pointsBB.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#3b82f6"><title>${p.t}: ${p.v} kg</title></circle>`).join('');
   const labels = pointsTB.filter((_,i)=>i===0||i===pointsTB.length-1||pointsTB.length<=6||i%Math.ceil(pointsTB.length/6)===0).map(p=>
     `<text x="${p.x}" y="${H-12}" font-size="10" text-anchor="middle" fill="#64748b">${(p.t||'').slice(5,10)}</text>`).join('');
-  svg.innerHTML = `
-    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#e2e8f0"/>
-    <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#e2e8f0"/>
-    <path d="${pathTB}" fill="none" stroke="#0f766e" stroke-width="2"/>
-    <path d="${pathBB}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,2"/>
-    ${dotsTB}${dotsBB}${labels}
-    <text x="${pad}" y="${pad-5}" font-size="10" fill="#0f766e">TB ${maxTB.toFixed(0)}</text>
-    <text x="${pad}" y="${H-pad+14}" font-size="10" fill="#0f766e">TB ${minTB.toFixed(0)}</text>
-    <text x="${W-pad}" y="${pad-5}" font-size="10" fill="#3b82f6" text-anchor="end">BB ${maxBB.toFixed(0)}</text>
-    <text x="${W-pad}" y="${H-pad+14}" font-size="10" fill="#3b82f6" text-anchor="end">BB ${minBB.toFixed(0)}</text>
-  `;
+  svg.innerHTML = `<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#e2e8f0"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#e2e8f0"/><path d="${pathTB}" fill="none" stroke="#0f766e" stroke-width="2"/><path d="${pathBB}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,2"/>${dotsTB}${dotsBB}${labels}<text x="${pad}" y="${pad-5}" font-size="10" fill="#0f766e">TB ${maxTB.toFixed(0)}</text><text x="${pad}" y="${H-pad+14}" font-size="10" fill="#0f766e">TB ${minTB.toFixed(0)}</text><text x="${W-pad}" y="${pad-5}" font-size="10" fill="#3b82f6" text-anchor="end">BB ${maxBB.toFixed(0)}</text><text x="${W-pad}" y="${H-pad+14}" font-size="10" fill="#3b82f6" text-anchor="end">BB ${minBB.toFixed(0)}</text>`;
 }
 
-// ══════════ SETTINGS (Admin Only) ═════════
+// ══════════ SETTINGS (Admin Only - TAB VERSION) ══════════
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   
-  // ✅ PERBAIKAN: Ganti 'selPengelola' menjadi 'setPengelola'
-  const emailBaru = $('setPengelola').value;
+  const emailBaru = $('selPengelola').value; // ✅ FIXED: Menggunakan ID dari Tab
   if(!emailBaru){ toast('⚠️ Pilih user terlebih dahulu!', true); return; }
   
   const userBaru = daftarUsers.find(x => x.email === emailBaru);
   if(!userBaru){ toast('⚠️ User tidak ditemukan!', true); return; }
   
   try{
-    // 1. ✅ CABUT AKSES PENGELOLA LAMA
+    // 1. Cabut akses pengelola lama
     if(config.pengelola_email && config.pengelola_email !== emailBaru){
-      await db.collection('users').doc(config.pengelola_email).update({
-        akses_uks: false
-      });
-      console.log('✅ Akses pengelola lama dicabut:', config.pengelola_email);
+      await db.collection('users').doc(config.pengelola_email).update({ akses_uks: false });
     }
     
-    // 2. BERI AKSES PENGELOLA BARU
-    config = { 
-      pengelola_email: emailBaru, 
-      pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru 
-    };
+    // 2. Beri akses pengelola baru
+    config = { pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru };
     await db.collection('sehat_config').doc('settings').set(config);
+    await db.collection('users').doc(emailBaru).update({ akses_uks: true });
     
-    await db.collection('users').doc(emailBaru).update({
-      akses_uks: true
-    });
-    
-    toast('✅ Pengelola UKS diganti: ' + (userBaru.nama || userBaru.namaResmi || emailBaru));
+    toast('✅ Pengelola UKS diganti: ' + config.pengelola_nama);
     
     // 3. Update UI
-    const pn = $('pengelolaNow'); 
-    if(pn) pn.textContent = config.pengelola_nama;
-    
-    // 4. Refresh access & reload users
+    $('pengelolaNow').textContent = config.pengelola_nama;
     await loadUsers();
     await computeAccess();
-    updateModalSettingsUI();
-    
-    // 5. Close modal
-    closeModal('modalSettings');
+    updateTabSettingsUI();
     
   } catch(e){ 
     toast('❌ Gagal: ' + e.message, true); 
@@ -590,61 +503,37 @@ async function simpanPengelola(){
 
 async function cabutAksesPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
+  if(!config.pengelola_email){ toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
   
-  if(!config.pengelola_email){ 
-    toast('⚠️ Tidak ada pengelola yang aktif!', true); 
-    return; 
-  }
-  
-  if(!confirm(`❌ Cabut akses UKS dari "${config.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)){ 
-    return; 
-  }
+  if(!confirm(`❌ Cabut akses UKS dari "${config.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)) return;
   
   try{
-    await db.collection('users').doc(config.pengelola_email).update({
-      akses_uks: false
-    });
-    
-    await db.collection('sehat_config').doc('settings').set({
-      pengelola_email: '',
-      pengelola_nama: ''
-    });
+    await db.collection('users').doc(config.pengelola_email).update({ akses_uks: false });
+    await db.collection('sehat_config').doc('settings').set({ pengelola_email: '', pengelola_nama: '' });
     
     config = { pengelola_email: '', pengelola_nama: '' };
-    
     toast('✅ Akses pengelola UKS telah dicabut!');
     
     await loadUsers();
     await computeAccess();
-    updateModalSettingsUI();
+    updateTabSettingsUI();
     
-    closeModal('modalSettings');
+    if($('selPengelola')) $('selPengelola').value = '';
+    if($('pengelolaNow')) $('pengelolaNow').textContent = 'Belum ada';
     
   } catch(e){ 
     toast('❌ Gagal: ' + e.message, true); 
   }
 }
 
-function updateModalSettingsUI(){
-  const infoBox = $('infoPengelolaAktif');
-  const namaBox = $('namaPengelolaAktif');
-  const btnCabut = $('btnCabutAkses');
-  
-  if(infoBox && namaBox){
-    if(config.pengelola_email){
-      infoBox.style.display = 'block';
-      namaBox.textContent = config.pengelola_nama || config.pengelola_email;
-    } else {
-      infoBox.style.display = 'none';
-    }
-  }
-  
+function updateTabSettingsUI(){
+  const btnCabut = $('btnCabutAksesTab');
   if(btnCabut){
     btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
   }
 }
 
-// ══════════ LAPORAN ═════════
+// ══════════ LAPORAN ══════════
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const kapitalNama=(n='')=>{const i=n.indexOf(',');return i===-1?n.toUpperCase():n.slice(0,i).toUpperCase()+n.slice(i);};
 const MADRASAH={kemenag:'KEMENTERIAN AGAMA KABUPATEN BANTAENG',nama:'MADRASAH ALIYAH NEGERI BANTAENG',
@@ -700,24 +589,17 @@ function exportLaporanPDF(){
     .sign{display:flex;justify-content:space-between;margin-top:30px}
     .sign div{text-align:left;line-height:1.5}.sign .kiri{width:48%;padding-top:22px}.sign .kanan{width:34%}.sign .ttd{height:70px}
   </style></head><body>
-  <div class="kop">
-    <h2>${MADRASAH.kemenag}</h2>
-    <h3>${MADRASAH.nama}</h3>
-    <p>${MADRASAH.alamat}</p>
-  </div>
+  <div class="kop"><h2>${MADRASAH.kemenag}</h2><h3>${MADRASAH.nama}</h3><p>${MADRASAH.alamat}</p></div>
   <h3 style="text-align:center">LAPORAN BULANAN UNIT KESEHATAN SEKOLAH</h3>
   <p style="text-align:center"><b>Bulan ${bn} ${th}</b></p>
   <h4>A. Rekapitulasi Kunjungan</h4>
   <p>Total kunjungan: <b>${d.kunj.length}</b> • Istirahat: ${d.c.istirahat||0} • Dipulangkan: ${d.c.pulang||0} • Dirujuk: ${d.c.rujukan||0} • Kembali ke kelas: ${d.c.kelas||0}</p>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr></thead>
-  <tbody>${kRows}</tbody></table>
+  <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr></thead><tbody>${kRows}</tbody></table>
   <h4>B. Hasil Skrining Kesehatan</h4>
   <p>Total siswa diskrining: <b>${d.skr.length}</b></p>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>TB</th><th>BB</th><th>IMT</th><th>Status</th></tr></thead>
-  <tbody>${sRows}</tbody></table>
+  <table><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>TB</th><th>BB</th><th>IMT</th><th>Status</th></tr></thead><tbody>${sRows}</tbody></table>
   <h4>C. Penggunaan Obat</h4>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Obat</th><th>Tipe</th><th>Jumlah</th><th>Keterangan</th></tr></thead>
-  <tbody>${lRows}</tbody></table>
+  <table><thead><tr><th>No</th><th>Tanggal</th><th>Obat</th><th>Tipe</th><th>Jumlah</th><th>Keterangan</th></tr></thead><tbody>${lRows}</tbody></table>
   <div class="sign">
     <div class="kiri">Mengetahui,<br>Kepala Madrasah<div class="ttd"></div><b><u>${kapitalNama(MADRASAH.kepala.nama)}</u></b><br><b>NIP. ${MADRASAH.kepala.nip}</b></div>
     <div class="kanan">Bantaeng, &nbsp;&nbsp;&nbsp; ${tgl}<div style="height:22px"></div>Pengelola UKS<div class="ttd"></div><b><u>${kapitalNama(petugasNama)}</u></b><br><b>NIP. ${nipPetugas}</b></div>
@@ -737,18 +619,13 @@ const btnBatalStok = $('btnBatalStok'); if (btnBatalStok) btnBatalStok.onclick =
 const btnSimpanStok = $('btnSimpanStok'); if (btnSimpanStok) btnSimpanStok.onclick = simpanStok;
 const btnSP = $('btnSimpanPengelola'); if (btnSP) btnSP.onclick = simpanPengelola;
 const btnExportLaporan = $('btnExportLaporan'); if (btnExportLaporan) btnExportLaporan.onclick = exportLaporanPDF;
-const btnBatalSettings = $('btnBatalSettings'); if (btnBatalSettings) btnBatalSettings.onclick = ()=> closeModal('modalSettings');
-const btnSimpanConfig = $('btnSimpanConfig'); if (btnSimpanConfig) btnSimpanConfig.onclick = simpanPengelola;
-const btnCabutAkses = $('btnCabutAkses'); if (btnCabutAkses) btnCabutAkses.onclick = cabutAksesPengelola;
+const btnCabutAksesTab = $('btnCabutAksesTab'); if (btnCabutAksesTab) btnCabutAksesTab.onclick = cabutAksesPengelola;
 
 document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); 
   t.classList.add('active');
   
-  if(t.dataset.tab === 'laporan'){ 
-    initFilterLaporan(); 
-    renderLaporan(); 
-  }
+  if(t.dataset.tab === 'laporan'){ initFilterLaporan(); renderLaporan(); }
   
   ['dashboard','kunjungan','riwayat','profil','apotek','skrining','laporan','settings'].forEach(id => {
     const el = $('tab-'+id); 
@@ -760,34 +637,26 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   if(t.dataset.tab === 'apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab === 'skrining') renderSkriningTable();
   
+  // ✅ LOGIKA TAB SETTINGS YANG DIPERBAIKI
   if(t.dataset.tab === 'settings'){
-    const sel = $('setPengelola');
-    
-    if(!daftarUsers || daftarUsers.length === 0) {
-      await loadUsers();
-    }
+    const selTab = $('selPengelola');
+    if(!daftarUsers || daftarUsers.length === 0) await loadUsers();
     
     let options = '<option value="">-- Pilih User --</option>';
-    
     if(daftarUsers.length > 0) {
-      options += daftarUsers
-        .filter(u => u.email && u.email.trim() !== '')
-        .map(u => {
-          const isSelected = u.email === config.pengelola_email ? 'selected' : '';
-          const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
-          const role = u.role ? ` - ${u.role}` : '';
-          const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
-          return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
-        })
-        .join('');
+      options += daftarUsers.filter(u => u.email && u.email.trim() !== '').map(u => {
+        const isSelected = u.email === config.pengelola_email ? 'selected' : '';
+        const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
+        const role = u.role ? ` - ${u.role}` : '';
+        const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
+        return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
+      }).join('');
     }
     
-    sel.innerHTML = options;
+    if(selTab) selTab.innerHTML = options;
+    if($('pengelolaNow')) $('pengelolaNow').textContent = config.pengelola_nama || 'Belum ada';
     
-    const pn = $('pengelolaNow'); 
-    if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
-    
-    updateModalSettingsUI();
+    updateTabSettingsUI();
   }
 });
 
