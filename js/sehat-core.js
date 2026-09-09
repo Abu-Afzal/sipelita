@@ -182,7 +182,7 @@ const localDate=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getM
 const formatDate=s=>s?new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'-';
 const sanitizeKey=s=>String(s).replace(/[^a-zA-Z0-9_-]/g,'_');
 const isExpired=o=>o.ed&&new Date(o.ed)<new Date();
-const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:['🏠 Pulang','b-pulang'],rujukan:['🏥 Dirujuk','b-rujukan']};
+const hasilLabel={kelas:['✅ Kembali','b-kelas'],istirahat:['🛏️ Istirahat','b-istirahat'],pulang:['🏠 Pulang','b-pulang'],rujukan:[' Dirujuk','b-rujukan']};
 
 const isAdmin=()=> String(currentUserRole).toLowerCase()==='admin';
 
@@ -475,7 +475,7 @@ function renderLogObat(){
   const list=$('listLogObat'); if(!list) return;
   const rows=logObat.slice(0,8);
   list.innerHTML = rows.length ? rows.map(l=>`
-    <div class="row-item"><div><b>${l.tipe==='masuk'?'📥':''} ${l.obat_nama}</b> ×${l.jumlah}
+    <div class="row-item"><div><b>${l.tipe==='masuk'?'📥':'📤'} ${l.obat_nama}</b> ×${l.jumlah}
       <div style="font-size:.8rem;color:#64748b">${l.keterangan||''} • ${l.tanggal||''}</div></div>
       <span class="badge ${l.tipe==='masuk'?'b-green':'b-red'}">${l.tipe==='masuk'?'MASUK':'KELUAR'}</span></div>`).join('')
     : '<div class="empty">Belum ada log stok.</div>';
