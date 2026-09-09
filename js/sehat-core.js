@@ -588,6 +588,69 @@ async function simpanPengelola(){
   }
 }
 
+// ✅ FUNGSI BARU: Cabut akses pengelola tanpa ganti user
+async function cabutAksesPengelola(){
+  if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
+  
+  if(!config.pengelola_email){ 
+    toast('⚠️ Tidak ada pengelola yang aktif!', true); 
+    return; 
+  }
+  
+  if(!confirm(`❌ Cabut akses UKS dari "${config.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)){ 
+    return; 
+  }
+  
+  try{
+    // 1. Cabut akses user lama
+    await db.collection('users').doc(config.pengelola_email).update({
+      akses_uks: false
+    });
+    
+    // 2. Hapus config pengelola
+    await db.collection('sehat_config').doc('settings').set({
+      pengelola_email: '',
+      pengelola_nama: ''
+    });
+    
+    config = { pengelola_email: '', pengelola_nama: '' };
+    
+    toast('✅ Akses pengelola UKS telah dicabut!');
+    
+    // 3. Update UI
+    await loadUsers();
+    await computeAccess();
+    updateModalSettingsUI();
+    
+    // 4. Close modal
+    closeModal('modalSettings');
+    
+  } catch(e){ 
+    toast(' Gagal: ' + e.message, true); 
+  }
+}
+
+// ✅ FUNGSI BARU: Update UI modal settings
+function updateModalSettingsUI(){
+  const infoBox = $('infoPengelolaAktif');
+  const namaBox = $('namaPengelolaAktif');
+  const btnCabut = $('btnCabutAkses');
+  
+  if(infoBox && namaBox){
+    if(config.pengelola_email){
+      infoBox.style.display = 'block';
+      namaBox.textContent = config.pengelola_nama || config.pengelola_email;
+    } else {
+      infoBox.style.display = 'none';
+    }
+  }
+  
+  if(btnCabut){
+    // Tampilkan tombol "Cabut Akses" hanya jika ada pengelola aktif
+    btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
+  }
+}
+
 // ══════════ LAPORAN ══════════
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const kapitalNama=(n='')=>{const i=n.indexOf(',');return i===-1?n.toUpperCase():n.slice(0,i).toUpperCase()+n.slice(i);};
@@ -705,35 +768,37 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   if(t.dataset.tab === 'skrining') renderSkriningTable();
   
   // ✅ PERBAIKAN: Logika populate dropdown yang robust
-  if(t.dataset.tab === 'settings'){
-    const sel = $('selPengelola');
-    
-    // Reload users jika belum ada atau kosong
-    if(!daftarUsers || daftarUsers.length === 0) {
-      await loadUsers();
-    }
-    
-    let options = '<option value="">-- Pilih User --</option>';
-    
-    if(daftarUsers.length > 0) {
-      // Filter hanya user yang punya email
-      options += daftarUsers
-        .filter(u => u.email && u.email.trim() !== '')
-        .map(u => {
-          const isSelected = u.email === config.pengelola_email ? 'selected' : '';
-          const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
-          const role = u.role ? ` - ${u.role}` : '';
-          const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
-          return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
-        })
-        .join('');
-    }
-    
-    sel.innerHTML = options;
-    
-    const pn = $('pengelolaNow'); 
-    if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+if(t.dataset.tab === 'settings'){
+  const sel = $('setPengelola');
+  
+  // Reload users jika belum ada atau kosong
+  if(!daftarUsers || daftarUsers.length === 0) {
+    await loadUsers();
   }
+  
+  let options = '<option value="">-- Pilih User --</option>';
+  
+  if(daftarUsers.length > 0) {
+    options += daftarUsers
+      .filter(u => u.email && u.email.trim() !== '')
+      .map(u => {
+        const isSelected = u.email === config.pengelola_email ? 'selected' : '';
+        const nama = u.nama || u.namaResmi || u.email || 'Tanpa Nama';
+        const role = u.role ? ` - ${u.role}` : '';
+        const hasUksAccess = u.akses_uks ? ' (✅ Pengelola UKS)' : '';
+        return `<option value="${u.email}" ${isSelected}>${nama}${role}${hasUksAccess}</option>`;
+      })
+      .join('');
+  }
+  
+  sel.innerHTML = options;
+  
+  const pn = $('pengelolaNow'); 
+  if(pn) pn.textContent = config.pengelola_nama || 'Belum ada';
+  
+  // ✅ PANGGIL FUNGSI UPDATE UI
+  updateModalSettingsUI();
+}
 });
 
 // Close modal on outside click
