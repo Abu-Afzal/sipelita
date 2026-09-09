@@ -23,7 +23,8 @@
   <button class="tab" data-tab="anggota">👥 Anggota</button>
   <button class="tab" data-tab="kegiatan">📝 Kegiatan & Absensi</button>
   <button class="tab" data-tab="rekap">📈 Rekap</button>
-    <button class="tab" data-tab="monitor" id="tabMonitorBtn" style="display:none">📊 Monitoring</button>
+  <button class="tab" data-tab="monitor" id="tabMonitorBtn" style="display:none">📊 Monitoring</button>
+  <button class="tab" data-tab="pengelola" id="tabPengelolaBtn" style="display:none">⚙️ Pengelola</button>
 </div>
 
 <div class="container">
@@ -47,7 +48,7 @@
     </div>
   </div>
 
-  <!-- MASTER (Admin) -->
+  <!-- MASTER (Admin & Pengelola) -->
   <div id="tab-master" style="display:none">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -91,7 +92,7 @@
       <div class="fg"><label>Deskripsi / Catatan</label><textarea id="kDesk" rows="2"></textarea></div>
       <div class="fg"><label>Foto (maks 3)</label><input type="file" id="kFoto" accept="image/*" multiple></div>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
         <label style="margin:0;">✅ Absensi Anggota</label>
         <button class="btn btn-secondary btn-sm" id="btnSemuaHadir">Semua Hadir</button>
       </div>
@@ -122,9 +123,31 @@
     </div>
   </div>
   
- <!-- MONITORING (Kepala/Waka/Admin) -->
+  <!-- MONITORING (Kepala/Waka/Admin) -->
   <div id="tab-monitor" style="display:none">
     <div id="monitorContent"><div class="empty">Memuat...</div></div>
+  </div>
+
+  <!-- ✅ TAB PENGELOLA - HANYA UNTUK ADMIN -->
+  <div id="tab-pengelola" style="display:none">
+    <div class="card">
+      <h3 style="margin:0 0 12px;color:#6d28d9;">⚙️ Pengelola Ekskul</h3>
+      <p style="font-size:.9rem;color:#64748b; margin-bottom:16px;">
+        Petugas saat ini: <b id="pengelolaEkskulNow" style="color:#6d28d9;">-</b>
+      </p>
+      
+      <div class="fg">
+        <label>Pilih Pengelola Baru</label>
+        <select id="selPengelolaEkskul">
+          <option value="">-- Pilih User --</option>
+        </select>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn btn-primary" id="btnSimpanPengelolaEkskul" style="flex:1;">💾 Tetapkan Pengelola</button>
+        <button class="btn btn-danger" id="btnCabutAksesEkskul" style="display:none;">🚫 Cabut Akses</button>
+      </div>
+    </div>
   </div>
   
 </div>
@@ -169,6 +192,7 @@
     <div class="modal-foot"><button class="btn btn-secondary" id="btnTutupFoto">Tutup</button></div>
   </div>
 </div>
+
 <script type="module" src="../js/ekskul-core.js"></script>
 </body>
 </html>
