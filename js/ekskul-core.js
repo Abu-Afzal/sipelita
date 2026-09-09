@@ -1,10 +1,164 @@
 // ══════════════════════════════════════════════
-// SIAGA CORE - Ekstrakurikuler (ISOLASI SEKOLAH + AKSES PENGELOLA)
+// SIAGA CORE - Ekstrakurikuler (SIG INTEGRATED)
 // ══════════════════════════════════════════════
 import { auth, db } from "../js/firebase-config.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+// ══════════════════════════════════════════════
+// ✏️ KONFIGURASI MADRASAH (SIG) - EKSKUL
+// ══════════════════════════════════════════════
+const CONFIG_MADRASAH = {
+  logo: '',
+  kop1: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
+  kop2: 'MADRASAH ALIYAH NEGERI BANTAENG',
+  alamat: 'Jl. ... (isi alamat madrasah)',
+  kota: 'Bantaeng',
+  kepalaMadrasah: '................................................',
+  nipKepala: 'NIP. ............................................'
+};
+
+const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.Sos','M.Sos','S.Kom','M.Kom',
+  'S.E','M.M','MM','S.S','M.Hum','S.Mat','M.Mat','S.T','M.T','S.H','M.H','S.Psi','M.Psi','S.IP','M.AP',
+  'Dra','Drs','Dr','Prof','H','Hj'];
+
+function rapikanGelar(token) {
+  let t = token.trim();
+  if (!t) return '';
+  const adaTitikAkhir = t.endsWith('.');
+  const clean = t.replace(/\.+$/, '');
+  const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
+  if (found) return found + (adaTitikAkhir ? '.' : '');
+  if (clean.includes('.')) {
+    return clean.split('.').map(seg =>
+      seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()
+    ).join('.');
+  }
+  return clean.length <= 2 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+}
+
+function formatNamaGelar(text) {
+  if (!text) return '';
+  const parts = text.split(',');
+  const GELAR_DEPAN = ['Drs','Dra','Dr','Prof','H','Hj','Ir','KH'];
+  let tokens = parts[0].trim().split(/\s+/);
+  const depan = [];
+  while (tokens.length) {
+    const t = tokens[0].replace(/\.+$/, '');
+    const m = GELAR_DEPAN.find(g => g.toLowerCase() === t.toLowerCase());
+    if (m) { depan.push(m + '.'); tokens.shift(); } else break;
+  }
+  const namaInti = tokens.join(' ').toUpperCase();
+  const belakang = parts.slice(1).map(rapikanGelar).filter(Boolean).join(',');
+  let hasil = (depan.length ? depan.join(' ') + ' ' : '') + namaInti;
+  if (belakang) hasil += ', ' + belakang;
+  return hasil;
+}
+
+function formatKapital(text, mode) {
+  if (!text) return '';
+  if (mode === 'upper') return formatNamaGelar(text);
+  if (mode === 'lower') return text.toLowerCase();
+  if (mode === 'title') return text.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
+  return text;
+}
+
+function ekstrakSIG(d) {
+  const hasil = { kota:'', kepala:'', nip:'', kop1:'', kop2:'', alamat:'' };
+  for (const [k, v] of Object.entries(d || {})) {
+    if (typeof v !== 'string' || !v) continue;
+    const key = k.toLowerCase();
+    const isKepalaKey = key.includes('kamad') || key.includes('kepala') || key.includes('kepsek');
+
+    if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
+    if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
+    if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
+    if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
+    if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
+    if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
+  }
+  return hasil;
+}
+
+async function fetchIdentitasSekolah() {
+  if (!currentUserEmail) return;
+  const sumber = [];
+
+  if (userSekolahId) {
+    try {
+      const s = await db.collection('sekolah').doc(userSekolahId).get();
+      if (s.exists) sumber.push(s.data());
+    } catch (e) {}
+  }
+
+  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'ekskul_config',
+                'pengaturan', 'settings', 'config', 'sig'];
+  for (const c of cols) {
+    try { const a = await db.collection(c).doc(currentUserEmail).get();   if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
+    try { const q = await db.collection(c).where('email', '==', currentUserEmail).limit(1).get(); q.forEach(d => sumber.push(d.data())); } catch (e) {}
+  }
+
+  try {
+    const g = await db.collection('identitas_madrasah').limit(1).get();
+    g.forEach(d => sumber.push(d.data()));
+  } catch (e) {}
+
+  try {
+    const u1 = await db.collection('users').doc(currentUserEmail).get();
+    if (u1.exists) sumber.push(u1.data());
+  } catch (e) {}
+
+  let ketemu = false, kop1Explicit = false;
+  for (const d of sumber) {
+    const x = ekstrakSIG(d);
+    if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
+    if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
+    if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
+    if (x.kop1)   { CONFIG_MADRASAH.kop1 = x.kop1; kop1Explicit = true; ketemu = true; }
+    if (x.kop2)   { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
+    if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
+  }
+
+  if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
+    CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
+  }
+
+  console.log(ketemu
+    ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
+    : '⚠️ SIG: data identitas tidak ditemukan');
+}
+
+async function fetchSekolahAktif() {
+  if (!currentUserEmail || !userSekolahId) return;
+  
+  try {
+    const sdoc = await db.collection('sekolah').doc(userSekolahId).get();
+    if (!sdoc.exists) return;
+    
+    const d = sdoc.data();
+    console.log('🏫 Data sekolah aktif ditemukan:', d);
+    
+    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
+    if (d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
+    else if (d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
+    if (d.alamat) CONFIG_MADRASAH.alamat = d.alamat;
+    if (d.kota) CONFIG_MADRASAH.kota = d.kota;
+    if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
+    if (d.kepala_nip) {
+      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') 
+        ? d.kepala_nip 
+        : 'NIP. ' + d.kepala_nip;
+    }
+    
+    console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override');
+  } catch (e) {
+    console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
+  }
+}
+
+// ══════════ INIT ══════════
 onAuthStateChanged(auth, async (u) => { 
   if (!u) {
     window.location.href = '../home.html';
@@ -13,9 +167,10 @@ onAuthStateChanged(auth, async (u) => {
   }
 });
 
-let currentUser = { uid: '', nama: '', email: '', role: 'guru' };
+let currentUser = { uid: '', nama: '', email: '', role: 'guru', nip: '' };
 let userSekolahId = '';
 let canEditEkskul = false;
+let currentUserEmail = '';
 
 let daftarUsers = [];
 let masterSiswa = [];
@@ -33,17 +188,10 @@ const localDate = () => { const d=new Date(); return d.getFullYear()+'-'+String(
 const JABATAN = ['Anggota','Ketua','Wakil','Sekretaris','Bendahara'];
 const kapitalNama = (n='') => { const i=n.indexOf(','); return i===-1 ? n.toUpperCase() : n.slice(0,i).toUpperCase()+n.slice(i); };
 
-const MADRASAH = {
-  kemenag : 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
-  nama    : 'MADRASAH ALIYAH NEGERI BANTAENG',
-  alamat  : 'Jl. ... (isi alamat lengkap madrasah)',
-  kepala  : { nama: 'Muhammad Arif Pither, S.Ag.,M.M.,M.Pd', nip: '19710930 200710 1 001' }
-};
-
-// ══════════ INIT ══════════
 async function initApp(u) {
   currentUser.uid = u.uid;
   currentUser.email = u.email;
+  currentUserEmail = u.email;
   
   try {
     const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', currentUser.email)));
@@ -52,6 +200,7 @@ async function initApp(u) {
       currentUser.nama = data.nama || data.namaResmi || currentUser.email;
       currentUser.role = data.role || 'guru';
       userSekolahId = data.school_id || data.sekolah_id || '';
+      currentUser.nip = data.nip || '';
     }
   } catch(e) { console.error('Gagal ambil data user:', e); }
 
@@ -60,7 +209,8 @@ async function initApp(u) {
     return;
   }
 
-  $('userBadge').textContent = (currentUser.role==='admin'?'👑':'👤') + ' ' + currentUser.nama;
+  $('userBadge').textContent = (currentUser.role==='admin'?'👑 ':'') + currentUser.nama;
+  $('schoolBadge').textContent = ' ' + (userSekolahId || 'Sekolah');
 
   if (currentUser.role === 'admin') {
     $('tabMasterBtn').style.display = 'inline-block';
@@ -72,6 +222,10 @@ async function initApp(u) {
 
   $('kTanggal').value = localDate();
   $('kJam').value = new Date().toTimeString().slice(0,5);
+
+  // ✅ LOAD SIG DATA
+  await fetchIdentitasSekolah();
+  await fetchSekolahAktif();
 
   await Promise.all([ loadMasterSiswa(), loadUsers(), loadEkskul() ]);
 
@@ -125,7 +279,8 @@ async function loadUsers(){
       if (data.email) {
         daftarUsers.push({
           id: d.id, email: data.email, nama: data.nama || data.namaResmi || '',
-          role: data.role || '', akses_ekskul: data.akses_ekskul || false
+          role: data.role || '', akses_ekskul: data.akses_ekskul || false,
+          nip: data.nip || ''
         });
       }
     });
@@ -194,8 +349,8 @@ function renderMaster(){
         <div style="font-size:.8rem;color:#64748b">👤 ${e.pembina_nama||'Belum ada pembina'} • 📅 ${e.hari||'-'} ${e.jam_mulai||''}-${e.jam_selesai||''}</div></div>
       <div style="display:flex;gap:6px">
         ${canEditEkskul ? `
-        <button class="btn btn-secondary btn-sm" onclick="editEkskul('${e.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="hapusEkskul('${e.id}','${(e.nama||'').replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEkskul('${e.id}')">️</button>
+        <button class="btn btn-danger btn-sm" onclick="hapusEkskul('${e.id}','${(e.nama||'').replace(/'/g,"\\'")}')">️</button>
         ` : ''}
       </div>
     </div>`).join('');
@@ -223,7 +378,7 @@ async function simpanEkskul(){
   if (!canEditEkskul) return;
   const nama = $('eNama').value.trim();
   const pembinaEmail = $('ePembina').value;
-  if (!nama){ toast('⚠️ Nama ekskul wajib diisi!', true); return; }
+  if (!nama){ toast('️ Nama ekskul wajib diisi!', true); return; }
   if (!pembinaEmail){ toast('⚠️ Pilih pembina!', true); return; }
   
   const u = daftarUsers.find(x=>x.email===pembinaEmail);
@@ -294,7 +449,7 @@ function renderChecklist(){
       <div><b>${a.nama}</b> <span style="color:#94a3b8;font-size:.8rem">${a.kelas||''}</span></div>
       <select class="abs-status" ${!canEditEkskul?'disabled':''}>
         <option value="Hadir">✅ Hadir</option><option value="Sakit">🟡 Sakit</option>
-        <option value="Izin">🔵 Izin</option><option value="Alpha">❌ Alpha</option>
+        <option value="Izin"> Izin</option><option value="Alpha"> Alpha</option>
       </select>
     </div>`).join('');
 }
@@ -346,7 +501,7 @@ function renderKegiatan(){
       ? `<button class="btn btn-secondary btn-sm" onclick="lihatFoto('${k.id}')">📷 ${k.fotoBase64.length}</button>` : '';
     return `<div class="row-item">
       <div><b>${k.judul}</b>
-        <div style="font-size:.8rem;color:#64748b">📅 ${k.tanggal} ${k.jam||''} • ✅ ${hadir}/${total} hadir</div></div>
+        <div style="font-size:.8rem;color:#64748b"> ${k.tanggal} ${k.jam||''} • ✅ ${hadir}/${total} hadir</div></div>
       <div style="display:flex;gap:6px;align-items:center">${fotoBtn}<span class="badge b-aktif">${k.ekskul_nama||''}</span></div>
     </div>`;
   }).join('');
@@ -395,66 +550,136 @@ function renderDashboard(){
     : '<div class="empty">Belum ada kegiatan.</div>';
 }
 
-// ══════════ EXPORT PDF LAPORAN ══════════
+// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
-  const tgl = new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  const today = new Date();
+  const tglSurat = `${today.getDate()} ${NAMA_BULAN[today.getMonth()]} ${today.getFullYear()}`;
   const y = new Date().getFullYear();
   const tp = `${y}/${y+1}`;
+  
   const pembinaUser = daftarUsers.find(u => u.email === e.pembina_email) || {};
-  const pembinaNip = pembinaUser.nip || '-';
+  const rawNipPembina = pembinaUser.nip || '';
+  const nipPembina = rawNipPembina 
+    ? (rawNipPembina.startsWith('NIP.') ? rawNipPembina : 'NIP. ' + rawNipPembina)
+    : 'NIP. ............................................';
+  const namaPembinaCetak = formatKapital(e.pembina_nama || '', 'upper');
 
   const kegRows = daftarKegiatan.map((k,i)=>{
     const h=(k.absensi||[]).filter(x=>x.status==='Hadir').length, t=(k.absensi||[]).length||0;
-    return `<tr><td>${i+1}</td><td>${k.tanggal}</td><td>${k.judul}</td><td>${k.materi||'-'}</td><td>${h}/${t}</td></tr>`;
-  }).join('');
+    return `<tr><td style="text-align:center">${i+1}</td><td>${k.tanggal}</td><td>${k.judul}</td><td>${k.materi||'-'}</td><td style="text-align:center">${h}/${t}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;font-style:italic">Tidak ada kegiatan</td></tr>';
 
   const rekapRows = daftarAnggota.map((a,i)=>{
     let H=0,S=0,I=0,A=0;
     daftarKegiatan.forEach(k=>{ const r=(k.absensi||[]).find(x=>x.nis===a.nis); if(r){ if(r.status==='Hadir')H++; else if(r.status==='Sakit')S++; else if(r.status==='Izin')I++; else A++; } });
     const tot=daftarKegiatan.length||1, pct=Math.round(H/tot*100);
     const pred=pct>=90?'Sangat Baik':pct>=75?'Baik':pct>=60?'Cukup':'Kurang';
-    return `<tr><td>${i+1}</td><td>${a.nis||'-'}</td><td>${a.nama}</td><td>${a.kelas||'-'}</td><td>${H}</td><td>${S}</td><td>${I}</td><td>${A}</td><td>${pct}%</td><td>${pred}</td></tr>`;
-  }).join('');
+    return `<tr><td style="text-align:center">${i+1}</td><td>${a.nis||'-'}</td><td>${a.nama}</td><td style="text-align:center">${a.kelas||'-'}</td><td style="text-align:center">${H}</td><td style="text-align:center">${S}</td><td style="text-align:center">${I}</td><td style="text-align:center">${A}</td><td style="text-align:center">${pct}%</td><td style="text-align:center">${pred}</td></tr>`;
+  }).join('') || '<tr><td colspan="10" style="text-align:center;font-style:italic">Belum ada anggota</td></tr>';
 
   let dokHtml = '';
   daftarKegiatan.forEach(k => {
     if (k.fotoBase64 && k.fotoBase64.length) {
-      dokHtml += `<p style="margin:8px 0 4px"><b>${k.tanggal} — ${k.judul}</b></p>
-        <div class="dok">${k.fotoBase64.map(f=>`<img src="${f}">`).join('')}</div>`;
+      dokHtml += `<div style="margin:15px 0;"><p style="font-weight:bold; margin:5px 0;">${k.tanggal} — ${k.judul}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${k.fotoBase64.map(f=>`<img src="${f}" style="width:48%;max-width:250px;height:auto;border:1px solid #999;border-radius:4px;">`).join('')}</div></div>`;
     }
   });
 
+  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
+  const kopHtml = `
+    <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <tr>
+          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+          </td>
+          <td style="text-align:center; border:none;">
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
+            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+          </td>
+          <td style="width:75px; border:none;"></td>
+        </tr>
+      </table>
+    </div>`;
+
+  const OFFSET_KOTA = 22;
+  const SPASI_TTD = 60;
+  const GESER_KANAN = 100;
+  
+  const ttdHtml = `
+    <table style="width:100%; margin-top:28px; font-size:12pt;">
+      <tr>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:${OFFSET_KOTA}px;">
+          Mengetahui,<br>Kepala Madrasah
+          <div style="height:${SPASI_TTD}px;"></div>
+          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, 'upper')}</span></u></b><br><b style="font-size:11pt;">${CONFIG_MADRASAH.nipKepala}</b>
+        </td>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:${GESER_KANAN}px;">
+          ${CONFIG_MADRASAH.kota}, ${tglSurat}
+          <div style="height:${OFFSET_KOTA}px;"></div>
+          Pembina ${e.nama}
+          <div style="height:${SPASI_TTD}px;"></div>
+          <b><u><span style="font-size:10pt;">${namaPembinaCetak}</span></u></b><br><b style="font-size:11pt;">${nipPembina}</b>
+        </td>
+      </tr>
+    </table>`;
+
   const w = window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Laporan ${e.nama}</title><style>
-    body{font-family:'Times New Roman',serif;font-size:11pt;color:#000;padding:20px;}
-    .kop{text-align:center;border-bottom:3px double #000;padding-bottom:8px;margin-bottom:14px;}
-    .kop h2{margin:2px 0;font-size:14pt}.kop h3{margin:2px 0;font-size:12pt}.kop p{margin:2px 0;font-size:9pt}
-    h4{margin:14px 0 6px} table{width:100%;border-collapse:collapse;font-size:10pt}
-    th,td{border:1px solid #000;padding:6px;text-align:left} th{background:#eee}
-    .dok{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
-    .dok img{width:48%;height:auto;border:1px solid #999;border-radius:4px;page-break-inside:avoid}
-    .sign{display:flex;justify-content:space-between;margin-top:30px}
-    .sign div{text-align:left;line-height:1.5} .sign .kiri{width:48%;padding-top:22px} .sign .kanan{width:34%} .sign .ttd{height:70px}
-  </style></head><body>
-  <div class="kop"><h2>${MADRASAH.kemenag}</h2><h3>${MADRASAH.nama}</h3><p>${MADRASAH.alamat}</p></div>
-  <h3 style="text-align:center">LAPORAN KEGIATAN & KEHADIRAN EKSTRAKURIKULER</h3>
-  <p style="text-align:center"><b>${e.ikon||''} ${e.nama}</b> — Tahun Pelajaran ${tp}</p>
-  <p>Pembina: <b>${e.pembina_nama||'-'}</b><br>Jadwal: ${e.hari||'-'}, ${e.jam_mulai||''}–${e.jam_selesai||''} ${e.ruang?'• '+e.ruang:''}</p>
-  <h4>A. Daftar Kegiatan</h4>
-  <table><thead><tr><th>No</th><th>Tanggal</th><th>Kegiatan</th><th>Materi</th><th>Hadir/Total</th></tr></thead>
-  <tbody>${kegRows||'<tr><td colspan="5">Belum ada kegiatan</td></tr>'}</tbody></table>
-  <h4>B. Rekap Kehadiran per Siswa</h4>
-  <table><thead><tr><th>No</th><th>NIS</th><th>Nama</th><th>Kelas</th><th>H</th><th>S</th><th>I</th><th>A</th><th>%</th><th>Predikat</th></tr></thead>
-  <tbody>${rekapRows||'<tr><td colspan="10">Belum ada anggota</td></tr>'}</tbody></table>
-  <h4>C. Dokumentasi Kegiatan</h4>
-  ${dokHtml || '<p>Tidak ada dokumentasi foto.</p>'}
-  <div class="sign">
-    <div class="kiri">Mengetahui,<br>Kepala Madrasah<div class="ttd"></div><b><u>${kapitalNama(MADRASAH.kepala.nama)}</u></b><br><b>NIP. ${MADRASAH.kepala.nip}</b></div>
-    <div class="kanan">Bantaeng, &nbsp;&nbsp;&nbsp; ${tgl}<div style="height:22px"></div>Pembina ${e.nama}<div class="ttd"></div><b><u>${kapitalNama(e.pembina_nama||'')}</u></b><br><b>NIP. ${pembinaNip}</b></div>
+  w.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Laporan ${e.nama}</title>
+  <style>
+    @page { size: A4; margin: 15mm 15mm; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.4; }
+    h3 { font-size: 12pt; font-weight: bold; margin: 5px 0; text-transform: uppercase; }
+    h4 { font-size: 11pt; font-weight: bold; margin: 15px 0 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 15px; }
+    th, td { border: 1px solid #000; padding: 5px 8px; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; font-weight: bold; text-align: center; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  ${kopHtml}
+  
+  <div style="text-align:center; margin:0 0 12px;">
+    <h3>LAPORAN KEGIATAN & KEHADIRAN EKSTRAKURIKULER</h3>
+    <p style="font-size:11pt; margin:3px 0;">${e.ikon||''} ${e.nama} — Tahun Pelajaran ${tp}</p>
   </div>
-  <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  
+  <div style="margin-bottom:12px; font-size:11pt;">
+    <p>Pembina: <b>${e.pembina_nama||'-'}</b><br>
+    Jadwal: ${e.hari||'-'}, ${e.jam_mulai||''}–${e.jam_selesai||''} ${e.ruang?'• '+e.ruang:''}</p>
+  </div>
+  
+  <h4>A. Daftar Kegiatan</h4>
+  <table>
+    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Kegiatan</th><th>Materi</th><th style="width:12%">Hadir/Total</th></tr></thead>
+    <tbody>${kegRows}</tbody>
+  </table>
+
+  <h4>B. Rekap Kehadiran per Siswa</h4>
+  <table>
+    <thead><tr><th style="width:5%">No</th><th style="width:12%">NIS</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:5%">H</th><th style="width:5%">S</th><th style="width:5%">I</th><th style="width:5%">A</th><th style="width:8%">%</th><th style="width:12%">Predikat</th></tr></thead>
+    <tbody>${rekapRows}</tbody>
+  </table>
+
+  <h4>C. Dokumentasi Kegiatan</h4>
+  ${dokHtml || '<p style="font-style:italic;color:#64748b;">Tidak ada dokumentasi foto.</p>'}
+
+  ${ttdHtml}
+  
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 500);
+    }
+  <\/script>
+</body>
+</html>`);
   w.document.close();
 }
 
@@ -495,7 +720,7 @@ function renderMonitoring(){
       <div class="stat"><h2>${avgPct}%</h2><p>Rata-rata Kehadiran</p></div>
     </div>
     <div class="card">
-      <h4 style="margin:0 0 12px;color:#5b21b6">👥 Jumlah Anggota per Ekskul</h4>
+      <h4 style="margin:0 0 12px;color:#5b21b6"> Jumlah Anggota per Ekskul</h4>
       ${data.map(x => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px"><b>${x.e.ikon||''} ${x.e.nama}</b><span>${x.ang} anggota</span></div><div style="background:#ede9fe;border-radius:6px;height:12px"><div style="background:#7c3aed;height:12px;border-radius:6px;width:${Math.round(x.ang/maxAng*100)}%"></div></div></div>`).join('')}
     </div>
     <div class="card">
@@ -519,37 +744,41 @@ async function simpanPengelolaEkskul(){
   const emailBaru = $('selPengelolaEkskul').value;
   if (!emailBaru) { toast('⚠️ Pilih user terlebih dahulu!', true); return; }
   const userBaru = daftarUsers.find(x => x.email === emailBaru);
-  if (!userBaru) { toast('⚠️ User tidak ditemukan!', true); return; }
+  if (!userBaru) { toast('️ User tidak ditemukan!', true); return; }
   
   try {
-    const configDoc = await getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola')));
-    if (!configDoc.empty) {
-      const oldConfig = configDoc.docs[0].data();
+    const configSnap = await getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola'), where('sekolah_id', '==', userSekolahId)));
+    if (!configSnap.empty) {
+      const oldConfig = configSnap.docs[0].data();
       if (oldConfig.pengelola_email && oldConfig.pengelola_email !== emailBaru) {
         await updateDoc(doc(db, 'users', oldConfig.pengelola_email), { akses_ekskul: false });
       }
-      await updateDoc(configDoc.docs[0].ref, { pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru });
+      await updateDoc(configSnap.docs[0].ref, { pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru });
     } else {
-      await addDoc(collection(db, 'ekskul_config'), { type: 'pengelola', sekolah_id: userSekolahId, pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru });
+      await addDoc(collection(db, 'ekskul_config'), { 
+        type: 'pengelola', 
+        sekolah_id: userSekolahId, 
+        pengelola_email: emailBaru, 
+        pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru 
+      });
     }
     await updateDoc(doc(db, 'users', emailBaru), { akses_ekskul: true });
     toast('✅ Pengelola Ekskul ditetapkan: ' + (userBaru.nama || userBaru.namaResmi || emailBaru));
     await loadUsers(); computeAccessEkskul(); updateTabPengelolaUI();
-    $('modalPengelolaEkskul')?.classList.remove('show');
   } catch(e) { toast('❌ Gagal: ' + e.message, true); }
 }
 
 async function cabutAksesPengelolaEkskul(){
   if (currentUser.role !== 'admin') { toast('⚠️ Hanya admin!', true); return; }
-  const configDoc = await getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola')));
-  if (configDoc.empty) { toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
-  const oldConfig = configDoc.docs[0].data();
+  const configSnap = await getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola'), where('sekolah_id', '==', userSekolahId)));
+  if (configSnap.empty) { toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
+  const oldConfig = configSnap.docs[0].data();
   if (!oldConfig.pengelola_email) { toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
   if (!confirm(`❌ Cabut akses Ekskul dari "${oldConfig.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)) return;
   
   try {
     await updateDoc(doc(db, 'users', oldConfig.pengelola_email), { akses_ekskul: false });
-    await updateDoc(configDoc.docs[0].ref, { pengelola_email: '', pengelola_nama: '' });
+    await updateDoc(configSnap.docs[0].ref, { pengelola_email: '', pengelola_nama: '' });
     toast('✅ Akses pengelola Ekskul telah dicabut!');
     await loadUsers(); computeAccessEkskul(); updateTabPengelolaUI();
     if ($('selPengelolaEkskul')) $('selPengelolaEkskul').value = '';
@@ -557,25 +786,19 @@ async function cabutAksesPengelolaEkskul(){
   } catch(e) { toast('❌ Gagal: ' + e.message, true); }
 }
 
-function updateTabPengelolaUI(){
-  getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola'))).then(snap => {
+async function updateTabPengelolaUI(){
+  try {
+    const snap = await getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola'), where('sekolah_id', '==', userSekolahId)));
     let config = { pengelola_email: '', pengelola_nama: '' };
     if (!snap.empty) config = snap.docs[0].data();
     
-    const infoBox = $('infoPengelolaEkskulAktif');
-    const namaBox = $('namaPengelolaEkskulAktif');
     const btnCabut = $('btnCabutAksesEkskul');
-    
-    if (infoBox && namaBox) {
-      if (config.pengelola_email) { infoBox.style.display = 'block'; namaBox.textContent = config.pengelola_nama || config.pengelola_email; } 
-      else { infoBox.style.display = 'none'; }
-    }
     if (btnCabut) btnCabut.style.display = config.pengelola_email ? 'inline-flex' : 'none';
     if ($('pengelolaEkskulNow')) $('pengelolaEkskulNow').textContent = config.pengelola_nama || 'Belum ada';
-  });
+  } catch(e) { console.error('Gagal update UI pengelola:', e); }
 }
 
-// ══════════ HELPERS ══════════
+// ══════════ HELPERS ═════════
 function compressImage(file, maxWidth, quality){
   return new Promise(res => {
     const r = new FileReader();
@@ -603,7 +826,7 @@ function bindSearch(inputId, dropId, onPick){
 
 function bindEvents(){
   $('selectEkskul').onchange = e => selectEkskul(e.target.value);
-  $('btnAddEkskul').onclick = () => { if (!canEditEkskul) return; $('ekskulEditKey').value=''; $('modalEkskulTitle').textContent='➕ Tambah Ekskul'; ['eNama','eRuang','eDesk'].forEach(id=>$(id).value=''); $('modalEkskul').classList.add('show'); };
+  $('btnAddEkskul').onclick = () => { if (!canEditEkskul) return; $('ekskulEditKey').value=''; $('modalEkskulTitle').textContent=' Tambah Ekskul'; ['eNama','eRuang','eDesk'].forEach(id=>$(id).value=''); $('modalEkskul').classList.add('show'); };
   $('btnBatalEkskul').onclick = () => $('modalEkskul').classList.remove('show');
   $('btnSimpanEkskul').onclick = simpanEkskul;
   $('btnSemuaHadir').onclick = () => document.querySelectorAll('#absensiList .abs-status').forEach(s=>s.value='Hadir');
