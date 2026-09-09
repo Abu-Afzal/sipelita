@@ -69,12 +69,16 @@
   <div id="tab-kunjungan" style="display:none">
     <div class="card">
       <h3 style="margin:0 0 15px;color:#0f766e;">➕ Catat Kunjungan UKS</h3>
-      <div class="fg search-wrap">
-        <label>Cari Siswa</label>
-        <input type="text" id="cariSiswa" placeholder="Ketik nama siswa..." autocomplete="off">
-        <div class="search-drop" id="dropSiswa"></div>
-        <div id="chipSiswa"></div>
-      </div>
+      <div class="grid2">
+  <div class="fg">
+    <label>Nama Siswa *</label>
+    <input type="text" id="vNamaSiswa" placeholder="Ketik nama siswa..." required>
+  </div>
+  <div class="fg">
+    <label>Kelas *</label>
+    <input type="text" id="vKelasSiswa" placeholder="Contoh: X IPA 1" required>
+  </div>
+</div>
       <div class="grid2">
         <div class="fg"><label>Tanggal</label><input type="date" id="vTanggal"></div>
         <div class="fg"><label>Jam</label><input type="time" id="vJam"></div>

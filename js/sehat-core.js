@@ -217,12 +217,16 @@ function bindSearch(inputId,dropId,onPick){
 }
 
 // ══════════ KUNJUNGAN ══════════
-bindSearch('cariSiswa','dropSiswa',s=>{selectedSiswa=s;$('chipSiswa').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;});
 
 $('btnSimpanKunjungan').onclick=async()=>{
   if(!guard())return;
-  if(!selectedSiswa){toast('⚠️ Pilih siswa!',true);return;}
-  if(!$('vKeluhan').value.trim()){toast('⚠️ Keluhan wajib!',true);return;}
+  
+  const namaSiswa = $('vNamaSiswa').value.trim();
+  const kelasSiswa = $('vKelasSiswa').value.trim();
+  
+  if(!namaSiswa){ toast('⚠️ Nama siswa wajib diisi!', true); return; }
+  if(!kelasSiswa){ toast('⚠️ Kelas wajib diisi!', true); return; }
+  if(!$('vKeluhan').value.trim()){ toast('⚠️ Keluhan wajib!', true); return; }
   const obatId=$('vObatSelect').value,qty=parseInt($('vObatQty').value)||0;
   let ob=null,obatText='';
   if(obatId&&qty>0){ ob=daftarObat.find(x=>x.id===obatId);
@@ -234,7 +238,9 @@ $('btnSimpanKunjungan').onclick=async()=>{
     await db.collection('sehat_kunjungan').add({ 
       sekolah_id: userSekolahId, guru_uid: currentUserUid, guru_nama: petugas,
       tanggal:$('vTanggal').value,jam:$('vJam').value,
-      siswa_id:selectedSiswa.id,siswa_nis:selectedSiswa.nis||'',siswa_nama:selectedSiswa.nama,siswa_kelas:selectedSiswa.kelas||'',
+ siswa_nama: namaSiswa,
+siswa_kelas: kelasSiswa,
+// Tidak perlu siswa_id dan siswa_nis karena input manual
       keluhan:$('vKeluhan').value.trim(),suhu:$('vSuhu').value||null,tensi:$('vTensi').value||null,
       tindakan:$('vTindakan').value.trim()||null,obat:obatText,obat_id:obatId||'',obat_qty:qty,
       hasil:$('vHasil').value,catatan:$('vCatatan').value.trim()||null,createdAt:new Date().toISOString()});
@@ -271,7 +277,16 @@ function renderRiwayat(){
     :'<tr><td colspan="6" class="empty">Tidak ada data.</td></tr>';
 }
 
-bindSearch('cariProfil','dropProfil',async s=>{
+<div class="grid2">
+  <div class="fg">
+    <label>Nama Siswa *</label>
+    <input type="text" id="pNamaSiswa" placeholder="Ketik nama siswa..." required>
+  </div>
+  <div class="fg">
+    <label>Kelas *</label>
+    <input type="text" id="pKelasSiswa" placeholder="Contoh: X IPA 1" required>
+  </div>
+</div>
   selectedProfil=s;$('chipProfil').innerHTML=`<span class="chip">👤 ${s.nama} • ${s.kelas||'-'}</span>`;$('formProfil').style.display='block';
   ['pKontak','pAlergi','pPenyakit','pCatatan'].forEach(id=>$(id).value='');$('pGol').value='-';
   try{const g=await db.collection('sehat_profil').doc(sanitizeKey(s.nis||s.id)).get();
