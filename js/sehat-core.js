@@ -828,17 +828,31 @@ const btnExportLaporan = $('btnExportLaporan'); if (btnExportLaporan) btnExportL
 const btnCabutAksesTab = $('btnCabutAksesTab'); if (btnCabutAksesTab) btnCabutAksesTab.onclick = cabutAksesPengelola;
 
 document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
+  // 1. Reset semua tab jadi tidak aktif
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); 
   t.classList.add('active');
   
-  if(t.dataset.tab === 'laporan'){ initFilterLaporan(); renderLaporan(); }
-  
+  // 2. Sembunyikan semua konten tab
   ['dashboard','kunjungan','riwayat','profil','apotek','skrining','laporan','settings'].forEach(id => {
     const el = $('tab-'+id); 
-    if(el) el.style.display = (id === t.dataset.tab) ? 'block' : 'none';
+    if(el) el.style.display = 'none';
   });
   
-  if(t.dataset.tab === 'riwayat') renderRiwayat();
+  // 3. Tampilkan hanya konten tab yang aktif
+  const activeTab = $('tab-' + t.dataset.tab);
+  if(activeTab) activeTab.style.display = 'block';
+  
+  // 4. Jalankan fungsi spesifik untuk setiap tab
+  if(t.dataset.tab === 'laporan'){ 
+    initFilterLaporan(); 
+    renderLaporan(); 
+  }
+  
+  if(t.dataset.tab === 'riwayat'){
+    initFilterRiwayat(); // ✅ INI YANG DITAMBAHKAN (agar dropdown Bulan/Tahun terisi)
+    renderRiwayat();
+  }
+  
   if(t.dataset.tab === 'dashboard') renderDashboard();
   if(t.dataset.tab === 'apotek'){ renderApotek(); renderLogObat(); }
   if(t.dataset.tab === 'skrining') renderSkriningTable();
@@ -862,6 +876,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
   }
 });
 
+// Tutup modal jika klik di luar area modal
 document.querySelectorAll('.modal').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); });
 });
