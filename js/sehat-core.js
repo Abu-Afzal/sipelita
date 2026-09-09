@@ -584,6 +584,83 @@ function renderSkriningTable(){
   }).join('') : '<tr><td colspan="7" class="empty">Belum ada data skrining.</td></tr>';
 }
 
+// ══════════ PROFIL - FUNGSI TAMBAHAN ══════════
+async function cariProfilSiswa(){
+  const namaSiswa = $('pNamaSiswa').value.trim();
+  const kelasSiswa = $('pKelasSiswa').value.trim();
+  
+  if(!namaSiswa || !kelasSiswa) {
+    toast('⚠️ Nama dan Kelas wajib diisi!', true);
+    return;
+  }
+  
+  const docId = sanitizeKey(namaSiswa + '_' + kelasSiswa);
+  
+  try {
+    const docRef = await db.collection('sehat_profil').doc(docId).get();
+    
+    if(docRef.exists) {
+      const data = docRef.data();
+      $('pGol').value = data.golongan_darah || '-';
+      $('pKontak').value = data.kontak_darurat || '';
+      $('pAlergi').value = data.alergi || '';
+      $('pPenyakit').value = data.penyakit_bawaan || '';
+      $('pCatatan').value = data.catatan || '';
+      toast('✅ Profil ditemukan! Silakan edit jika perlu.');
+    } else {
+      // Reset form untuk data baru
+      $('pGol').value = '-';
+      $('pKontak').value = '';
+      $('pAlergi').value = '';
+      $('pPenyakit').value = '';
+      $('pCatatan').value = '';
+      toast('️ Profil belum ada. Silakan isi data di bawah.');
+    }
+    
+    $('formProfil').style.display = 'block';
+    renderRiwayatProfil({nama: namaSiswa, kelas: kelasSiswa});
+    
+  } catch(e) {
+    toast('❌ Gagal memuat profil: ' + e.message, true);
+  }
+}
+
+function resetFormProfil(){
+  $('formProfil').style.display = 'none';
+  $('pNamaSiswa').value = '';
+  $('pKelasSiswa').value = '';
+  $('riwayatProfil').innerHTML = '';
+}
+
+function renderRiwayatProfil(s){
+  const rows = kunjunganCache.filter(k => 
+    k.siswa_nama.toLowerCase() === s.nama.toLowerCase() && 
+    k.siswa_kelas.toLowerCase() === s.kelas.toLowerCase()
+  );
+  
+  $('riwayatProfil').innerHTML = rows.length ? `
+    <h4 style="margin:0 0 12px;color:#0f766e;">📒 Riwayat Kunjungan ${s.nama} (${s.kelas})</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Tanggal</th><th>Keluhan</th><th>Obat</th><th>Hasil</th></tr>
+        </thead>
+        <tbody>
+          ${rows.map(k => {
+            const [hl,bc] = hasilLabel[k.hasil] || ['-','b-kelas'];
+            return `<tr>
+              <td>${k.tanggal}</td>
+              <td>${k.keluhan||'-'}</td>
+              <td>${k.obat||'-'}</td>
+              <td><span class="badge ${bc}">${hl}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  ` : '<p style="color:#64748b; font-style:italic;">Belum ada riwayat kunjungan.</p>';
+}
+
 async function simpanPengelola(){
   if(!isAdmin()){ toast('⚠️ Hanya admin!', true); return; }
   const emailBaru = $('selPengelola').value;

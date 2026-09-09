@@ -123,29 +123,74 @@
     </div>
   </div>
 
-  <!-- PROFIL -->
-  <div id="tab-profil" style="display:none">
-    <div class="card">
-      <div class="grid2">
-  <div class="fg"><label>Nama Siswa *</label><input type="text" id="pNamaSiswa" placeholder="Ketik nama siswa..." required></div>
-  <div class="fg"><label>Kelas *</label><input type="text" id="pKelasSiswa" placeholder="Contoh: X IPA 1" required></div>
-</div>
-<p style="font-size:0.8rem; color:#64748b; margin-top:-10px; margin-bottom:10px;">💡 Ketik Nama & Kelas yang sama untuk memperbarui data profil yang sudah ada.</p>
-      <div id="formProfil" style="display:none">
-        <div class="grid2">
-          <div class="fg"><label>Golongan Darah</label>
-            <select id="pGol"><option value="-">-</option><option>A</option><option>B</option><option>AB</option><option>O</option></select>
-          </div>
-          <div class="fg"><label>Kontak Darurat</label><input type="text" id="pKontak"></div>
-        </div>
-        <div class="fg"><label>Alergi</label><input type="text" id="pAlergi"></div>
-        <div class="fg"><label>Penyakit Bawaan</label><input type="text" id="pPenyakit"></div>
-        <div class="fg"><label>Catatan</label><textarea id="pCatatan" rows="2"></textarea></div>
-        <button class="btn btn-primary" id="btnSimpanProfil">💾 Simpan Profil</button>
+<!-- PROFIL -->
+<div id="tab-profil" style="display:none">
+  <div class="card">
+    <h3 style="margin:0 0 15px;color:#0f766e;">👤 Profil Kesehatan Siswa</h3>
+    
+    <div class="grid2">
+      <div class="fg">
+        <label>Nama Siswa *</label>
+        <input type="text" id="pNamaSiswa" placeholder="Ketik nama siswa..." required>
       </div>
-      <div id="riwayatProfil" style="margin-top:20px"></div>
+      <div class="fg">
+        <label>Kelas *</label>
+        <input type="text" id="pKelasSiswa" placeholder="Contoh: X IPA 1" required>
+      </div>
     </div>
+    
+    <p style="font-size:0.8rem; color:#64748b; margin:5px 0 15px;">
+      💡 <b>Tips:</b> Ketik Nama & Kelas yang sama untuk memperbarui data profil yang sudah ada.
+    </p>
+    
+    <button class="btn btn-primary" id="btnCariProfil" onclick="cariProfilSiswa()">
+      🔍 Cari / Buat Profil
+    </button>
+    
+    <div id="formProfil" style="display:none; margin-top:25px; padding-top:20px; border-top:2px solid #e5e7eb;">
+      <h4 style="margin:0 0 15px;color:#059669;">📋 Data Profil Kesehatan</h4>
+      
+      <div class="grid2">
+        <div class="fg">
+          <label>Golongan Darah</label>
+          <select id="pGol">
+            <option value="-">-</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="AB">AB</option>
+            <option value="O">O</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Kontak Darurat</label>
+          <input type="text" id="pKontak" placeholder="Nomor telepon orang tua/wali">
+        </div>
+      </div>
+      
+      <div class="fg">
+        <label>Alergi</label>
+        <input type="text" id="pAlergi" placeholder="Contoh: Penisilin, Makanan laut, dll">
+      </div>
+      
+      <div class="fg">
+        <label>Penyakit Bawaan</label>
+        <input type="text" id="pPenyakit" placeholder="Contoh: Asma, Diabetes, Jantung, dll">
+      </div>
+      
+      <div class="fg">
+        <label>Catatan Tambahan</label>
+        <textarea id="pCatatan" rows="3" placeholder="Catatan penting lainnya..."></textarea>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn btn-primary" id="btnSimpanProfil" style="flex:1;">💾 Simpan Profil</button>
+        <button class="btn btn-secondary" onclick="resetFormProfil()">🔄 Reset</button>
+      </div>
+    </div>
+    
+    <div id="riwayatProfil" style="margin-top:30px; padding-top:20px; border-top:2px solid #e5e7eb;"></div>
   </div>
+</div>
 
   <!-- APOTEK -->
   <div id="tab-apotek" style="display:none">
