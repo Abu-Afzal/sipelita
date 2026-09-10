@@ -290,53 +290,121 @@ async function fetchKepalaMadrasah() {
 // Menyapu users / koleksi SIG / sekolah, dengan
 // deteksi field otomatis (apa pun nama fieldnya)
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// 🏫 SIG: HELPER PENGISI FORM INPUT SIG
+// ══════════════════════════════════════════════
+function loadSIGToForm() {
+  if (typeof $ !== 'function') return;
+  if ($('sig_kop1')) $('sig_kop1').value = CONFIG_MADRASAH.kop1 || '';
+  if ($('sig_kop2')) $('sig_kop2').value = CONFIG_MADRASAH.kop2 || '';
+  if ($('sig_alamat')) $('sig_alamat').value = CONFIG_MADRASAH.alamat || '';
+  if ($('sig_kota')) $('sig_kota').value = CONFIG_MADRASAH.kota || '';
+  if ($('sig_kepala')) $('sig_kepala').value = CONFIG_MADRASAH.kepalaMadrasah || '';
+  if ($('sig_nip')) $('sig_nip').value = (CONFIG_MADRASAH.nipKepala || '').replace(/^NIP\.\s*/i, '').trim();
+}
+
+// ══════════════════════════════════════════════
+// 🏫 SIG: EKSTRAK DATA IDENTITAS (SUPER-FLEKSIBEL)
+// ══════════════════════════════════════════════
 function ekstrakSIG(d) {
   const hasil = { kota:'', kepala:'', nip:'', kop1:'', kop2:'', alamat:'' };
-  for (const [k, v] of Object.entries(d || {})) {
-    if (typeof v !== 'string' || !v) continue;
+  if (!d || typeof d !== 'object') return hasil;
+
+  // 1. Direct Key Matching (Presisi Tinggi)
+  if (d.kop1) hasil.kop1 = String(d.kop1).trim();
+  if (d.kop2) hasil.kop2 = String(d.kop2).trim();
+  if (d.alamat) hasil.alamat = String(d.alamat).trim();
+  if (d.kota) hasil.kota = String(d.kota).trim();
+
+  if (d.kepala) hasil.kepala = String(d.kepala).trim();
+  else if (d.kamad) hasil.kepala = String(d.kamad).trim();
+  else if (d.kepala_nama) hasil.kepala = String(d.kepala_nama).trim();
+  else if (d.nama_kepala) hasil.kepala = String(d.nama_kepala).trim();
+
+  if (d.nip) hasil.nip = String(d.nip).trim();
+  else if (d.nip_kepala) hasil.nip = String(d.nip_kepala).trim();
+  else if (d.kepala_nip) hasil.nip = String(d.kepala_nip).trim();
+
+  // 2. Loop Fallback
+  for (const [k, v] of Object.entries(d)) {
+    if (typeof v !== 'string' || !v.trim()) continue;
+    const val = v.trim();
     const key = k.toLowerCase();
     const isKepalaKey = key.includes('kamad') || key.includes('kepala') || key.includes('kepsek');
 
-    if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
-    if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
-    if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
-    if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
-    if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
-    if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
+    if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = val;
+    if (!hasil.nip && key.includes('nip')) hasil.nip = val;
+
+    // Filter agar nama jabatan/role/email tidak tersimpan sebagai nama orang
+    const isRoleName = val.toLowerCase() === 'kepala' || 
+                       val.toLowerCase().includes('kepala madrasah') || 
+                       val.toLowerCase().includes('kepala sekolah');
+                       
+    if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !val.includes('@') && !isRoleName) {
+      hasil.kepala = val;
+    }
+
+    if (!hasil.kop1 && key === 'kop1') hasil.kop1 = val;
+    if (!hasil.kop2 && (key === 'kop2' || ((key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')))) hasil.kop2 = val;
+    if (!hasil.alamat && key.includes('alamat')) hasil.alamat = val;
   }
   return hasil;
 }
 
+// ══════════════════════════════════════════════
+// 🏫 SIG: MUAT IDENTITAS SEKOLAH
+// ══════════════════════════════════════════════
 async function fetchIdentitasSekolah() {
   if (!currentUser) return;
   const sumber = [];
 
-  // ... (kode prioritas 4, 3, 2 tetap sama) ...
-
-  // PRIORITAS 1 (TERTINGGI): Data yang DISIMPAN USER di menu Pengaturan SIG
+  // PRIORITAS 4 (TERENDAH): Koleksi SIG global
+  const cols = ['identitas_madrasah', 'sekolah', 'sipena2', 'pengaturan', 'settings', 'config', 'sig'];
+  for (const c of cols) {
+    try { const a = await db.collection(c).doc(currentUser.uid).get(); if (a.exists) sumber.push(a.data()); } catch (e) {}
+    try { const b = await db.collection(c).doc(currentUser.email).get(); if (b.exists) sumber.push(b.data()); } catch (e) {}
+    try { const q = await db.collection(c).where('uid', '==', currentUser.uid).limit(1).get(); q.forEach(d => sumber.push(d.data())); } catch (e) {}
+    try { const q = await db.collection(c).where('email', '==', currentUser.email).limit(1).get(); q.forEach(d => sumber.push(d.data())); } catch (e) {}
+  }
   try {
-    console.log('🔍 Mencari data di pengaturan_user untuk email:', currentUser.email);
+    const g = await db.collection('identitas_madrasah').limit(1).get();
+    g.forEach(d => sumber.push(d.data()));
+  } catch (e) {}
+
+  // PRIORITAS 3: Dokumen users guru
+  try {
+    const u1 = await db.collection('users').doc(currentUser.uid).get();
+    if (u1.exists) sumber.push(u1.data());
+    else {
+      const u2 = await db.collection('users').doc(currentUser.email).get();
+      if (u2.exists) sumber.push(u2.data());
+    }
+  } catch (e) {}
+
+  // PRIORITAS 2: Dokumen sekolah spesifik
+  if (currentUserData.school_id) {
+    try {
+      const s = await db.collection('sekolah').doc(currentUserData.school_id).get();
+      if (s.exists) sumber.push(s.data());
+    } catch (e) {}
+  }
+
+  // PRIORITAS 1 (TERTINGGI): Data Simpanan User di pengaturan_user
+  try {
     const userSig = await db.collection('pengaturan_user').doc(currentUser.email).get();
-    
     if (userSig.exists) {
-      console.log('✅ Data pengaturan_user DITEMUKAN:', userSig.data());
+      console.log('✅ SIG: Menggunakan data prioritas tertinggi dari pengaturan_user');
       sumber.push(userSig.data());
-    } else {
-      console.warn('⚠️ Dokumen pengaturan_user TIDAK DITEMUKAN untuk email:', currentUser.email);
     }
   } catch (e) { 
-    console.error('❌ Gagal cek pengaturan_user:', e.message); 
+    console.warn('⚠️ Gagal cek pengaturan_user:', e.message); 
   }
 
   // TERAPKAN DATA
-  console.log('📊 Total sumber data yang akan diterapkan:', sumber.length);
   let ketemu = false, kop1Explicit = false;
   
   for (const d of sumber) {
-    console.log('🔄 Menerapkan data:', d);
     const x = ekstrakSIG(d);
-    console.log('📦 Hasil ekstrakSIG:', x);
-    
     if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
     if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
     if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
@@ -345,25 +413,63 @@ async function fetchIdentitasSekolah() {
     if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
   }
 
-  console.log('📋 CONFIG_MADRASAH setelah diterapkan:', CONFIG_MADRASAH);
-
-  // 🏛️ KOP baris 1 OTOMATIS dari kota bila guru tidak mengisi manual
   if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
     CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
   }
 
   console.log(ketemu
-    ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
+    ? '✅ SIG dimuat → Kamad: ' + CONFIG_MADRASAH.kepalaMadrasah + ' | Kop: ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
     : '⚠️ SIG: data identitas tidak ditemukan di sumber mana pun');
 
-  // ✅ UPDATE UI FORM SIG (Agar user melihat data yang sedang aktif tersimpan)
-  if (typeof $ === 'function') {
-    if ($('sig_kop1')) $('sig_kop1').value = CONFIG_MADRASAH.kop1;
-    if ($('sig_kop2')) $('sig_kop2').value = CONFIG_MADRASAH.kop2;
-    if ($('sig_alamat')) $('sig_alamat').value = CONFIG_MADRASAH.alamat;
-    if ($('sig_kota')) $('sig_kota').value = CONFIG_MADRASAH.kota;
-    if ($('sig_kepala')) $('sig_kepala').value = CONFIG_MADRASAH.kepalaMadrasah;
-    if ($('sig_nip')) $('sig_nip').value = CONFIG_MADRASAH.nipKepala.replace('NIP. ', '').trim();
+  loadSIGToForm();
+}
+
+// ══════════════════════════════════════════════
+// 💾 SIMPAN DATA SIG (PRIORITAS TERTINGGI)
+// ══════════════════════════════════════════════
+async function simpanSIG() {
+  if (!currentUser) {
+    showToast('⚠️ User tidak terautentikasi!', 'error');
+    return;
+  }
+
+  const kop1 = $('sig_kop1')?.value?.trim() || CONFIG_MADRASAH.kop1;
+  const kop2 = $('sig_kop2')?.value?.trim() || CONFIG_MADRASAH.kop2;
+  const alamat = $('sig_alamat')?.value?.trim() || CONFIG_MADRASAH.alamat;
+  const kota = $('sig_kota')?.value?.trim() || CONFIG_MADRASAH.kota;
+  const kepala = $('sig_kepala')?.value?.trim() || CONFIG_MADRASAH.kepalaMadrasah;
+  const nipRaw = $('sig_nip')?.value?.trim() || '';
+  const nip = nipRaw ? (nipRaw.startsWith('NIP.') ? nipRaw : 'NIP. ' + nipRaw) : CONFIG_MADRASAH.nipKepala;
+
+  try {
+    const dataSIG = {
+      kop1: kop1,
+      kop2: kop2,
+      alamat: alamat,
+      kota: kota,
+      kepala: kepala,
+      nip: nip,
+      updated_at: new Date().toISOString(),
+      updated_by: currentUser.email
+    };
+
+    const docRef = db.collection('pengaturan_user').doc(currentUser.email);
+    await docRef.set(dataSIG, { merge: true });
+
+    CONFIG_MADRASAH.kop1 = kop1;
+    CONFIG_MADRASAH.kop2 = kop2;
+    CONFIG_MADRASAH.alamat = alamat;
+    CONFIG_MADRASAH.kota = kota;
+    CONFIG_MADRASAH.kepalaMadrasah = kepala;
+    CONFIG_MADRASAH.nipKepala = nip;
+
+    loadSIGToForm();
+
+    showToast('✅ Data SIG dan KOP berhasil disimpan!');
+    console.log('💾 SIG disimpan:', dataSIG);
+  } catch (e) {
+    console.error('❌ Gagal simpan SIG:', e);
+    showToast('❌ Gagal menyimpan: ' + e.message, 'error');
   }
 }
 
