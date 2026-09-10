@@ -222,51 +222,54 @@
     </div>
   </div>
 
-  <!-- Modal Kelola Siswa -->
-  <div class="modal" id="modalKelolaSiswa">
-    <div class="modal-box" style="max-width: 800px;">
-      <div class="modal-title" id="titleKelolaSiswa">👥 Kelola Siswa</div>
-      
-      <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <div style="font-weight: 600; color: #0369a1;">
-             Total di Kelas: <span id="totalSiswaKelas">0</span> | Tersedia dari SICAN: <span id="totalSiswaSICAN">0</span>
+<!-- Modal Kelola Siswa -->
+<div class="modal" id="modalKelolaSiswa">
+  <div class="modal-box" style="max-width: 700px;">
+    <div class="modal-title" id="titleKelolaSiswa">👥 Kelola Siswa</div>
+    
+    <!-- Info Bar (bisa dihapus jika tidak perlu) -->
+    <div style="background: #f0f9ff; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-size: 0.9rem;">
+        <strong>Total di Kelas:</strong> <span id="totalSiswaKelas">0</span>
+      </div>
+      <button class="btn btn-success btn-sm" onclick="tambahkanSemuaSiswa()" id="btnTambahSemuaSican" style="display: none;">
+        ➕ Tambahkan Semua dari SICAN
+      </button>
+    </div>
+
+    <!-- Daftar Siswa -->
+    <div class="table-container" id="daftarSiswaModal" style="max-height: 400px; overflow-y: auto;">
+      <!-- Siswa list loaded here -->
+    </div>
+
+    <!-- Tambah Siswa Manual -->
+    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+      <h4 style="margin-bottom: 1rem; font-size: 1rem;">➕ Tambah Siswa Manual</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <input type="text" id="inputNamaSiswaManual" placeholder="Nama Siswa" style="padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 8px;">
+        
+        <!-- Upload file dari perangkat -->
+        <div>
+          <input type="file" id="inputFotoSiswaFile" accept="image/*" style="display: none;" onchange="handleFotoUpload(event)">
+          <button class="btn btn-secondary" onclick="document.getElementById('inputFotoSiswaFile').click()" style="width: 100%;">
+            <i class="fas fa-camera"></i> Pilih Foto
+          </button>
+          <div id="fotoPreviewContainer" style="margin-top: 0.5rem; display: none;">
+            <img id="fotoPreview" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+            <button class="btn btn-danger btn-sm" onclick="hapusFotoPreview()" style="margin-left: 0.5rem;">Hapus</button>
           </div>
-          <button class="btn btn-success btn-sm" onclick="tambahkanSemuaSiswa()">➕ Tambahkan Semua</button>
         </div>
       </div>
+      <button class="btn btn-primary" style="margin-top: 1rem;" onclick="tambahSiswaManual()">
+        + Tambah Siswa
+      </button>
+    </div>
 
-      <div class="table-container" id="daftarSiswaModal">
-        <!-- Siswa list loaded here -->
-      </div>
-
-      <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-        <h4 style="margin-bottom: 1rem;">➕ Tambah Siswa Manual</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-          <input type="text" id="inputNamaSiswaManual" placeholder="Nama Siswa">
-          
-          <!-- Upload file dari perangkat -->
-          <div>
-            <input type="file" id="inputFotoSiswaFile" accept="image/*" style="display: none;" onchange="handleFotoUpload(event)">
-            <button class="btn btn-secondary" onclick="document.getElementById('inputFotoSiswaFile').click()" style="width: 100%;">
-              <i class="fas fa-camera"></i> Pilih Foto
-            </button>
-            <div id="fotoPreviewContainer" style="margin-top: 0.5rem; display: none;">
-              <img id="fotoPreview" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
-              <button class="btn btn-danger btn-sm" onclick="hapusFotoPreview()" style="margin-left: 0.5rem;">Hapus</button>
-            </div>
-          </div>
-        </div>
-        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="tambahSiswaManual()">
-          + Tambah Siswa
-        </button>
-      </div>
-
-      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
-        <button class="btn btn-secondary" onclick="closeModal('modalKelolaSiswa')">Tutup</button>
-      </div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+      <button class="btn btn-secondary" onclick="closeModal('modalKelolaSiswa')">Tutup</button>
     </div>
   </div>
+</div>
   
   <!-- Modal Edit Kelas -->
 <div class="modal" id="modalEditKelas">

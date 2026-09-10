@@ -1055,10 +1055,11 @@ async function bukaKelolaSiswa(kelasId, className) {
   currentKelasId = kelasId;
   currentKelasNama = className;
   
-  // ✅ Hapus judul atau buat lebih sederhana
-  document.getElementById('titleKelolaSiswa').textContent = ''; // Kosongkan judul
-  // Atau jika ingin tetap ada tapi sederhana:
-  // document.getElementById('titleKelolaSiswa').textContent = 'Daftar Siswa';
+  // ✅ Aman: hanya set jika elemen ada
+  const titleEl = document.getElementById('titleKelolaSiswa');
+  if (titleEl) {
+    titleEl.textContent = `👥 Kelola Siswa — ${className}`;
+  }
   
   openModal('modalKelolaSiswa');
   await loadDaftarSiswa();
@@ -1066,6 +1067,11 @@ async function bukaKelolaSiswa(kelasId, className) {
 
 async function loadDaftarSiswa() {
   const container = document.getElementById('daftarSiswaModal');
+  if (!container) {
+    console.error('❌ Element daftarSiswaModal tidak ditemukan!');
+    return;
+  }
+  
   container.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div> Memuat data...</div>';
 
   try {
@@ -1093,21 +1099,37 @@ async function loadDaftarSiswa() {
       }
     });
 
-    // ✅ HAPUS atau SEDERHANAKAN info bar ini
-    // document.getElementById('totalSiswaKelas').textContent = siswaDiKelas.length;
-    // document.getElementById('totalSiswaSICAN').textContent = sicanSiswa.length;
+    // ✅ Aman: hanya set jika elemen ada
+    const elTotalKelas = document.getElementById('totalSiswaKelas');
+    if (elTotalKelas) elTotalKelas.textContent = siswaDiKelas.length;
+    
+    const elTotalSican = document.getElementById('totalSiswaSICAN');
+    if (elTotalSican) elTotalSican.textContent = sicanSiswa.length;
+    
+    // Tampilkan/sembunyikan tombol "Tambahkan Semua"
+    const btnTambahSemua = document.getElementById('btnTambahSemuaSican');
+    if (btnTambahSemua) {
+      btnTambahSemua.style.display = sicanSiswa.length > 0 ? 'inline-block' : 'none';
+    }
 
     if (siswaDiKelas.length === 0 && sicanSiswa.length === 0) {
       container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Belum ada siswa di kelas ini.</div>';
       return;
     }
 
-    // ✅ TAMPILAN YANG LEBIH BERSIH
-    let html = '<div style="padding: 1rem;">';
+    let html = '';
 
     if (siswaDiKelas.length > 0) {
-      // ✅ HAPUS label "Siswa di Kelas" atau buat lebih sederhana
-      // html += `<div style="margin-bottom: 1rem; padding: 0.5rem; background: #fef3c7; border-radius: 8px; font-weight: 600; color: #92400e;">Siswa di Kelas (${siswaDiKelas.length})</div>`;
+      html += `<table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #fef3c7;">
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e2e8f0;">No</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e2e8f0;">Foto</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e2e8f0;">Nama</th>
+            <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e2e8f0;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>`;
       
       siswaDiKelas.forEach((s, i) => {
         const foto = s.student_photo 
@@ -1115,26 +1137,29 @@ async function loadDaftarSiswa() {
           : '<div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center;"></div>';
         
         html += `
-          <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
-            ${foto}
-            <div style="flex: 1; font-weight: 600;">${s.student_name}</div>
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-warning btn-sm" onclick="editSiswa('${s.id}', '${s.student_name.replace(/'/g, "\\'")}', '${s.student_photo || ''}')">✏️ Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="hapusSiswa('${s.id}', '${s.student_name.replace(/'/g, "\\'")}')">🗑 Hapus</button>
-            </div>
-          </div>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${i + 1}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${foto}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${s.student_name}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+              <button class="btn btn-warning btn-sm" onclick="editSiswa('${s.id}', '${s.student_name.replace(/'/g, "\\'")}', '${s.student_photo || ''}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="hapusSiswa('${s.id}', '${s.student_name.replace(/'/g, "\\'")}')">🗑</button>
+            </td>
+          </tr>
         `;
       });
+      html += '</tbody></table>';
     }
 
-    // ✅ OPSI: Tampilkan siswa dari SICAN (bisa dihapus jika tidak perlu)
     if (sicanSiswa.length > 0) {
-      // html += `<div style="margin: 1rem 0; padding: 0.5rem; background: #dcfce7; border-radius: 8px; font-weight: 600; color: #166534;">Dari SICAN (${sicanSiswa.length})</div>`;
+      html += `<div style="margin-top: 1rem; padding: 0.75rem; background: #dcfce7; border-radius: 8px; font-weight: 600; color: #166534; margin-bottom: 0.5rem;">
+        📥 Tersedia dari SICAN (${sicanSiswa.length} siswa)
+      </div>`;
       
       sicanSiswa.forEach((s, i) => {
         const foto = s.foto 
           ? `<img src="${s.foto}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">` 
-          : '<div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">👤</div>';
+          : '<div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center;"></div>';
         
         html += `
           <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-bottom: 1px solid #e2e8f0; background: #f0fdf4;">
@@ -1146,7 +1171,6 @@ async function loadDaftarSiswa() {
       });
     }
 
-    html += '</div>';
     container.innerHTML = html;
     
   } catch (error) {
