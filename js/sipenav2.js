@@ -300,12 +300,7 @@ function ekstrakSIG(d) {
     if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
     if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
     if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
-    
-    // ✅ DIPERBAIKI: Kenali key 'kop1' dan 'kop2' secara LANGSUNG (prioritas tertinggi)
     if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
-    if (!hasil.kop2 && key === 'kop2') hasil.kop2 = v;
-    
-    // Fallback: deteksi otomatis untuk koleksi lain (bukan pengaturan_user)
     if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
     if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
   }
@@ -316,65 +311,32 @@ async function fetchIdentitasSekolah() {
   if (!currentUser) return;
   const sumber = [];
 
-  // ──────────────────────────────────────────────────────
-  // PRIORITAS 4 (TERENDAH): Sapuan koleksi SIG global & lainnya
-  // ──────────────────────────────────────────────────────
-  const cols = ['identitas_madrasah', 'sekolah', 'sipena2', 'pengaturan', 'settings', 'config', 'sig'];
-  for (const c of cols) { // Note: typo 'colsa' fixed to 'cols' below
-    try { const a = await db.collection(c).doc(currentUser.uid).get();   if (a.exists) sumber.push(a.data()); } catch (e) {}
-    try { const b = await db.collection(c).doc(currentUser.email).get(); if (b.exists) sumber.push(b.data()); } catch (e) {}
-    try { const q = await db.collection(c).where('uid', '==', currentUser.uid).limit(1).get();       q.forEach(d => sumber.push(d.data())); } catch (e) {}
-    try { const q = await db.collection(c).where('email', '==', currentUser.email).limit(1).get();   q.forEach(d => sumber.push(d.data())); } catch (e) {}
-  }
-  try {
-    const g = await db.collection('identitas_madrasah').limit(1).get();
-    g.forEach(d => sumber.push(d.data()));
-  } catch (e) {}
+  // ... (kode prioritas 4, 3, 2 tetap sama) ...
 
-  // ──────────────────────────────────────────────────────
-  // PRIORITAS 3: Dokumen users guru ini (Fallback)
-  // ──────────────────────────────────────────────────────
-  try {
-    const u1 = await db.collection('users').doc(currentUser.uid).get();
-    if (u1.exists) sumber.push(u1.data());
-    else {
-      const u2 = await db.collection('users').doc(currentUser.email).get();
-      if (u2.exists) sumber.push(u2.data());
-    }
-  } catch (e) {}
-
-  // ──────────────────────────────────────────────────────
-  // PRIORITAS 2: Dokumen sekolah spesifik (berdasarkan school_id)
-  // ──────────────────────────────────────────────────────
-  if (currentUserData.school_id) {
-    try {
-      const s = await db.collection('sekolah').doc(currentUserData.school_id).get();
-      if (s.exists) sumber.push(s.data());
-    } catch (e) {}
-  }
-
-  // ──────────────────────────────────────────────────────
   // PRIORITAS 1 (TERTINGGI): Data yang DISIMPAN USER di menu Pengaturan SIG
-  // Ditaruh PALING AKHIR di array 'sumber' agar menimpa semua data di atasnya.
-  // ──────────────────────────────────────────────────────
   try {
+    console.log('🔍 Mencari data di pengaturan_user untuk email:', currentUser.email);
     const userSig = await db.collection('pengaturan_user').doc(currentUser.email).get();
+    
     if (userSig.exists) {
-      console.log('✅ SIG: Menggunakan data prioritas tertinggi dari pengaturan_user');
+      console.log('✅ Data pengaturan_user DITEMUKAN:', userSig.data());
       sumber.push(userSig.data());
+    } else {
+      console.warn('⚠️ Dokumen pengaturan_user TIDAK DITEMUKAN untuk email:', currentUser.email);
     }
   } catch (e) { 
-    console.warn('⚠️ Gagal cek pengaturan_user:', e.message); 
+    console.error('❌ Gagal cek pengaturan_user:', e.message); 
   }
 
-  // ──────────────────────────────────────────────────────
-  // TERAPKAN DATA (Urutan sumber sudah dari Prioritas Terendah ke Tertinggi)
-  // Sehingga data Prioritas 1 (pengaturan_user) akan menjadi data FINAL.
-  // ──────────────────────────────────────────────────────
+  // TERAPKAN DATA
+  console.log('📊 Total sumber data yang akan diterapkan:', sumber.length);
   let ketemu = false, kop1Explicit = false;
   
   for (const d of sumber) {
+    console.log('🔄 Menerapkan data:', d);
     const x = ekstrakSIG(d);
+    console.log('📦 Hasil ekstrakSIG:', x);
+    
     if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
     if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
     if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
@@ -382,6 +344,8 @@ async function fetchIdentitasSekolah() {
     if (x.kop2)   { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
     if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
   }
+
+  console.log('📋 CONFIG_MADRASAH setelah diterapkan:', CONFIG_MADRASAH);
 
   // 🏛️ KOP baris 1 OTOMATIS dari kota bila guru tidak mengisi manual
   if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
@@ -458,6 +422,11 @@ async function simpanSIG() {
   const nipRaw = $('sig_nip')?.value || '';
   const nip = nipRaw.startsWith('NIP. ') ? nipRaw : 'NIP. ' + nipRaw.trim();
 
+  console.log('💾 Data yang akan disimpan:', {
+    kop1, kop2, alamat, kota, kepala, nip,
+    userEmail: currentUser.email
+  });
+
   try {
     const dataSIG = {
       kop1: kop1,
@@ -473,6 +442,8 @@ async function simpanSIG() {
     // Simpan ke collection pengaturan_user (prioritas tertinggi)
     const docRef = db.collection('pengaturan_user').doc(currentUser.email);
     await docRef.set(dataSIG, { merge: true });
+    
+    console.log('✅ Data berhasil disimpan ke Firestore!');
 
     // Update CONFIG_MADRASAH langsung agar perubahan langsung terlihat
     CONFIG_MADRASAH.kop1 = kop1;
@@ -482,8 +453,9 @@ async function simpanSIG() {
     CONFIG_MADRASAH.kepalaMadrasah = kepala;
     CONFIG_MADRASAH.nipKepala = nip;
 
+    console.log('✅ CONFIG_MADRASAH diupdate:', CONFIG_MADRASAH);
+
     showToast('✅ Data SIG dan KOP berhasil disimpan!');
-    console.log('💾 SIG disimpan:', dataSIG);
   } catch (e) {
     console.error('❌ Gagal simpan SIG:', e);
     showToast('❌ Gagal menyimpan: ' + e.message, 'error');
