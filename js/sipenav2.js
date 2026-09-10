@@ -139,7 +139,8 @@ function hapusFotoPreview() {
 // 4. SEAMLESS LOGIN & SAPAAN
 // ══════════════════════════════════════════════
 async function initSession() {
-  document.getElementById('userGreeting').textContent = 'Memverifikasi sesi...';
+  const greetingEl = document.getElementById('userGreeting');
+  if (greetingEl) greetingEl.textContent = 'Memverifikasi sesi...';
 
   auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -170,26 +171,21 @@ async function initSession() {
       
       localStorage.setItem('sipelita_user', JSON.stringify(currentUserData));
       
+      // 1. Muat data dasar
       await fetchNipUser();
       await fetchKepalaMadrasah();
-      await fetchIdentitasSekolah();
-      await fetchSekolahAktif(); 
-
-            localStorage.setItem('sipelita_user', JSON.stringify(currentUserData));
       
-      await fetchNipUser();
-      await fetchKepalaMadrasah();
+      // 2. Muat data identitas sekolah & SIG
       await fetchIdentitasSekolah();
       await fetchSekolahAktif(); 
       
-      // ✅ TAMBAHKAN BARIS INI DI SINI (Paling Akhir Sebelum updateGreeting)
+      // 3. ✅ PENTING: Muat data dari database KE DALAM FORM PENGATURAN
       await muatFormPengaturan();
 
+      // 4. Update UI
       updateGreeting();
       applyRoleRestrictions();
-
-      updateGreeting();
-      applyRoleRestrictions();
+      
       if (isRoleKepala()) {
         loadPage('rekap-jurnal');
         const target = document.querySelector('.nav-item[data-page="rekap-jurnal"]');
