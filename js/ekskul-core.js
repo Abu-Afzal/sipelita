@@ -159,58 +159,83 @@ async function fetchSekolahAktif() {
 }
 
 // ══════════ INIT ══════════
+console.log('🚀 SIAGA Core dimulai...');
+
 onAuthStateChanged(auth, async (u) => { 
+  console.log('🔍 Auth state changed:', u ? u.email : 'tidak ada user');
+  
   if (!u) {
+    console.warn('⚠️ Tidak ada user, redirect ke home...');
     window.location.href = '../home.html';
   } else {
+    console.log('✅ User terautentikasi:', u.email);
     await initApp(u);
   }
 });
 
-let currentUser = { uid: '', nama: '', email: '', role: 'guru', nip: '' };
-let userSekolahId = '';
-let canEditEkskul = false;
-let currentUserEmail = '';
-
-let daftarUsers = [];
-let masterSiswa = [];
-let daftarEkskul = [];
-let semuaEkskul = [];
-let selectedEkskul = null;
-let daftarAnggota = [];
-let daftarKegiatan = [];
-let allAnggota = [];    
-let allKegiatan = [];   
-
-const $ = id => document.getElementById(id);
-const toast = (m, e=false) => { const t=document.createElement('div'); t.className='toast'+(e?' err':''); t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); };
-const localDate = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-const JABATAN = ['Anggota','Ketua','Wakil','Sekretaris','Bendahara'];
-const kapitalNama = (n='') => { const i=n.indexOf(','); return i===-1 ? n.toUpperCase() : n.slice(0,i).toUpperCase()+n.slice(i); };
-
 async function initApp(u) {
+  console.log(' initApp() dipanggil untuk:', u.email);
+  
   currentUser.uid = u.uid;
   currentUser.email = u.email;
   currentUserEmail = u.email;
   
   try {
+    console.log(' Mencari user di Firestore...');
     const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', currentUser.email)));
+    
     if (!userDoc.empty) {
       const data = userDoc.docs[0].data();
+      console.log('✅ User ditemukan:', data);
+      
       currentUser.nama = data.nama || data.namaResmi || currentUser.email;
       currentUser.role = data.role || 'guru';
       userSekolahId = data.school_id || data.sekolah_id || '';
       currentUser.nip = data.nip || '';
+      
+      console.log('📊 Data user:', {
+        nama: currentUser.nama,
+        role: currentUser.role,
+        school_id: userSekolahId,
+        nip: currentUser.nip
+      });
+    } else {
+      console.warn('⚠️ User tidak ditemukan di collection users!');
     }
-  } catch(e) { console.error('Gagal ambil data user:', e); }
+    
+    // ✅ AUTO-SET SCHOOL_ID JIKA KOSONG (untuk testing)
+    if (!userSekolahId) {
+      console.warn('️ userSekolahId kosong! Mencoba auto-detect...');
+      
+      const sekolahSnap = await getDocs(collection(db, 'sekolah'));
+      if (!sekolahSnap.empty) {
+        userSekolahId = sekolahSnap.docs[0].id;
+        console.log('✅ Auto-set school_id:', userSekolahId);
+        
+        try {
+          const userRef = doc(db, 'users', currentUser.email);
+          await updateDoc(userRef, { school_id: userSekolahId });
+          console.log('✅ User document diupdate dengan school_id');
+        } catch(e) {
+          console.warn('⚠️ Gagal update user document:', e.message);
+        }
+      } else {
+        console.error(' Tidak ada data sekolah di Firestore!');
+      }
+    }
+  } catch(e) { 
+    console.error('❌ Gagal ambil data user:', e); 
+  }
 
   if (!userSekolahId) {
-    toast('⚠️ Akun Anda belum terdaftar di sekolah manapun!', true);
+    console.error('❌ userSekolahId masih kosong. Aplikasi tidak bisa berjalan.');
+    toast('⚠️ Akun Anda belum terdaftar di sekolah manapun! Hubungi admin.', true);
     return;
   }
 
-  $('userBadge').textContent = (currentUser.role==='admin'?'👑 ':'') + currentUser.nama;
-  $('schoolBadge').textContent = ' ' + (userSekolahId || 'Sekolah');
+  console.log('🏫 School ID:', userSekolahId);
+  $('userBadge').textContent = (currentUser.role==='admin'?' ':'') + currentUser.nama;
+  $('schoolBadge').textContent = '🏫 ' + (userSekolahId || 'Sekolah');
 
   if (currentUser.role === 'admin') {
     $('tabMasterBtn').style.display = 'inline-block';
@@ -223,13 +248,21 @@ async function initApp(u) {
   $('kTanggal').value = localDate();
   $('kJam').value = new Date().toTimeString().slice(0,5);
 
-  // ✅ LOAD SIG DATA
+  console.log('📡 Memuat data SIG...');
   await fetchIdentitasSekolah();
   await fetchSekolahAktif();
 
+  console.log('📡 Memuat data master...');
   await Promise.all([ loadMasterSiswa(), loadUsers(), loadEkskul() ]);
 
+  console.log('📊 Data dimuat:', {
+    masterSiswa: masterSiswa.length,
+    users: daftarUsers.length,
+    ekskul: daftarEkskul.length
+  });
+
   if (['admin','kepala','wakil'].includes(currentUser.role)) {
+    console.log('👑 Admin/Kepala detected, memuat monitoring...');
     await loadAllData();
     renderMonitoring();
   }
@@ -237,6 +270,8 @@ async function initApp(u) {
   computeAccessEkskul();
   bindEvents();
   refreshAll();
+  
+  console.log('✅ SIAGA initialized successfully!');
 }
 
 function computeAccessEkskul() {
@@ -295,13 +330,49 @@ async function loadUsers(){
 
 async function loadEkskul(){
   try {
+    console.log(' Memuat ekskul untuk school_id:', userSekolahId);
     const q = query(collection(db,'ekskul_master'), where('sekolah_id', '==', userSekolahId));
     const snap = await getDocs(q);
+    console.log(' Ekskul ditemukan:', snap.size);
+    
     semuaEkskul = [];
-    snap.forEach(d => semuaEkskul.push({ id:d.id, ...d.data() }));
+    snap.forEach(d => {
+      console.log('  - Ekskul:', d.data().nama);
+      semuaEkskul.push({ id:d.id, ...d.data() });
+    });
+    
     daftarEkskul = semuaEkskul; 
     populateSelectEkskul();
-  } catch(e){ console.error(e); }
+  } catch(e){ 
+    console.error('❌ Error load ekskul:', e); 
+  }
+}
+
+async function loadUsers(){
+  try {
+    console.log('🔎 Memuat users...');
+    const snap = await getDocs(collection(db,'users'));
+    daftarUsers = [];
+    snap.forEach(d => {
+      const data = d.data();
+      if (data.email) {
+        daftarUsers.push({
+          id: d.id, email: data.email, nama: data.nama || data.namaResmi || '',
+          role: data.role || '', akses_ekskul: data.akses_ekskul || false,
+          nip: data.nip || ''
+        });
+      }
+    });
+    console.log('✅ Users loaded:', daftarUsers.length);
+    
+    const pembinaSelect = $('ePembina');
+    if (pembinaSelect) {
+      pembinaSelect.innerHTML = '<option value="">-- Pilih Pembina --</option>' +
+        daftarUsers.map(u => `<option value="${u.email}">${u.nama} (${u.role})</option>`).join('');
+    }
+  } catch(e){ 
+    console.error('❌ Error load users:', e); 
+  }
 }
 
 function populateSelectEkskul(){
