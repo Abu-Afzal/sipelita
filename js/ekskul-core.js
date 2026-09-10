@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// SIAGA CORE - Ekstrakurikuler (SIG INTEGRATED)
+// SIAGA CORE - Ekstrakurikuler (SIG INTEGRATED - FINAL CLEAN)
 // ══════════════════════════════════════════════
 import { auth, db } from "../js/firebase-config.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -19,6 +19,7 @@ const CONFIG_MADRASAH = {
 };
 
 const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const JABATAN = ['Anggota','Ketua','Wakil','Sekretaris','Bendahara'];
 
 const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.Sos','M.Sos','S.Kom','M.Kom',
   'S.E','M.M','MM','S.S','M.Hum','S.Mat','M.Mat','S.T','M.T','S.H','M.H','S.Psi','M.Psi','S.IP','M.AP',
@@ -93,17 +94,11 @@ async function fetchIdentitasSekolah() {
     } catch (e) {}
   }
 
-  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'ekskul_config',
-                'pengaturan', 'settings', 'config', 'sig'];
+  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'ekskul_config', 'pengaturan', 'settings', 'config', 'sig'];
   for (const c of cols) {
-    try { const a = await db.collection(c).doc(currentUserEmail).get();   if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
+    try { const a = await db.collection(c).doc(currentUserEmail).get(); if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
     try { const q = await db.collection(c).where('email', '==', currentUserEmail).limit(1).get(); q.forEach(d => sumber.push(d.data())); } catch (e) {}
   }
-
-  try {
-    const g = await db.collection('identitas_madrasah').limit(1).get();
-    g.forEach(d => sumber.push(d.data()));
-  } catch (e) {}
 
   try {
     const u1 = await db.collection('users').doc(currentUserEmail).get();
@@ -125,18 +120,14 @@ async function fetchIdentitasSekolah() {
     CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
   }
 
-  console.log(ketemu
-    ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
-    : '⚠️ SIG: data identitas tidak ditemukan');
+  console.log(ketemu ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2 : '⚠️ SIG: data identitas tidak ditemukan');
 }
 
 async function fetchSekolahAktif() {
   if (!currentUserEmail || !userSekolahId) return;
-  
   try {
     const sdoc = await db.collection('sekolah').doc(userSekolahId).get();
     if (!sdoc.exists) return;
-    
     const d = sdoc.data();
     console.log('🏫 Data sekolah aktif ditemukan:', d);
     
@@ -147,11 +138,8 @@ async function fetchSekolahAktif() {
     if (d.kota) CONFIG_MADRASAH.kota = d.kota;
     if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
     if (d.kepala_nip) {
-      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') 
-        ? d.kepala_nip 
-        : 'NIP. ' + d.kepala_nip;
+      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') ? d.kepala_nip : 'NIP. ' + d.kepala_nip;
     }
-    
     console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override');
   } catch (e) {
     console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
@@ -161,9 +149,27 @@ async function fetchSekolahAktif() {
 // ══════════ INIT ══════════
 console.log('🚀 SIAGA Core dimulai...');
 
+let currentUser = { uid: '', nama: '', email: '', role: 'guru', nip: '' };
+let userSekolahId = '';
+let canEditEkskul = false;
+let currentUserEmail = '';
+
+let daftarUsers = [];
+let masterSiswa = [];
+let daftarEkskul = [];
+let semuaEkskul = [];
+let selectedEkskul = null;
+let daftarAnggota = [];
+let daftarKegiatan = [];
+let allAnggota = [];    
+let allKegiatan = [];   
+
+const $ = id => document.getElementById(id);
+const toast = (m, e=false) => { const t=document.createElement('div'); t.className='toast'+(e?' err':''); t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); };
+const localDate = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+
 onAuthStateChanged(auth, async (u) => { 
   console.log('🔍 Auth state changed:', u ? u.email : 'tidak ada user');
-  
   if (!u) {
     console.warn('⚠️ Tidak ada user, redirect ke home...');
     window.location.href = '../home.html';
@@ -174,14 +180,14 @@ onAuthStateChanged(auth, async (u) => {
 });
 
 async function initApp(u) {
-  console.log(' initApp() dipanggil untuk:', u.email);
+  console.log('📱 initApp() dipanggil untuk:', u.email);
   
   currentUser.uid = u.uid;
   currentUser.email = u.email;
   currentUserEmail = u.email;
   
   try {
-    console.log(' Mencari user di Firestore...');
+    console.log('🔎 Mencari user di Firestore...');
     const userDoc = await getDocs(query(collection(db, 'users'), where('email', '==', currentUser.email)));
     
     if (!userDoc.empty) {
@@ -193,25 +199,18 @@ async function initApp(u) {
       userSekolahId = data.school_id || data.sekolah_id || '';
       currentUser.nip = data.nip || '';
       
-      console.log('📊 Data user:', {
-        nama: currentUser.nama,
-        role: currentUser.role,
-        school_id: userSekolahId,
-        nip: currentUser.nip
-      });
+      console.log('📊 Data user:', { nama: currentUser.nama, role: currentUser.role, school_id: userSekolahId, nip: currentUser.nip });
     } else {
       console.warn('⚠️ User tidak ditemukan di collection users!');
     }
     
-    // ✅ AUTO-SET SCHOOL_ID JIKA KOSONG (untuk testing)
+    // ✅ AUTO-SET SCHOOL_ID JIKA KOSONG (Fallback)
     if (!userSekolahId) {
-      console.warn('️ userSekolahId kosong! Mencoba auto-detect...');
-      
+      console.warn('⚠️ userSekolahId kosong! Mencoba auto-detect...');
       const sekolahSnap = await getDocs(collection(db, 'sekolah'));
       if (!sekolahSnap.empty) {
         userSekolahId = sekolahSnap.docs[0].id;
         console.log('✅ Auto-set school_id:', userSekolahId);
-        
         try {
           const userRef = doc(db, 'users', currentUser.email);
           await updateDoc(userRef, { school_id: userSekolahId });
@@ -220,7 +219,7 @@ async function initApp(u) {
           console.warn('⚠️ Gagal update user document:', e.message);
         }
       } else {
-        console.error(' Tidak ada data sekolah di Firestore!');
+        console.error('❌ Tidak ada data sekolah di Firestore!');
       }
     }
   } catch(e) { 
@@ -234,7 +233,7 @@ async function initApp(u) {
   }
 
   console.log('🏫 School ID:', userSekolahId);
-  $('userBadge').textContent = (currentUser.role==='admin'?' ':'') + currentUser.nama;
+  $('userBadge').textContent = (currentUser.role==='admin'?'👑 ':'') + currentUser.nama;
   $('schoolBadge').textContent = '🏫 ' + (userSekolahId || 'Sekolah');
 
   if (currentUser.role === 'admin') {
@@ -255,11 +254,7 @@ async function initApp(u) {
   console.log('📡 Memuat data master...');
   await Promise.all([ loadMasterSiswa(), loadUsers(), loadEkskul() ]);
 
-  console.log('📊 Data dimuat:', {
-    masterSiswa: masterSiswa.length,
-    users: daftarUsers.length,
-    ekskul: daftarEkskul.length
-  });
+  console.log('📊 Data dimuat:', { masterSiswa: masterSiswa.length, users: daftarUsers.length, ekskul: daftarEkskul.length });
 
   if (['admin','kepala','wakil'].includes(currentUser.role)) {
     console.log('👑 Admin/Kepala detected, memuat monitoring...');
@@ -307,49 +302,6 @@ async function loadMasterSiswa(){
 
 async function loadUsers(){
   try {
-    const snap = await getDocs(collection(db,'users'));
-    daftarUsers = [];
-    snap.forEach(d => {
-      const data = d.data();
-      if (data.email) {
-        daftarUsers.push({
-          id: d.id, email: data.email, nama: data.nama || data.namaResmi || '',
-          role: data.role || '', akses_ekskul: data.akses_ekskul || false,
-          nip: data.nip || ''
-        });
-      }
-    });
-    
-    const pembinaSelect = $('ePembina');
-    if (pembinaSelect) {
-      pembinaSelect.innerHTML = '<option value="">-- Pilih Pembina --</option>' +
-        daftarUsers.map(u => `<option value="${u.email}">${u.nama} (${u.role})</option>`).join('');
-    }
-  } catch(e){ console.error(e); }
-}
-
-async function loadEkskul(){
-  try {
-    console.log(' Memuat ekskul untuk school_id:', userSekolahId);
-    const q = query(collection(db,'ekskul_master'), where('sekolah_id', '==', userSekolahId));
-    const snap = await getDocs(q);
-    console.log(' Ekskul ditemukan:', snap.size);
-    
-    semuaEkskul = [];
-    snap.forEach(d => {
-      console.log('  - Ekskul:', d.data().nama);
-      semuaEkskul.push({ id:d.id, ...d.data() });
-    });
-    
-    daftarEkskul = semuaEkskul; 
-    populateSelectEkskul();
-  } catch(e){ 
-    console.error('❌ Error load ekskul:', e); 
-  }
-}
-
-async function loadUsers(){
-  try {
     console.log('🔎 Memuat users...');
     const snap = await getDocs(collection(db,'users'));
     daftarUsers = [];
@@ -358,8 +310,7 @@ async function loadUsers(){
       if (data.email) {
         daftarUsers.push({
           id: d.id, email: data.email, nama: data.nama || data.namaResmi || '',
-          role: data.role || '', akses_ekskul: data.akses_ekskul || false,
-          nip: data.nip || ''
+          role: data.role || '', akses_ekskul: data.akses_ekskul || false, nip: data.nip || ''
         });
       }
     });
@@ -370,9 +321,25 @@ async function loadUsers(){
       pembinaSelect.innerHTML = '<option value="">-- Pilih Pembina --</option>' +
         daftarUsers.map(u => `<option value="${u.email}">${u.nama} (${u.role})</option>`).join('');
     }
-  } catch(e){ 
-    console.error('❌ Error load users:', e); 
-  }
+  } catch(e){ console.error('❌ Error load users:', e); }
+}
+
+async function loadEkskul(){
+  try {
+    console.log('📦 Memuat ekskul untuk school_id:', userSekolahId);
+    const q = query(collection(db,'ekskul_master'), where('sekolah_id', '==', userSekolahId));
+    const snap = await getDocs(q);
+    console.log('📦 Ekskul ditemukan:', snap.size);
+    
+    semuaEkskul = [];
+    snap.forEach(d => {
+      console.log('  - Ekskul:', d.data().nama);
+      semuaEkskul.push({ id:d.id, ...d.data() });
+    });
+    
+    daftarEkskul = semuaEkskul; 
+    populateSelectEkskul();
+  } catch(e){ console.error('❌ Error load ekskul:', e); }
 }
 
 function populateSelectEkskul(){
@@ -420,8 +387,8 @@ function renderMaster(){
         <div style="font-size:.8rem;color:#64748b">👤 ${e.pembina_nama||'Belum ada pembina'} • 📅 ${e.hari||'-'} ${e.jam_mulai||''}-${e.jam_selesai||''}</div></div>
       <div style="display:flex;gap:6px">
         ${canEditEkskul ? `
-        <button class="btn btn-secondary btn-sm" onclick="editEkskul('${e.id}')">️</button>
-        <button class="btn btn-danger btn-sm" onclick="hapusEkskul('${e.id}','${(e.nama||'').replace(/'/g,"\\'")}')">️</button>
+        <button class="btn btn-secondary btn-sm" onclick="editEkskul('${e.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="hapusEkskul('${e.id}','${(e.nama||'').replace(/'/g,"\\'")}')">🗑️</button>
         ` : ''}
       </div>
     </div>`).join('');
@@ -449,7 +416,7 @@ async function simpanEkskul(){
   if (!canEditEkskul) return;
   const nama = $('eNama').value.trim();
   const pembinaEmail = $('ePembina').value;
-  if (!nama){ toast('️ Nama ekskul wajib diisi!', true); return; }
+  if (!nama){ toast('⚠️ Nama ekskul wajib diisi!', true); return; }
   if (!pembinaEmail){ toast('⚠️ Pilih pembina!', true); return; }
   
   const u = daftarUsers.find(x=>x.email===pembinaEmail);
@@ -520,7 +487,7 @@ function renderChecklist(){
       <div><b>${a.nama}</b> <span style="color:#94a3b8;font-size:.8rem">${a.kelas||''}</span></div>
       <select class="abs-status" ${!canEditEkskul?'disabled':''}>
         <option value="Hadir">✅ Hadir</option><option value="Sakit">🟡 Sakit</option>
-        <option value="Izin"> Izin</option><option value="Alpha"> Alpha</option>
+        <option value="Izin">🔵 Izin</option><option value="Alpha">❌ Alpha</option>
       </select>
     </div>`).join('');
 }
@@ -572,7 +539,7 @@ function renderKegiatan(){
       ? `<button class="btn btn-secondary btn-sm" onclick="lihatFoto('${k.id}')">📷 ${k.fotoBase64.length}</button>` : '';
     return `<div class="row-item">
       <div><b>${k.judul}</b>
-        <div style="font-size:.8rem;color:#64748b"> ${k.tanggal} ${k.jam||''} • ✅ ${hadir}/${total} hadir</div></div>
+        <div style="font-size:.8rem;color:#64748b">📅 ${k.tanggal} ${k.jam||''} • ✅ ${hadir}/${total} hadir</div></div>
       <div style="display:flex;gap:6px;align-items:center">${fotoBtn}<span class="badge b-aktif">${k.ekskul_nama||''}</span></div>
     </div>`;
   }).join('');
@@ -632,9 +599,7 @@ function exportPDF(){
   
   const pembinaUser = daftarUsers.find(u => u.email === e.pembina_email) || {};
   const rawNipPembina = pembinaUser.nip || '';
-  const nipPembina = rawNipPembina 
-    ? (rawNipPembina.startsWith('NIP.') ? rawNipPembina : 'NIP. ' + rawNipPembina)
-    : 'NIP. ............................................';
+  const nipPembina = rawNipPembina ? (rawNipPembina.startsWith('NIP.') ? rawNipPembina : 'NIP. ' + rawNipPembina) : 'NIP. ............................................';
   const namaPembinaCetak = formatKapital(e.pembina_nama || '', 'upper');
 
   const kegRows = daftarKegiatan.map((k,i)=>{
@@ -716,39 +681,21 @@ function exportPDF(){
 </head>
 <body>
   ${kopHtml}
-  
   <div style="text-align:center; margin:0 0 12px;">
     <h3>LAPORAN KEGIATAN & KEHADIRAN EKSTRAKURIKULER</h3>
     <p style="font-size:11pt; margin:3px 0;">${e.ikon||''} ${e.nama} — Tahun Pelajaran ${tp}</p>
   </div>
-  
   <div style="margin-bottom:12px; font-size:11pt;">
-    <p>Pembina: <b>${e.pembina_nama||'-'}</b><br>
-    Jadwal: ${e.hari||'-'}, ${e.jam_mulai||''}–${e.jam_selesai||''} ${e.ruang?'• '+e.ruang:''}</p>
+    <p>Pembina: <b>${e.pembina_nama||'-'}</b><br>Jadwal: ${e.hari||'-'}, ${e.jam_mulai||''}–${e.jam_selesai||''} ${e.ruang?'• '+e.ruang:''}</p>
   </div>
-  
   <h4>A. Daftar Kegiatan</h4>
-  <table>
-    <thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Kegiatan</th><th>Materi</th><th style="width:12%">Hadir/Total</th></tr></thead>
-    <tbody>${kegRows}</tbody>
-  </table>
-
+  <table><thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Kegiatan</th><th>Materi</th><th style="width:12%">Hadir/Total</th></tr></thead><tbody>${kegRows}</tbody></table>
   <h4>B. Rekap Kehadiran per Siswa</h4>
-  <table>
-    <thead><tr><th style="width:5%">No</th><th style="width:12%">NIS</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:5%">H</th><th style="width:5%">S</th><th style="width:5%">I</th><th style="width:5%">A</th><th style="width:8%">%</th><th style="width:12%">Predikat</th></tr></thead>
-    <tbody>${rekapRows}</tbody>
-  </table>
-
+  <table><thead><tr><th style="width:5%">No</th><th style="width:12%">NIS</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:5%">H</th><th style="width:5%">S</th><th style="width:5%">I</th><th style="width:5%">A</th><th style="width:8%">%</th><th style="width:12%">Predikat</th></tr></thead><tbody>${rekapRows}</tbody></table>
   <h4>C. Dokumentasi Kegiatan</h4>
   ${dokHtml || '<p style="font-style:italic;color:#64748b;">Tidak ada dokumentasi foto.</p>'}
-
   ${ttdHtml}
-  
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 500);
-    }
-  <\/script>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }<\/script>
 </body>
 </html>`);
   w.document.close();
@@ -791,7 +738,7 @@ function renderMonitoring(){
       <div class="stat"><h2>${avgPct}%</h2><p>Rata-rata Kehadiran</p></div>
     </div>
     <div class="card">
-      <h4 style="margin:0 0 12px;color:#5b21b6"> Jumlah Anggota per Ekskul</h4>
+      <h4 style="margin:0 0 12px;color:#5b21b6">👥 Jumlah Anggota per Ekskul</h4>
       ${data.map(x => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px"><b>${x.e.ikon||''} ${x.e.nama}</b><span>${x.ang} anggota</span></div><div style="background:#ede9fe;border-radius:6px;height:12px"><div style="background:#7c3aed;height:12px;border-radius:6px;width:${Math.round(x.ang/maxAng*100)}%"></div></div></div>`).join('')}
     </div>
     <div class="card">
@@ -815,7 +762,7 @@ async function simpanPengelolaEkskul(){
   const emailBaru = $('selPengelolaEkskul').value;
   if (!emailBaru) { toast('⚠️ Pilih user terlebih dahulu!', true); return; }
   const userBaru = daftarUsers.find(x => x.email === emailBaru);
-  if (!userBaru) { toast('️ User tidak ditemukan!', true); return; }
+  if (!userBaru) { toast('⚠️ User tidak ditemukan!', true); return; }
   
   try {
     const configSnap = await getDocs(query(collection(db, 'ekskul_config'), where('type', '==', 'pengelola'), where('sekolah_id', '==', userSekolahId)));
@@ -826,12 +773,7 @@ async function simpanPengelolaEkskul(){
       }
       await updateDoc(configSnap.docs[0].ref, { pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru });
     } else {
-      await addDoc(collection(db, 'ekskul_config'), { 
-        type: 'pengelola', 
-        sekolah_id: userSekolahId, 
-        pengelola_email: emailBaru, 
-        pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru 
-      });
+      await addDoc(collection(db, 'ekskul_config'), { type: 'pengelola', sekolah_id: userSekolahId, pengelola_email: emailBaru, pengelola_nama: userBaru.nama || userBaru.namaResmi || emailBaru });
     }
     await updateDoc(doc(db, 'users', emailBaru), { akses_ekskul: true });
     toast('✅ Pengelola Ekskul ditetapkan: ' + (userBaru.nama || userBaru.namaResmi || emailBaru));
@@ -897,7 +839,7 @@ function bindSearch(inputId, dropId, onPick){
 
 function bindEvents(){
   $('selectEkskul').onchange = e => selectEkskul(e.target.value);
-  $('btnAddEkskul').onclick = () => { if (!canEditEkskul) return; $('ekskulEditKey').value=''; $('modalEkskulTitle').textContent=' Tambah Ekskul'; ['eNama','eRuang','eDesk'].forEach(id=>$(id).value=''); $('modalEkskul').classList.add('show'); };
+  $('btnAddEkskul').onclick = () => { if (!canEditEkskul) return; $('ekskulEditKey').value=''; $('modalEkskulTitle').textContent='➕ Tambah Ekskul'; ['eNama','eRuang','eDesk'].forEach(id=>$(id).value=''); $('modalEkskul').classList.add('show'); };
   $('btnBatalEkskul').onclick = () => $('modalEkskul').classList.remove('show');
   $('btnSimpanEkskul').onclick = simpanEkskul;
   $('btnSemuaHadir').onclick = () => document.querySelectorAll('#absensiList .abs-status').forEach(s=>s.value='Hadir');
