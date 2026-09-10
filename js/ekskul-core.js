@@ -131,6 +131,9 @@ async function fetchSekolahAktif() {
     const d = sdoc.data();
     console.log('🏫 Data sekolah aktif ditemukan:', d);
     
+    // ✅ Simpan nama sekolah untuk badge
+    namaSekolah = d.kop2 || d.nama || 'Sekolah';
+    
     if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
     if (d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
     else if (d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
@@ -151,6 +154,7 @@ console.log('🚀 SIAGA Core dimulai...');
 
 let currentUser = { uid: '', nama: '', email: '', role: 'guru', nip: '' };
 let userSekolahId = '';
+let namaSekolah = 'Sekolah';
 let canEditEkskul = false;
 let currentUserEmail = '';
 
@@ -234,7 +238,7 @@ async function initApp(u) {
 
   console.log('🏫 School ID:', userSekolahId);
   $('userBadge').textContent = (currentUser.role==='admin'?'👑 ':'') + currentUser.nama;
-  $('schoolBadge').textContent = '🏫 ' + (userSekolahId || 'Sekolah');
+  $('schoolBadge').textContent = '🏫 ' + namaSekolah;
 
   if (currentUser.role === 'admin') {
     $('tabMasterBtn').style.display = 'inline-block';
@@ -250,6 +254,9 @@ async function initApp(u) {
   console.log('📡 Memuat data SIG...');
   await fetchIdentitasSekolah();
   await fetchSekolahAktif();
+
+  // ✅ Update badge sekolah dengan nama yang benar
+  $('schoolBadge').textContent = '🏫 ' + namaSekolah;
 
   console.log('📡 Memuat data master...');
   await Promise.all([ loadMasterSiswa(), loadUsers(), loadEkskul() ]);
