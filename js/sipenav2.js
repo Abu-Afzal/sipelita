@@ -2431,4 +2431,3 @@ if (btnSimpanSIG) {
 }
 
 window.addEventListener('load', initSession);
-window.addEventListener('load', initSession);
