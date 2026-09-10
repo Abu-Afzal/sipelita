@@ -300,7 +300,12 @@ function ekstrakSIG(d) {
     if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
     if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
     if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
+    
+    // ✅ DIPERBAIKI: Kenali key 'kop1' dan 'kop2' secara LANGSUNG (prioritas tertinggi)
     if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
+    if (!hasil.kop2 && key === 'kop2') hasil.kop2 = v;
+    
+    // Fallback: deteksi otomatis untuk koleksi lain (bukan pengaturan_user)
     if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
     if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
   }
