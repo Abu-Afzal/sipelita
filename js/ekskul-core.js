@@ -491,7 +491,7 @@ async function tambahAnggota(s){
 }
 
 // ══════════ TAMBAH ANGGOTA MANUAL ══════════
-function tambahAnggotaManual(){
+async function tambahAnggotaManual(){
   if (!canEditEkskul) { toast('⚠️ Anda hanya punya akses LIHAT!', true); return; }
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul dulu!', true); return; }
   
@@ -502,18 +502,16 @@ function tambahAnggotaManual(){
   if (!nama){ toast('⚠️ Nama wajib diisi!', true); return; }
   if (!kelas){ toast('⚠️ Kelas wajib diisi!', true); return; }
   
-  // Cek apakah sudah ada anggota dengan NIS yang sama (jika NIS diisi)
   if (nis && daftarAnggota.some(a => a.nis === nis)){ 
-    toast('️ Siswa dengan NIS ini sudah jadi anggota!', true); 
+    toast('⚠️ Siswa dengan NIS ini sudah jadi anggota!', true); 
     return; 
   }
   
-  // Tambah ke database
   const dataAnggota = {
     sekolah_id: userSekolahId, 
     guru_uid: currentUser.uid,
     ekskul_id: selectedEkskul.id, 
-    nis: nis || '', // Bisa kosong
+    nis: nis || '',
     nama: nama, 
     kelas: kelas,
     jabatan: 'Anggota', 
@@ -521,17 +519,19 @@ function tambahAnggotaManual(){
     joinedAt: new Date().toISOString()
   };
   
-  addDoc(collection(db,'ekskul_anggota'), dataAnggota)
-    .then(() => {
-      toast('✅ Anggota ditambahkan: ' + nama);
-      resetFormAnggota();
-      loadAnggota(); 
-      renderAnggota(); 
-      renderChecklist();
-    })
-    .catch(e => {
-      toast('❌ Gagal menambah: ' + e.message, true);
-    });
+  try {
+    await addDoc(collection(db,'ekskul_anggota'), dataAnggota);
+    toast('✅ Anggota ditambahkan: ' + nama);
+    resetFormAnggota();
+    
+    // ✅ PERBAIKAN: await loadAnggota() sebelum render
+    await loadAnggota();
+    renderAnggota(); 
+    renderChecklist();
+    renderDashboard();
+  } catch(e) {
+    toast('❌ Gagal menambah: ' + e.message, true);
+  }
 }
 
 function resetFormAnggota(){
