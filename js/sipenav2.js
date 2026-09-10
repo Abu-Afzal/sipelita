@@ -313,33 +313,24 @@ async function fetchIdentitasSekolah() {
   if (!currentUser) return;
   const sumber = [];
 
-  // 🏫 Dokumen sekolah (register.html) — prioritas terendah
-  if (currentUserData.school_id) {
-    try {
-      const s = await db.collection('sekolah').doc(currentUserData.school_id).get();
-      if (s.exists) sumber.push(s.data());
-    } catch (e) {}
-  }
-
-  // 🗂️ Sapuan koleksi SIG — termasuk pengaturan_user!
-  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'sipena2',
-                'pengaturan', 'settings', 'config', 'sig'];
-  for (const c of cols) {
-    // per-user: doc uid → doc email → query uid → query email
-    try { const a = await db.collection(c).doc(currentUser.uid).get();   if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
-    try { const b = await db.collection(c).doc(currentUser.email).get(); if (b.exists) { sumber.push(b.data()); continue; } } catch (e) {}
+  // ──────────────────────────────────────────────────────
+  // PRIORITAS 4 (TERENDAH): Sapuan koleksi SIG global & lainnya
+  // ──────────────────────────────────────────────────────
+  const cols = ['identitas_madrasah', 'sekolah', 'sipena2', 'pengaturan', 'settings', 'config', 'sig'];
+  for (const c of cols) { // Note: typo 'colsa' fixed to 'cols' below
+    try { const a = await db.collection(c).doc(currentUser.uid).get();   if (a.exists) sumber.push(a.data()); } catch (e) {}
+    try { const b = await db.collection(c).doc(currentUser.email).get(); if (b.exists) sumber.push(b.data()); } catch (e) {}
     try { const q = await db.collection(c).where('uid', '==', currentUser.uid).limit(1).get();       q.forEach(d => sumber.push(d.data())); } catch (e) {}
-    try { const q = await db.collection(c).where('user_uid', '==', currentUser.uid).limit(1).get();  q.forEach(d => sumber.push(d.data())); } catch (e) {}
     try { const q = await db.collection(c).where('email', '==', currentUser.email).limit(1).get();   q.forEach(d => sumber.push(d.data())); } catch (e) {}
   }
-
-  // Legacy: dokumen global identitas_madrasah
   try {
     const g = await db.collection('identitas_madrasah').limit(1).get();
     g.forEach(d => sumber.push(d.data()));
   } catch (e) {}
 
-  // Dokumen users guru ini (jika SIG menempel di sana) — prioritas tertinggi
+  // ──────────────────────────────────────────────────────
+  // PRIORITAS 3: Dokumen users guru ini (Fallback)
+  // ──────────────────────────────────────────────────────
   try {
     const u1 = await db.collection('users').doc(currentUser.uid).get();
     if (u1.exists) sumber.push(u1.data());
@@ -349,8 +340,36 @@ async function fetchIdentitasSekolah() {
     }
   } catch (e) {}
 
-   // Terapkan berurutan (nilai tidak kosong menimpa)
+  // ──────────────────────────────────────────────────────
+  // PRIORITAS 2: Dokumen sekolah spesifik (berdasarkan school_id)
+  // ──────────────────────────────────────────────────────
+  if (currentUserData.school_id) {
+    try {
+      const s = await db.collection('sekolah').doc(currentUserData.school_id).get();
+      if (s.exists) sumber.push(s.data());
+    } catch (e) {}
+  }
+
+  // ──────────────────────────────────────────────────────
+  // PRIORITAS 1 (TERTINGGI): Data yang DISIMPAN USER di menu Pengaturan SIG
+  // Ditaruh PALING AKHIR di array 'sumber' agar menimpa semua data di atasnya.
+  // ──────────────────────────────────────────────────────
+  try {
+    const userSig = await db.collection('pengaturan_user').doc(currentUser.email).get();
+    if (userSig.exists) {
+      console.log('✅ SIG: Menggunakan data prioritas tertinggi dari pengaturan_user');
+      sumber.push(userSig.data());
+    }
+  } catch (e) { 
+    console.warn('⚠️ Gagal cek pengaturan_user:', e.message); 
+  }
+
+  // ──────────────────────────────────────────────────────
+  // TERAPKAN DATA (Urutan sumber sudah dari Prioritas Terendah ke Tertinggi)
+  // Sehingga data Prioritas 1 (pengaturan_user) akan menjadi data FINAL.
+  // ──────────────────────────────────────────────────────
   let ketemu = false, kop1Explicit = false;
+  
   for (const d of sumber) {
     const x = ekstrakSIG(d);
     if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
@@ -369,12 +388,21 @@ async function fetchIdentitasSekolah() {
   console.log(ketemu
     ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2
     : '⚠️ SIG: data identitas tidak ditemukan di sumber mana pun');
+
+  // ✅ UPDATE UI FORM SIG (Agar user melihat data yang sedang aktif tersimpan)
+  if (typeof $ === 'function') {
+    if ($('sig_kop1')) $('sig_kop1').value = CONFIG_MADRASAH.kop1;
+    if ($('sig_kop2')) $('sig_kop2').value = CONFIG_MADRASAH.kop2;
+    if ($('sig_alamat')) $('sig_alamat').value = CONFIG_MADRASAH.alamat;
+    if ($('sig_kota')) $('sig_kota').value = CONFIG_MADRASAH.kota;
+    if ($('sig_kepala')) $('sig_kepala').value = CONFIG_MADRASAH.kepalaMadrasah;
+    if ($('sig_nip')) $('sig_nip').value = CONFIG_MADRASAH.nipKepala.replace('NIP. ', '').trim();
+  }
 }
 
 // ══════════════════════════════════════════════
 // 🏫 MULTI-SEKOLAH: MUAT IDENTITAS SEKOLAH AKTIF
-// Prioritas tertinggi - meng-override SIG jika user
-// terdaftar di collection `sekolah`
+// (DIPERBAIKI: Tidak lagi menimpa data dari pengaturan_user)
 // ══════════════════════════════════════════════
 async function fetchSekolahAktif() {
   if (!currentUser || !currentUserData.school_id) return;
@@ -389,23 +417,22 @@ async function fetchSekolahAktif() {
     const d = sdoc.data();
     console.log('🏫 Data sekolah aktif ditemukan:', d);
     
-    // ✅ Override semua CONFIG_MADRASAH dengan data sekolah user
-    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
-    if (d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
-    else if (d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
-    if (d.alamat) CONFIG_MADRASAH.alamat = d.alamat;
-    if (d.kota) CONFIG_MADRASAH.kota = d.kota;
-    if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
-    if (d.kepala_nip) {
-      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') 
-        ? d.kepala_nip 
-        : 'NIP. ' + d.kepala_nip;
-    }
+    // ✅ HANYA update jika field-nya MASIH KOSONG (agar tidak menimpa Prioritas 1)
+    if (!CONFIG_MADRASAH.kop1 && d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
     
-    console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override:', {
-      kop2: CONFIG_MADRASAH.kop2,
-      kepala: CONFIG_MADRASAH.kepalaMadrasah
-    });
+    if (!CONFIG_MADRASAH.kop2 && d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
+    else if (!CONFIG_MADRASAH.kop2 && d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
+    
+    if (!CONFIG_MADRASAH.alamat && d.alamat) CONFIG_MADRASAH.alamat = d.alamat;
+    if (!CONFIG_MADRASAH.kota && d.kota) CONFIG_MADRASAH.kota = d.kota;
+    
+    // 🚫 BARIS DI BAWAH INI DIHAPUS/DIKOMENTARI AGAR TIDAK MENIMPA NAMA KAMAD DARI PENGATURAN_USER
+    // if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
+    // if (d.kepala_nip) {
+    //   CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') ? d.kepala_nip : 'NIP. ' + d.kepala_nip;
+    // }
+    
+    console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override (Aman, tidak menimpa data user)');
   } catch (e) {
     console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
   }
