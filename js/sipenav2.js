@@ -16,7 +16,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-
+// Helper function untuk getElementById (agar kode lebih ringkas)
+const $ = id => document.getElementById(id);
 // ══════════════════════════════════════════════
 // ✏️ KONFIGURASI MADRASAH (KOP & TTD PDF)
 // ══════════════════════════════════════════════
@@ -435,6 +436,55 @@ async function fetchSekolahAktif() {
     console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override (Aman, tidak menimpa data user)');
   } catch (e) {
     console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
+  }
+}
+
+// ══════════════════════════════════════════════
+// 💾 SIMPAN DATA SIG (PRIORITAS TERTINGGI)
+// ══════════════════════════════════════════════
+async function simpanSIG() {
+  if (!currentUser) {
+    showToast('⚠️ User tidak terautentikasi!', 'error');
+    return;
+  }
+
+  const kop1 = $('sig_kop1')?.value || CONFIG_MADRASAH.kop1;
+  const kop2 = $('sig_kop2')?.value || CONFIG_MADRASAH.kop2;
+  const alamat = $('sig_alamat')?.value || CONFIG_MADRASAH.alamat;
+  const kota = $('sig_kota')?.value || CONFIG_MADRASAH.kota;
+  const kepala = $('sig_kepala')?.value || CONFIG_MADRASAH.kepalaMadrasah;
+  const nipRaw = $('sig_nip')?.value || '';
+  const nip = nipRaw.startsWith('NIP. ') ? nipRaw : 'NIP. ' + nipRaw.trim();
+
+  try {
+    const dataSIG = {
+      kop1: kop1,
+      kop2: kop2,
+      alamat: alamat,
+      kota: kota,
+      kepala: kepala,
+      nip: nip,
+      updated_at: new Date().toISOString(),
+      updated_by: currentUser.email
+    };
+
+    // Simpan ke collection pengaturan_user (prioritas tertinggi)
+    const docRef = db.collection('pengaturan_user').doc(currentUser.email);
+    await docRef.set(dataSIG, { merge: true });
+
+    // Update CONFIG_MADRASAH langsung agar perubahan langsung terlihat
+    CONFIG_MADRASAH.kop1 = kop1;
+    CONFIG_MADRASAH.kop2 = kop2;
+    CONFIG_MADRASAH.alamat = alamat;
+    CONFIG_MADRASAH.kota = kota;
+    CONFIG_MADRASAH.kepalaMadrasah = kepala;
+    CONFIG_MADRASAH.nipKepala = nip;
+
+    showToast('✅ Data SIG dan KOP berhasil disimpan!');
+    console.log('💾 SIG disimpan:', dataSIG);
+  } catch (e) {
+    console.error('❌ Gagal simpan SIG:', e);
+    showToast('❌ Gagal menyimpan: ' + e.message, 'error');
   }
 }
 
@@ -2372,4 +2422,13 @@ async function loadKelasRingkas() {
   }
 }
 
+// ══════════════════════════════════════════════
+// EVENT LISTENER UNTUK TOMBOL SIMPAN SIG
+// ══════════════════════════════════════════════
+const btnSimpanSIG = document.getElementById('btnSimpanSIG');
+if (btnSimpanSIG) {
+  btnSimpanSIG.addEventListener('click', simpanSIG);
+}
+
+window.addEventListener('load', initSession);
 window.addEventListener('load', initSession);
