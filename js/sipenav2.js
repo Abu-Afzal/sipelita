@@ -16,6 +16,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const $ = id => document.getElementById(id);
 
 // ══════════════════════════════════════════════
 // ✏️ KONFIGURASI MADRASAH (KOP & TTD PDF)
@@ -173,6 +174,19 @@ async function initSession() {
       await fetchKepalaMadrasah();
       await fetchIdentitasSekolah();
       await fetchSekolahAktif(); 
+
+            localStorage.setItem('sipelita_user', JSON.stringify(currentUserData));
+      
+      await fetchNipUser();
+      await fetchKepalaMadrasah();
+      await fetchIdentitasSekolah();
+      await fetchSekolahAktif(); 
+      
+      // ✅ TAMBAHKAN BARIS INI DI SINI (Paling Akhir Sebelum updateGreeting)
+      await muatFormPengaturan();
+
+      updateGreeting();
+      applyRoleRestrictions();
 
       updateGreeting();
       applyRoleRestrictions();
@@ -408,6 +422,38 @@ async function fetchSekolahAktif() {
     });
   } catch (e) {
     console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
+  }
+}
+
+// ══════════════════════════════════════════════
+// 📝 MUAT DATA DARI FIREBASE KE FORM PENGATURAN
+// ══════════════════════════════════════════════
+async function muatFormPengaturan() {
+  if (!currentUser) return;
+  
+  try {
+    console.log('🔍 Membaca data pengaturan_user untuk form...');
+    const docRef = db.collection('pengaturan_user').doc(currentUser.email);
+    const docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      console.log('✅ Data ditemukan di database:', data);
+      
+      // Isi langsung ke elemen HTML (Pastikan ID di HTML Anda sama persis)
+      if (document.getElementById('sig_kop1')) document.getElementById('sig_kop1').value = data.kop1 || '';
+      if (document.getElementById('sig_kop2')) document.getElementById('sig_kop2').value = data.kop2 || '';
+      if (document.getElementById('sig_alamat')) document.getElementById('sig_alamat').value = data.alamat || '';
+      if (document.getElementById('sig_kota')) document.getElementById('sig_kota').value = data.kota || '';
+      if (document.getElementById('sig_kepala')) document.getElementById('sig_kepala').value = data.kepala || '';
+      if (document.getElementById('sig_nip')) document.getElementById('sig_nip').value = (data.nip || '').replace('NIP. ', '');
+      
+      console.log('✅ Form berhasil diisi dengan data tersimpan!');
+    } else {
+      console.log('⚠️ Belum ada data pengaturan_user untuk user ini');
+    }
+  } catch (e) {
+    console.error('❌ Gagal memuat form pengaturan:', e);
   }
 }
 
