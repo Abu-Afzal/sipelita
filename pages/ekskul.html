@@ -63,21 +63,46 @@
   </div>
 
   <!-- ANGGOTA -->
-  <div id="tab-anggota" style="display:none">
-    <div class="card">
-      <div class="fg search-wrap">
-        <label>➕ Tambah Anggota (cari dari master siswa)</label>
-        <input type="text" id="cariAnggota" placeholder="Ketik nama / kelas / NIS..." autocomplete="off">
-        <div class="search-drop" id="dropAnggota"></div>
+<div id="tab-anggota" style="display:none">
+  <div class="card">
+    <h3 style="margin:0 0 15px;color:#6d28d9;">➕ Tambah Anggota Manual</h3>
+    
+    <div class="grid2">
+      <div class="fg">
+        <label>NIS (Opsional)</label>
+        <input type="text" id="manualNIS" placeholder="Kosongkan jika tidak ada NIS">
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>Jabatan</th><th>Aksi</th></tr></thead>
-          <tbody id="tbodyAnggota"></tbody>
-        </table>
+      <div class="fg">
+        <label>Nama Lengkap *</label>
+        <input type="text" id="manualNama" placeholder="Nama siswa..." required>
       </div>
     </div>
+    
+    <div class="fg">
+      <label>Kelas *</label>
+      <input type="text" id="manualKelas" placeholder="Contoh: X IPA 1" required>
+    </div>
+    
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button class="btn btn-primary" id="btnTambahAnggotaManual" style="flex:1;">
+        ➕ Tambah Anggota
+      </button>
+      <button class="btn btn-secondary" onclick="resetFormAnggota()">
+        🔄 Reset
+      </button>
+    </div>
+    
+    <hr style="margin:25px 0; border:none; border-top:2px solid #e5e7eb;">
+    
+    <h4 style="margin:0 0 12px;color:#6d28d9;">📋 Daftar Anggota</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>Jabatan</th><th>Aksi</th></tr></thead>
+        <tbody id="tbodyAnggota"></tbody>
+      </table>
+    </div>
   </div>
+</div>
 
   <!-- KEGIATAN & ABSENSI -->
   <div id="tab-kegiatan" style="display:none">

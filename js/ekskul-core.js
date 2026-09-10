@@ -447,10 +447,15 @@ async function simpanEkskul(){
 // ══════════ ANGGOTA ══════════
 function renderAnggota(){
   const tb = $('tbodyAnggota');
-  if (!daftarAnggota.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">Belum ada anggota.</td></tr>'; return; }
+  if (!daftarAnggota.length) { 
+    tb.innerHTML = '<tr><td colspan="5" class="empty" style="padding:2rem;">Belum ada anggota. Isi form di atas untuk menambah.</td></tr>'; 
+    return; 
+  }
   tb.innerHTML = daftarAnggota.map(a => `
     <tr>
-      <td>${a.nis||'-'}</td><td><b>${a.nama}</b></td><td>${a.kelas||'-'}</td>
+      <td>${a.nis || '<span style="color:#94a3b8;font-style:italic">-</span>'}</td>
+      <td><b>${a.nama}</b></td>
+      <td>${a.kelas||'-'}</td>
       <td><select onchange="setJabatan('${a.id}', this.value)" ${!canEditEkskul?'disabled':''}>
         ${JABATAN.map(j=>`<option ${j===a.jabatan?'selected':''}>${j}</option>`).join('')}
       </select></td>
@@ -483,6 +488,56 @@ async function tambahAnggota(s){
     jabatan: 'Anggota', status: 'aktif', joinedAt: new Date().toISOString()
   });
   toast('✅ Anggota ditambahkan'); await loadAnggota(); renderAnggota(); renderChecklist();
+}
+
+// ══════════ TAMBAH ANGGOTA MANUAL ══════════
+function tambahAnggotaManual(){
+  if (!canEditEkskul) { toast('⚠️ Anda hanya punya akses LIHAT!', true); return; }
+  if (!selectedEkskul){ toast('⚠️ Pilih ekskul dulu!', true); return; }
+  
+  const nis = $('manualNIS').value.trim();
+  const nama = $('manualNama').value.trim();
+  const kelas = $('manualKelas').value.trim();
+  
+  if (!nama){ toast('⚠️ Nama wajib diisi!', true); return; }
+  if (!kelas){ toast('⚠️ Kelas wajib diisi!', true); return; }
+  
+  // Cek apakah sudah ada anggota dengan NIS yang sama (jika NIS diisi)
+  if (nis && daftarAnggota.some(a => a.nis === nis)){ 
+    toast('️ Siswa dengan NIS ini sudah jadi anggota!', true); 
+    return; 
+  }
+  
+  // Tambah ke database
+  const dataAnggota = {
+    sekolah_id: userSekolahId, 
+    guru_uid: currentUser.uid,
+    ekskul_id: selectedEkskul.id, 
+    nis: nis || '', // Bisa kosong
+    nama: nama, 
+    kelas: kelas,
+    jabatan: 'Anggota', 
+    status: 'aktif', 
+    joinedAt: new Date().toISOString()
+  };
+  
+  addDoc(collection(db,'ekskul_anggota'), dataAnggota)
+    .then(() => {
+      toast('✅ Anggota ditambahkan: ' + nama);
+      resetFormAnggota();
+      loadAnggota(); 
+      renderAnggota(); 
+      renderChecklist();
+    })
+    .catch(e => {
+      toast('❌ Gagal menambah: ' + e.message, true);
+    });
+}
+
+function resetFormAnggota(){
+  $('manualNIS').value = '';
+  $('manualNama').value = '';
+  $('manualKelas').value = '';
 }
 
 // ══════════ KEGIATAN + ABSENSI ══════════
@@ -855,7 +910,11 @@ function bindEvents(){
   $('btnExportPDF').onclick = exportPDF;
   $('btnSimpanPengelolaEkskul').onclick = simpanPengelolaEkskul;
   $('btnCabutAksesEkskul').onclick = cabutAksesPengelolaEkskul;
-  bindSearch('cariAnggota','dropAnggota', tambahAnggota);
+  // Event listener untuk tambah anggota manual
+const btnTambahManual = $('btnTambahAnggotaManual');
+if(btnTambahManual) {
+  btnTambahManual.onclick = tambahAnggotaManual;
+}
 
   document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
