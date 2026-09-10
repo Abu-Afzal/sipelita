@@ -295,13 +295,10 @@ function ekstrakSIG(d) {
   for (const [k, v] of Object.entries(d || {})) {
     if (typeof v !== 'string' || !v) continue;
     const key = k.toLowerCase();
-    // ✅ Kenali semua penulisan: kamadNama, nama_kepala, namaKepala, kepsek, kepala_madrasah
     const isKepalaKey = key.includes('kamad') || key.includes('kepala') || key.includes('kepsek');
 
     if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
-    // NIP kepala = field ber-nip YANG JUGA menyebut kepala/kamad (hindari NIP guru sendiri)
     if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
-    // Nama kepala = field kepala/kamad tanpa nip & tanpa link
     if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
     if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
     if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
