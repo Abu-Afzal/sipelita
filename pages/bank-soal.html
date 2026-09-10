@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Soal - SIPELITA</title>
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="../css/bank-soal.css">
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <i class="fas fa-book"></i>
+        <div>
+          <h1>SIPELITA</h1>
+          <p>Bank Soal Digital</p>
+        </div>
+      </div>
+    </div>
+    
+    <nav class="sidebar-menu">
+      <a href="index.html" class="menu-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="bank-soal.html" class="menu-item active">
+        <i class="fas fa-database"></i>
+        <span>Bank Soal</span>
+      </a>
+      <a href="#" class="menu-item" onclick="alert('Fitur coming soon!')">
+        <i class="fas fa-file-alt"></i>
+        <span>Buat Ujian</span>
+      </a>
+      <a href="#" class="menu-item" onclick="alert('Fitur coming soon!')">
+        <i class="fas fa-chart-bar"></i>
+        <span>Analisis</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a href="index.html" class="btn-back">
+        <i class="fas fa-arrow-left"></i>
+        <span>Kembali ke Dashboard</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1>📚 Bank Soal</h1>
+      <p>Kelola soal dan buat ujian digital dengan mudah</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-layer-group"></i></div>
+        <div class="stat-info"><h3 id="totalSoal">0</h3><p>Total Soal</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info"><h3 id="totalPG">0</h3><p>Pilihan Ganda</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-pen"></i></div>
+        <div class="stat-info"><h3 id="totalEssay">0</h3><p>Essay</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-book"></i></div>
+        <div class="stat-info"><h3 id="totalMapel">0</h3><p>Mata Pelajaran</p></div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="filters">
+        <select id="filterMapel"><option value="">Semua Mapel</option></select>
+        <select id="filterKelas">
+          <option value="">Semua Kelas</option>
+          <option value="X">X</option>
+          <option value="XI">XI</option>
+          <option value="XII">XII</option>
+        </select>
+        <select id="filterTipe">
+          <option value="">Semua Tipe</option>
+          <option value="pilihan_ganda">Pilihan Ganda</option>
+          <option value="essay">Essay</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="exportSoal()"><i class="fas fa-download"></i> Export</button>
+        <button class="btn btn-primary" onclick="openModalSoal()"><i class="fas fa-plus"></i> Tambah Soal</button>
+      </div>
+    </div>
+
+    <!-- Soal List -->
+    <div class="content-card" id="soalList">
+      <div class="empty-state">
+        <i class="fas fa-book"></i>
+        <h3>Belum ada soal</h3>
+        <p>Klik "Tambah Soal" untuk memulai membuat bank soal Anda</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Tambah/Edit Soal -->
+  <div class="modal" id="modalSoal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">✏️ Tambah Soal</h2>
+        <button class="modal-close" onclick="closeModalSoal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formSoal">
+          <input type="hidden" id="soalId">
+          
+          <div class="form-group">
+            <label>Tipe Soal *</label>
+            <select id="tipeSoal" required onchange="togglePilihan()">
+              <option value="pilihan_ganda">Pilihan Ganda</option>
+              <option value="essay">Essay</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Mata Pelajaran *</label>
+            <select id="mapel" required>
+              <option value="">Pilih Mapel</option>
+              <option value="Sosiologi">Sosiologi</option>
+              <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+              <option value="Bahasa Inggris">Bahasa Inggris</option>
+              <option value="Matematika">Matematika</option>
+              <option value="IPA">IPA</option>
+              <option value="IPS">IPS</option>
+              <option value="Agama">Agama</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Kelas *</label>
+            <select id="kelas" required>
+              <option value="">Pilih Kelas</option>
+              <option value="X">X</option>
+              <option value="XI">XI</option>
+              <option value="XII">XII</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Bab / Topik</label>
+            <input type="text" id="bab" placeholder="Contoh: Bab 3 - Perubahan Sosial">
+          </div>
+
+          <div class="form-group">
+            <label>Tingkat Kesulitan</label>
+            <select id="kesulitan">
+              <option value="mudah">Mudah</option>
+              <option value="sedang" selected>Sedang</option>
+              <option value="sulit">Sulit</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Pertanyaan *</label>
+            <textarea id="pertanyaan" required placeholder="Tulis pertanyaan di sini..."></textarea>
+          </div>
+
+          <div id="pilihanContainer">
+            <div class="form-group">
+              <label>Pilihan Jawaban *</label>
+              <div id="pilihanList">
+                <div class="pilihan-item">
+                  <input type="text" placeholder="A" disabled style="width: 50px;">
+                  <input type="text" class="pilihan-teks" placeholder="Tulis pilihan A">
+                  <input type="checkbox" class="pilihan-benar" title="Jawaban benar">
+                </div>
+                <div class="pilihan-item">
+                  <input type="text" placeholder="B" disabled style="width: 50px;">
+                  <input type="text" class="pilihan-teks" placeholder="Tulis pilihan B">
+                  <input type="checkbox" class="pilihan-benar" title="Jawaban benar">
+                </div>
+                <div class="pilihan-item">
+                  <input type="text" placeholder="C" disabled style="width: 50px;">
+                  <input type="text" class="pilihan-teks" placeholder="Tulis pilihan C">
+                  <input type="checkbox" class="pilihan-benar" title="Jawaban benar">
+                </div>
+                <div class="pilihan-item">
+                  <input type="text" placeholder="D" disabled style="width: 50px;">
+                  <input type="text" class="pilihan-teks" placeholder="Tulis pilihan D">
+                  <input type="checkbox" class="pilihan-benar" title="Jawaban benar">
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="tambahPilihan()" style="margin-top: 8px;">+ Tambah Pilihan E</button>
+            </div>
+            <div class="form-group">
+              <label>Pembahasan (Opsional)</label>
+              <textarea id="pembahasan" placeholder="Penjelasan jawaban..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModalSoal()">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('formSoal').requestSubmit()"><i class="fas fa-save"></i> Simpan Soal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Custom JS -->
+  <script src="../js/bank-soal.js"></script>
+</body>
+</html>
