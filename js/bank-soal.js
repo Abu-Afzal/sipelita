@@ -87,6 +87,7 @@ function renderSoal() {
             <span class="badge badge-kelas">Kelas ${soal.kelas}</span>
             <span class="badge badge-tipe">${tipeLabel}</span>
             <span class="badge ${badgeSulit}">${soal.tingkat_kesulitan}</span>
+            ${soal.sumber === 'import_word' ? '<span class="badge" style="background:#e0e7ff; color:#3730a3;">Import</span>' : ''}
           </div>
         </div>
         <div class="soal-text">${soal.pertanyaan.substring(0, 200)}${soal.pertanyaan.length > 200 ? '...' : ''}</div>
@@ -273,6 +274,194 @@ function exportSoal() {
   a.href = url;
   a.download = `Bank_Soal_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FITUR IMPORT SOAL DARI WORD (.docx)
+// ═══════════════════════════════════════════════════════════════════
+
+function openModalImport() {
+  document.getElementById('modalImport').classList.add('active');
+  document.getElementById('importProgress').style.display = 'none';
+  document.getElementById('importFileWord').value = '';
+  document.getElementById('importLog').innerHTML = '';
+}
+
+function closeModalImport() {
+  document.getElementById('modalImport').classList.remove('active');
+}
+
+function importSoalDariWord(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!file.name.endsWith('.docx')) {
+    alert('Harap pilih file Word (.docx)!');
+    return;
+  }
+  
+  openModalImport();
+  document.getElementById('importFileWord').files = event.target.files;
+}
+
+async function prosesImportWord() {
+  const fileInput = document.getElementById('importFileWord');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert('Pilih file Word terlebih dahulu!');
+    return;
+  }
+  
+  const progressDiv = document.getElementById('importProgress');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const importLog = document.getElementById('importLog');
+  
+  progressDiv.style.display = 'block';
+  importLog.innerHTML = '<div style="color: var(--primary);">📖 Membaca file Word...</div>';
+  
+  try {
+    // Gunakan convertToHtml agar format <b> atau <strong> tetap terbaca
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+    const htmlText = result.value;
+    
+    importLog.innerHTML += '<div>✅ File berhasil dibaca. Memproses soal...</div>';
+    
+    // Parse soal dari HTML
+    const soalList = parseSoalDariHTML(htmlText);
+    
+    if (soalList.length === 0) {
+      importLog.innerHTML += '<div style="color: var(--danger);">❌ Tidak ada soal yang ditemukan. Periksa format dokumen.</div>';
+      return;
+    }
+    
+    importLog.innerHTML += `<div style="color: var(--success);">✅ Ditemukan ${soalList.length} soal. Menyimpan ke database...</div>`;
+    
+    // Simpan ke database
+    let berhasil = 0;
+    let gagal = 0;
+    const total = soalList.length;
+    
+    for (let i = 0; i < soalList.length; i++) {
+      const soal = soalList[i];
+      try {
+        await db.collection('bank_soal').add({
+          ...soal,
+          guru_uid: currentUser.uid,
+          guru_nama: currentUser.email,
+          created_at: firebase.firestore.FieldValue.serverTimestamp(),
+          updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+          sumber: 'import_word'
+        });
+        berhasil++;
+        importLog.innerHTML += `<div style="color: var(--success);">✓ Soal #${i+1} berhasil disimpan</div>`;
+      } catch (error) {
+        gagal++;
+        importLog.innerHTML += `<div style="color: var(--danger);">✗ Soal #${i+1} gagal: ${error.message}</div>`;
+      }
+      
+      // Update progress bar
+      const progress = ((i + 1) / total) * 100;
+      progressBar.style.width = progress + '%';
+      progressText.textContent = `${i+1}/${total}`;
+    }
+    
+    importLog.innerHTML += `
+      <div style="margin-top: 16px; padding: 12px; background: var(--success); color: white; border-radius: 8px; text-align: center; font-weight: 600;">
+        🎉 Import Selesai!<br>
+        Berhasil: ${berhasil} | Gagal: ${gagal}
+      </div>
+    `;
+    
+    // Reload soal setelah 2 detik
+    setTimeout(() => {
+      loadSoal();
+      closeModalImport();
+      alert(`Import berhasil! ${berhasil} soal ditambahkan.`);
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Error import:', error);
+    importLog.innerHTML += `<div style="color: var(--danger);">❌ Error: ${error.message}</div>`;
+  }
+}
+
+function parseSoalDariHTML(htmlText) {
+  const soalList = [];
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlText;
+  
+  // Ambil semua paragraf atau div yang berisi teks
+  const elements = Array.from(tempDiv.querySelectorAll('p, div'));
+  let currentSoal = null;
+  
+  elements.forEach(el => {
+    const text = el.innerText.trim();
+    if (!text) return;
+    
+    // 1. Deteksi awal soal baru (contoh: "1. ", "2) ")
+    const matchNomor = text.match(/^(\d+)[\.)]\s+/);
+    if (matchNomor) {
+      if (currentSoal) {
+        soalList.push(currentSoal);
+      }
+      currentSoal = {
+        pertanyaan: text.substring(matchNomor[0].length).trim(),
+        pilihan: [],
+        jawabanBenar: '',
+        tipe: 'essay'
+      };
+    } else if (currentSoal) {
+      // 2. Deteksi pilihan jawaban (contoh: "A. ", "B) ")
+      const matchPilihan = text.match(/^([A-Ea-e])[\.)]\s+(.+)/s);
+      if (matchPilihan) {
+        currentSoal.tipe = 'pilihan_ganda';
+        const label = matchPilihan[1].toUpperCase();
+        const teksPilihan = matchPilihan[2];
+        
+        // 3. Deteksi jawaban benar (apakah ada tag <b> atau <strong> di elemen HTML ini?)
+        const isBold = el.innerHTML.includes('<b>') || el.innerHTML.includes('<strong>');
+        
+        currentSoal.pilihan.push({
+          label: label,
+          teks: teksPilihan,
+          benar: isBold
+        });
+        
+        if (isBold) {
+          currentSoal.jawabanBenar = label;
+        }
+      } else {
+        // Jika bukan pilihan, anggap sebagai lanjutan pertanyaan
+        currentSoal.pertanyaan += ' ' + text;
+      }
+    }
+  });
+  
+  // Push soal terakhir
+  if (currentSoal) {
+    soalList.push(currentSoal);
+  }
+  
+  // Format ke struktur yang sesuai database
+  return soalList.map(s => {
+    // Bersihkan teks dari spasi atau newline berlebih
+    const pertanyaanBersih = s.pertanyaan.replace(/\s+/g, ' ').trim();
+    
+    return {
+      mata_pelajaran: document.getElementById('mapel')?.value || 'Umum',
+      kelas: document.getElementById('kelas')?.value || 'X',
+      bab: `Import ${new Date().toLocaleDateString('id-ID')}`,
+      tingkat_kesulitan: 'sedang',
+      pertanyaan: pertanyaanBersih,
+      tipe: s.tipe,
+      pilihan: s.pilihan,
+      jawaban_benar: s.jawabanBenar,
+      pembahasan: ''
+    };
+  }).filter(s => s.pertanyaan.length > 5); // Filter soal yang valid
 }
 
 // Filter Events
