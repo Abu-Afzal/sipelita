@@ -96,24 +96,26 @@
         </select>
       </div>
       <div style="display: flex; gap: 12px;">
-  <button class="btn btn-secondary" onclick="exportSoal()">
-    <i class="fas fa-download"></i> Export
-  </button>
-  <button class="btn btn-success" onclick="document.getElementById('fileImport').click()">
-    <i class="fas fa-file-import"></i> Import dari Word
-  </button>
-  <input type="file" id="fileImport" accept=".docx" style="display: none;" onchange="importSoalDariWord(event)">
-  <button class="btn btn-primary" onclick="openModalSoal()">
-    <i class="fas fa-plus"></i> Tambah Soal
-  </button>
-</div>
+        <button class="btn btn-secondary" onclick="exportSoal()">
+          <i class="fas fa-download"></i> Export
+        </button>
+        <!-- Tombol Import Word -->
+        <button class="btn btn-success" onclick="document.getElementById('fileImport').click()">
+          <i class="fas fa-file-import"></i> Import dari Word
+        </button>
+        <input type="file" id="fileImport" accept=".docx" style="display: none;" onchange="importSoalDariWord(event)">
+        <button class="btn btn-primary" onclick="openModalSoal()">
+          <i class="fas fa-plus"></i> Tambah Soal
+        </button>
+      </div>
+    </div>
 
     <!-- Soal List -->
     <div class="content-card" id="soalList">
       <div class="empty-state">
         <i class="fas fa-book"></i>
         <h3>Belum ada soal</h3>
-        <p>Klik "Tambah Soal" untuk memulai membuat bank soal Anda</p>
+        <p>Klik "Tambah Soal" atau "Import dari Word" untuk memulai</p>
       </div>
     </div>
   </main>
@@ -221,50 +223,53 @@
     </div>
   </div>
 
+  <!-- Modal Progress Import Word -->
+  <div class="modal" id="modalImport">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>📥 Import Soal dari Word</h2>
+        <button class="modal-close" onclick="closeModalImport()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 8px;">Pilih File Word (.docx)</label>
+          <input type="file" id="importFileWord" accept=".docx" style="width: 100%; padding: 12px; border: 2px dashed var(--border); border-radius: 8px;">
+          <small style="color: var(--text-light); display: block; margin-top: 8px;">
+            💡 Tips: Format soal dengan jawaban yang di-<b>bold</b> (cetak tebal) akan otomatis terdeteksi sebagai jawaban benar.
+          </small>
+        </div>
+        
+        <div id="importProgress" style="display: none;">
+          <div style="background: var(--bg-light); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>Progress:</span>
+              <span id="progressText">0/0</span>
+            </div>
+            <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div id="progressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+          </div>
+          <div id="importLog" style="max-height: 200px; overflow-y: auto; font-size: 0.85rem; background: var(--bg-light); padding: 12px; border-radius: 8px;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModalImport()">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="prosesImportWord()">
+          <i class="fas fa-upload"></i> Proses Import
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   
+  <!-- ✅ LIBRARY MAMMOTH.JS (WAJIB ADA UNTUK BACA FILE WORD) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  
   <!-- Custom JS -->
   <script src="../js/bank-soal.js"></script>
-
-  <!-- Modal Progress Import -->
-<div class="modal" id="modalImport">
-  <div class="modal-content" style="max-width: 500px;">
-    <div class="modal-header">
-      <h2>📥 Import Soal dari Word</h2>
-      <button class="modal-close" onclick="closeModalImport()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Pilih File Word (.docx)</label>
-        <input type="file" id="importFileWord" accept=".docx" style="width: 100%; padding: 12px; border: 2px dashed var(--border); border-radius: 8px;">
-        <small style="color: var(--text-light); display: block; margin-top: 8px;">
-          💡 Tips: Format soal dengan jawaban yang di-<b>bold</b> akan otomatis terdeteksi
-        </small>
-      </div>
-      
-      <div id="importProgress" style="display: none;">
-        <div style="background: var(--bg-light); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>Progress:</span>
-            <span id="progressText">0/0</span>
-          </div>
-          <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
-            <div id="progressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
-          </div>
-        </div>
-        <div id="importLog" style="max-height: 200px; overflow-y: auto; font-size: 0.85rem; background: var(--bg-light); padding: 12px; border-radius: 8px;"></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" onclick="closeModalImport()">Batal</button>
-      <button type="button" class="btn btn-primary" onclick="prosesImportWord()">
-        <i class="fas fa-upload"></i> Import Soal
-      </button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
