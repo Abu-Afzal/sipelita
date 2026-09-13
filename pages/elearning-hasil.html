@@ -6,217 +6,203 @@
     <title>Hasil Sesi - E-Learning SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
     
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase (✅ TAMBAHKAN firebase-auth-compat.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; padding: 24px 30px;
-            display: flex; justify-content: space-between; align-items: center;
+        :root {
+            --primary: #6366f1; --primary-dark: #4f46e5; --success: #10b981;
+            --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9;
+            --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0;
         }
-        .header h1 { font-size: 1.6rem; }
-        .back-btn {
-            background: rgba(255,255,255,0.2); color: white;
-            padding: 10px 20px; border-radius: 24px; text-decoration: none;
-            font-weight: 600; border: 1px solid rgba(255,255,255,0.3);
-        }
-        
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .brand h1 { font-size: 1.3rem; font-weight: 600; margin-bottom: 2px; }
+        .brand p { font-size: 0.8rem; opacity: 0.9; }
+        .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.3s; }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        
-        .card {
-            background: white; border-radius: 12px; padding: 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.07); margin-bottom: 20px;
-        }
-        
-        .info-sesi {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px; margin-bottom: 20px;
-        }
-        .info-item {
-            padding: 16px; background: #f8fafc; border-radius: 10px;
-        }
-        .info-item .label { color: #64748b; font-size: 0.85rem; margin-bottom: 4px; }
-        .info-item .value { font-size: 1.3rem; font-weight: 700; color: #1e40af; }
-        
-        .pin-display {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white; padding: 20px; border-radius: 12px;
-            text-align: center;
-        }
-        .pin-display .label { font-size: 0.9rem; opacity: 0.9; margin-bottom: 6px; }
-        .pin-display .pin { font-size: 2.5rem; font-weight: 700; letter-spacing: 6px; }
-        
-        .btn {
-            padding: 10px 20px; border: none; border-radius: 8px;
-            cursor: pointer; font-weight: 600; font-size: 0.9rem;
-            display: inline-flex; align-items: center; gap: 6px;
-            text-decoration: none;
-        }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-success { background: #10b981; color: white; }
-        .btn-warning { background: #f59e0b; color: white; }
-        
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px; margin-bottom: 20px;
-        }
-        .stat-box {
-            text-align: center; padding: 16px;
-            background: #f8fafc; border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-        .stat-box .num { font-size: 1.8rem; font-weight: 700; color: #1e40af; }
-        .stat-box .lbl { font-size: 0.8rem; color: #64748b; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th {
-            background: #f8fafc; color: #1e40af;
-            padding: 12px; text-align: left;
-            border-bottom: 2px solid #e2e8f0;
-            font-size: 0.85rem;
-        }
-        td {
-            padding: 12px; border-bottom: 1px solid #f1f5f9;
-            font-size: 0.9rem;
-        }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .info-box { background: var(--card-bg); padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-left: 3px solid var(--primary); }
+        .info-box .label { font-size: 0.75rem; color: var(--text-light); margin-bottom: 4px; }
+        .info-box .value { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+        .pin-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 16px; border-radius: 10px; text-align: center; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .pin-label { font-size: 0.75rem; opacity: 0.9; margin-bottom: 4px; text-transform: uppercase; }
+        .pin-code { font-size: 2rem; font-weight: 800; letter-spacing: 6px; }
+        .card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+        .card-header h2 { font-size: 1.1rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+        .stat-box { text-align: center; padding: 12px; background: #f8fafc; border-radius: 8px; border-left: 3px solid var(--primary); }
+        .stat-box .num { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .stat-box .lbl { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; transform: translateY(-1px); }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+        .btn-info { background: #3b82f6; color: white; }
+        .btn-info:hover { background: #2563eb; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { background: #f8fafc; color: var(--text); padding: 10px; text-align: left; border-bottom: 2px solid var(--border); font-weight: 600; }
+        td { padding: 10px; border-bottom: 1px solid var(--border); }
         tr:hover td { background: #fafbff; }
-        
-        .nilai-badge {
-            padding: 4px 12px; border-radius: 12px;
-            font-weight: 700; font-size: 0.85rem;
-            display: inline-block;
-        }
+        .nilai-badge { padding: 4px 10px; border-radius: 10px; font-weight: 700; font-size: 0.8rem; display: inline-block; }
         .nilai-tinggi { background: #dcfce7; color: #166534; }
         .nilai-sedang { background: #fef3c7; color: #92400e; }
         .nilai-rendah { background: #fee2e2; color: #991b1b; }
-        
-        .spinner {
-            display: inline-block; width: 20px; height: 20px;
-            border: 3px solid #e2e8f0; border-top: 3px solid #667eea;
-            border-radius: 50%; animation: spin 1s linear infinite;
-        }
+        .status-badge { padding: 4px 10px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+        .status-selesai { background: #dcfce7; color: #166534; }
+        .status-belum { background: #fee2e2; color: #991b1b; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+        .empty-state i { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid var(--border); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
         @media (max-width: 768px) {
-            .header { flex-direction: column; text-align: center; gap: 12px; }
-            table { font-size: 0.8rem; }
+            .header-content { flex-direction: column; gap: 12px; text-align: center; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .info-grid { grid-template-columns: 1fr; }
+            table { font-size: 0.75rem; }
             th, td { padding: 8px; }
+        }
+                /* Tambahan untuk Alert Box */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-weight: 500;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        .alert.show { display: block; }
+        .alert-success { background: #dcfce7; color: #166534; border-left: 4px solid #10b981; }
+        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .alert-warning { background: #fffbeb; color: #92400e; border-left: 4px solid #f59e0b; }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div>
-        <h1>📊 Hasil Sesi E-Learning</h1>
-        <p id="headerJudul">Memuat...</p>
+    <div class="header-content">
+        <div class="brand">
+            <h1><i class="fas fa-chart-bar"></i> Hasil Sesi E-Learning</h1>
+            <p id="headerJudul">Memuat...</p>
+        </div>
+        <a href="elearning.html" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali</a>
     </div>
-    <a href="elearning.html" class="back-btn">← Kembali</a>
 </div>
 
 <div class="container">
-    
-    <!-- Info Sesi -->
     <div class="card">
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-            <div class="info-sesi">
-                <div class="info-item">
-                    <div class="label">📚 Mata Pelajaran</div>
-                    <div class="value" id="infoMapel">-</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">👥 Kelas</div>
-                    <div class="value" id="infoKelas">-</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">❓ Total Soal</div>
-                    <div class="value" id="infoSoal">-</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">⏱️ Durasi</div>
-                    <div class="value" id="infoDurasi">-</div>
-                </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+            <div class="info-grid">
+                <div class="info-box"><div class="label"><i class="fas fa-book"></i> Mata Pelajaran</div><div class="value" id="infoMapel">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-users"></i> Kelas</div><div class="value" id="infoKelas">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-question-circle"></i> Total Soal</div><div class="value" id="infoSoal">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-clock"></i> Durasi</div><div class="value" id="infoDurasi">-</div></div>
             </div>
-            <div class="pin-display">
-                <div class="label">PIN SESI</div>
-                <div class="pin" id="infoPin">------</div>
+            <div class="pin-box">
+                <div class="pin-label">PIN SESI</div>
+                <div class="pin-code" id="infoPin">------</div>
             </div>
         </div>
     </div>
     
-    <!-- Statistik -->
     <div class="card">
-        <h2 style="color: #1e40af; margin-bottom: 16px;">📈 Statistik</h2>
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="num" id="statTotal">0</div>
-                <div class="lbl">Total Siswa</div>
-            </div>
-            <div class="stat-box">
-                <div class="num" id="statRata" style="color: #10b981;">0</div>
-                <div class="lbl">Rata-rata Nilai</div>
-            </div>
-            <div class="stat-box">
-                <div class="num" id="statMax" style="color: #10b981;">0</div>
-                <div class="lbl">Nilai Tertinggi</div>
-            </div>
-            <div class="stat-box">
-                <div class="num" id="statMin" style="color: #ef4444;">0</div>
-                <div class="lbl">Nilai Terendah</div>
-            </div>
-            <div class="stat-box">
-                <div class="num" id="statLulus" style="color: #10b981;">0</div>
-                <div class="lbl">Lulus (≥70)</div>
+        <div class="card-header">
+            <h2><i class="fas fa-chart-line"></i> Statistik</h2>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-success" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+                <button class="btn btn-warning" onclick="shareWA()"><i class="fab fa-whatsapp"></i> Share WA</button>
+                <button class="btn btn-secondary" onclick="recalculateStatistik()" title="Hitung ulang statistik dari data jawaban">
+    <i class="fas fa-sync-alt"></i> Refresh Statistik
+</button>
             </div>
         </div>
-        
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px;">
-            <button class="btn btn-success" onclick="exportExcel()">📊 Download Excel</button>
-            <button class="btn btn-warning" onclick="shareWA()">📱 Share ke WA</button>
+        <div class="stats-row">
+            <div class="stat-box"><div class="num" id="statTotal">0 / 0</div><div class="lbl">Sudah / Total Siswa</div></div>
+            <div class="stat-box" style="border-left-color: var(--success);"><div class="num" id="statRata" style="color: var(--success);">0</div><div class="lbl">Rata-rata</div></div>
+            <div class="stat-box" style="border-left-color: var(--success);"><div class="num" id="statMax" style="color: var(--success);">0</div><div class="lbl">Tertinggi</div></div>
+            <div class="stat-box" style="border-left-color: var(--danger);"><div class="num" id="statMin" style="color: var(--danger);">0</div><div class="lbl">Terendah</div></div>
+            <div class="stat-box" style="border-left-color: var(--success);"><div class="num" id="statLulus" style="color: var(--success);">0</div><div class="lbl">Lulus (≥70)</div></div>
         </div>
     </div>
     
-    <!-- Tabel Nilai -->
     <div class="card">
-        <h2 style="color: #1e40af; margin-bottom: 16px;">📋 Daftar Nilai Siswa</h2>
-        
+        <div class="card-header"><h2><i class="fas fa-list"></i> Daftar Nilai Siswa</h2></div>
         <div id="loading" style="text-align: center; padding: 40px;">
             <div class="spinner"></div>
-            <p style="margin-top: 12px; color: #64748b;">Memuat data...</p>
+            <p style="margin-top: 12px; color: var(--text-light);">Memverifikasi login & memuat data...</p>
         </div>
-        
-        <div id="tableContainer" style="display: none; overflow-x: auto;">
-            <table id="tabelNilai">
+        <div id="tableContainer" class="table-container" style="display: none;">
+            <table>
                 <thead>
                     <tr>
-                        <th>No</th>
-                        <th>Nama Siswa</th>
-                        <th>Kelas</th>
-                        <th>Benar</th>
-                        <th>Salah</th>
-                        <th>Nilai</th>
-                        <th>Waktu</th>
-                        <th>Status</th>
+                        <th width="40">No</th><th>Nama Siswa</th><th width="80">Kelas</th>
+                        <th width="60">Benar</th><th width="60">Salah</th><th width="80">Nilai</th>
+                        <th width="80">Waktu</th><th width="140">Status & Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="tabelBody"></tbody>
             </table>
         </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <h3>Belum Ada Data Siswa</h3>
+            <p style="margin-top: 8px;">Pastikan kelas yang dipilih memiliki data siswa di SIPENA</p>
+        </div>
     </div>
-    
 </div>
 
-<script src="../js/elearning-core.js"></script>
 <script>
+const firebaseConfig = {
+    apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
+    authDomain: "sipelita-digital.firebaseapp.com",
+    databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "sipelita-digital",
+    storageBucket: "sipelita-digital.firebasestorage.app",
+    messagingSenderId: "787840817745",
+    appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
+const auth = firebase.auth(); // ✅ INISIALISASI AUTH
+
 let currentSession = null;
 let daftarJawaban = [];
 
-document.addEventListener('DOMContentLoaded', loadHasilSesi);
+// ✅ TUNGGU STATUS LOGIN SELESAI DICEK SEBELUM LOAD DATA
+document.addEventListener('DOMContentLoaded', () => {
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            console.log('✅ User terautentikasi:', user.email);
+            loadHasilSesi();
+        } else {
+            console.warn('⚠️ User belum login, mengarahkan ke halaman login...');
+            window.location.href = '../index.html'; // Sesuaikan dengan path login Anda
+        }
+    });
+});
 
 async function loadHasilSesi() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -229,152 +215,269 @@ async function loadHasilSesi() {
     }
     
     try {
-        // Load sesi
         const sesiDoc = await db.collection('learning_sessions').doc(sessionId).get();
         if (!sesiDoc.exists) throw new Error('Sesi tidak ditemukan');
         
         currentSession = { id: sesiDoc.id, ...sesiDoc.data() };
         
-        // Tampilkan info sesi
         document.getElementById('headerJudul').textContent = currentSession.judul;
         document.getElementById('infoMapel').textContent = currentSession.mataPelajaran;
         document.getElementById('infoKelas').textContent = currentSession.kelasTarget;
-        document.getElementById('infoSoal').textContent = currentSession.totalSoal;
+        document.getElementById('infoSoal').textContent = currentSession.totalSoal || 0;
         document.getElementById('infoDurasi').textContent = currentSession.durasiMenit > 0 ? `${currentSession.durasiMenit} menit` : 'Tanpa batas';
         document.getElementById('infoPin').textContent = currentSession.pin;
         
-        // Load jawaban siswa
+        let semuaSiswa = [];
+        if (currentSession.kelasSipenaId) {
+            const siswaSnap = await db.collection('siswa')
+                .where('kelas_id', '==', currentSession.kelasSipenaId)
+                .orderBy('student_name')
+                .get();
+            
+            siswaSnap.forEach(doc => {
+                semuaSiswa.push({ id: doc.id, nama: doc.data().student_name, kelas: currentSession.kelasTarget });
+            });
+        }
+        
+        // ✅ BACA DARI student_responses (untuk sesi dengan soal)
         const responsesSnap = await db.collection('student_responses')
             .where('sessionId', '==', sessionId)
             .orderBy('nilai', 'desc')
             .get();
         
-        daftarJawaban = [];
+        const jawabanMap = new Map();
         responsesSnap.forEach(doc => {
-            daftarJawaban.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            jawabanMap.set(data.siswaNama.toLowerCase().trim(), { id: doc.id, ...data, tipe: 'jawaban' });
         });
         
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('tableContainer').style.display = 'block';
+        // ✅ BACA DARI student_notes (untuk sesi materi only)
+        const notesSnap = await db.collection('student_notes')
+            .where('sessionId', '==', sessionId)
+            .get();
         
-        renderTabel();
+        notesSnap.forEach(doc => {
+            const data = doc.data();
+            const namaLower = data.siswaNama.toLowerCase().trim();
+            // Hanya tambahkan jika belum ada di jawabanMap
+            if (!jawabanMap.has(namaLower)) {
+                jawabanMap.set(namaLower, { id: doc.id, ...data, tipe: 'catatan' });
+            }
+        });
+        
+        // Gabungkan semua siswa dengan status
+        daftarJawaban = semuaSiswa.map(siswa => {
+            const namaLower = siswa.nama.toLowerCase().trim();
+            const data = jawabanMap.get(namaLower);
+            return { 
+                siswaNama: siswa.nama, 
+                siswaKelas: siswa.kelas, 
+                ...data, 
+                sudahKirim: !!data 
+            };
+        });
+        
+        // Fallback jika tidak ada data siswa dari SIPENA
+        if (daftarJawaban.length === 0 && jawabanMap.size > 0) {
+            jawabanMap.forEach((data, key) => {
+                daftarJawaban.push({ 
+                    siswaNama: data.siswaNama, 
+                    siswaKelas: data.siswaKelas || currentSession.kelasTarget, 
+                    ...data, 
+                    sudahKirim: true 
+                });
+            });
+        }
+        
+        document.getElementById('loading').style.display = 'none';
+        
+        if (daftarJawaban.length === 0) {
+            document.getElementById('emptyState').style.display = 'block';
+        } else {
+            document.getElementById('tableContainer').style.display = 'block';
+            renderTabel();
+        }
         updateStatistik();
         
     } catch (error) {
         console.error('Error:', error);
-        document.getElementById('loading').innerHTML = `<div style="color: red;">❌ ${error.message}</div>`;
+        document.getElementById('loading').innerHTML = `<div style="color: var(--danger); padding: 20px;"><i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 12px;"></i><p>${error.message}</p></div>`;
     }
 }
 
 function renderTabel() {
     const tbody = document.getElementById('tabelBody');
+    const sorted = daftarJawaban.sort((a, b) => {
+        if (a.sudahKirim && !b.sudahKirim) return -1;
+        if (!a.sudahKirim && b.sudahKirim) return 1;
+        if (a.sudahKirim && b.sudahKirim) return (b.nilai || 0) - (a.nilai || 0);
+        return 0;
+    });
     
-    if (daftarJawaban.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #64748b;">Belum ada siswa yang mengerjakan</td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = daftarJawaban.map((j, idx) => {
-        let kelasNilai = 'nilai-rendah';
-        if (j.nilai >= 80) kelasNilai = 'nilai-tinggi';
-        else if (j.nilai >= 60) kelasNilai = 'nilai-sedang';
+    tbody.innerHTML = sorted.map((d, idx) => {
+        if (!d.sudahKirim) {
+            return `<tr style="background: #f8fafc;">
+                <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
+                <td colspan="4" style="text-align: center; color: #94a3b8;"><i class="fas fa-hourglass-half"></i> Belum mengerjakan</td>
+                <td><span class="status-badge status-belum"><i class="fas fa-times-circle"></i> Belum</span></td>
+            </tr>`;
+        }
+        let kelasNilai = d.nilai >= 80 ? 'nilai-tinggi' : (d.nilai >= 60 ? 'nilai-sedang' : 'nilai-rendah');
+        const durasiMenit = Math.round((d.waktuSelesai - d.waktuMulai) / 60000);
+        const tipeData = d.tipe || 'jawaban';
         
-        const durasiMenit = Math.round((j.waktuSelesai - j.waktuMulai) / 60000);
+        // Tentukan tombol "Lihat" berdasarkan tipe data
+        let tombolLihat = '';
+        if (tipeData === 'catatan') {
+            tombolLihat = `
+                <button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'catatan')">
+                    <i class="fas fa-image"></i> Lihat Foto
+                </button>
+            `;
+        } else {
+            tombolLihat = `
+                <button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'jawaban')">
+                    <i class="fas fa-eye"></i> Lihat
+                </button>
+            `;
+        }
         
-        return `
-            <tr>
-                <td>${idx + 1}</td>
-                <td><strong>${j.siswaNama}</strong></td>
-                <td>${j.siswaKelas}</td>
-                <td style="color: #10b981; font-weight: 700;">${j.totalBenar}</td>
-                <td style="color: #ef4444; font-weight: 700;">${j.totalSalah}</td>
-                <td><span class="nilai-badge ${kelasNilai}">${j.nilai}</span></td>
-                <td>${durasiMenit} menit</td>
-                <td>✅ Selesai</td>
-            </tr>
-        `;
+        return `<tr>
+            <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
+            <td style="color: var(--success); font-weight: 700;">${d.totalBenar || '-'}</td>
+            <td style="color: var(--danger); font-weight: 700;">${d.totalSalah || '-'}</td>
+            <td><span class="nilai-badge ${kelasNilai}">${d.nilai || '-'}</span></td>
+            <td>${durasiMenit || '-'} mnt</td>
+            <td>
+                <div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
+                    <span class="status-badge status-selesai">
+                        <i class="fas fa-${tipeData === 'catatan' ? 'camera' : 'check-circle'}"></i> 
+                        ${tipeData === 'catatan' ? 'Catatan' : 'Selesai'}
+                    </span>
+                    ${tombolLihat}
+                </div>
+            </td>
+        </tr>`;
     }).join('');
 }
 
 function updateStatistik() {
-    const total = daftarJawaban.length;
-    const nilaiList = daftarJawaban.map(j => j.nilai);
-    const rata = total > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / total) : 0;
-    const max = total > 0 ? Math.max(...nilaiList) : 0;
-    const min = total > 0 ? Math.min(...nilaiList) : 0;
+    const totalSiswaKelas = daftarJawaban.length;
+    const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
+    const nilaiList = yangSudah.map(d => d.nilai);
+    const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
+    const max = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
+    const min = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
     const lulus = nilaiList.filter(n => n >= 70).length;
     
-    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statTotal').textContent = `${yangSudah.length} / ${totalSiswaKelas}`;
     document.getElementById('statRata').textContent = rata;
     document.getElementById('statMax').textContent = max;
     document.getElementById('statMin').textContent = min;
-    document.getElementById('statLulus').textContent = `${lulus} (${total > 0 ? Math.round(lulus/total*100) : 0}%)`;
+    document.getElementById('statLulus').textContent = `${lulus} (${yangSudah.length > 0 ? Math.round(lulus/yangSudah.length*100) : 0}%)`;
 }
 
-window.exportExcel = function() {
-    if (daftarJawaban.length === 0) {
-        alert('Belum ada data untuk diexport!');
+window.lihatTugasSiswa = function(responseId, tipe) {
+    if (!currentSession) {
+        alert('Data sesi tidak ditemukan!');
         return;
     }
     
-    const data = [
-        ['LAPORAN HASIL E-LEARNING'],
-        ['Judul', currentSession.judul],
-        ['Mata Pelajaran', currentSession.mataPelajaran],
-        ['Kelas', currentSession.kelasTarget],
-        ['Tanggal', new Date(currentSession.createdAt).toLocaleDateString('id-ID')],
-        ['PIN', currentSession.pin],
-        [],
-        ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (menit)', 'Status']
-    ];
-    
-    daftarJawaban.forEach((j, idx) => {
-        const durasi = Math.round((j.waktuSelesai - j.waktuMulai) / 60000);
-        data.push([
-            idx + 1,
-            j.siswaNama,
-            j.siswaKelas,
-            j.totalBenar,
-            j.totalSalah,
-            j.nilai,
-            durasi,
-            'Selesai'
-        ]);
+    // Buka halaman detail di tab baru dengan parameter yang benar
+    const url = `elearning-jawaban.html?id=${responseId}&session=${currentSession.id}&tipe=${tipe || 'jawaban'}`;
+    window.open(url, '_blank');
+};
+
+window.exportExcel = function() {
+    if (daftarJawaban.length === 0) { alert('Belum ada data untuk diexport!'); return; }
+    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', currentSession.judul], ['Mata Pelajaran', currentSession.mataPelajaran], ['Kelas', currentSession.kelasTarget], ['Tanggal', new Date(currentSession.createdAt).toLocaleDateString('id-ID')], ['PIN', currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (menit)', 'Status']];
+    daftarJawaban.forEach((d, idx) => {
+        const durasi = d.sudahKirim ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
+        data.push([idx + 1, d.siswaNama, d.siswaKelas, d.sudahKirim ? d.totalBenar : '-', d.sudahKirim ? d.totalSalah : '-', d.sudahKirim ? d.nilai : 'Belum', durasi, d.sudahKirim ? 'Selesai' : 'Belum Mengerjakan']);
     });
-    
-    // Tambah statistik
-    data.push([]);
-    data.push(['STATISTIK']);
-    data.push(['Total Siswa', daftarJawaban.length]);
-    data.push(['Rata-rata Nilai', document.getElementById('statRata').textContent]);
-    data.push(['Nilai Tertinggi', document.getElementById('statMax').textContent]);
-    data.push(['Nilai Terendah', document.getElementById('statMin').textContent]);
-    
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Hasil');
-    
-    const fileName = `Hasil_${currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    XLSX.writeFile(wb, `Hasil_${currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
 window.shareWA = function() {
+    const yangSudah = daftarJawaban.filter(d => d.sudahKirim).length;
+    const total = daftarJawaban.length;
     const rata = document.getElementById('statRata').textContent;
-    const total = document.getElementById('statTotal').textContent;
     const lulus = document.getElementById('statLulus').textContent;
     
     const pesan = `📊 *Hasil E-Learning*\n\n` +
                   `📚 ${currentSession.judul}\n` +
                   `👥 Kelas: ${currentSession.kelasTarget}\n\n` +
                   `📈 *Statistik:*\n` +
-                  `• Total siswa: ${total}\n` +
+                  `• Siswa mengerjakan: ${yangSudah} / ${total}\n` +
                   `• Rata-rata nilai: ${rata}\n` +
                   `• Lulus (≥70): ${lulus}\n\n` +
                   `🔗 Link: ${window.location.origin}/pages/join.html?pin=${currentSession.pin}`;
+                  
+    window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
+};
+
+window.recalculateStatistik = async function() {
+    if (!currentSession) return;
     
-    window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`);
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
+    
+    try {
+        // Hitung ulang langsung dari database student_responses
+        const responsesSnap = await db.collection('student_responses')
+            .where('sessionId', '==', currentSession.id)
+            .get();
+        
+        const total = responsesSnap.size;
+        let sumNilai = 0;
+        let maxNilai = 0;
+        let minNilai = 100; // Default, akan diubah jika ada data
+        let lulusCount = 0;
+        
+        if (total > 0) {
+            responsesSnap.forEach(doc => {
+                const nilai = doc.data().nilai || 0;
+                sumNilai += nilai;
+                if (nilai > maxNilai) maxNilai = nilai;
+                if (nilai < minNilai) minNilai = nilai;
+                if (nilai >= 70) lulusCount++;
+            });
+        } else {
+            minNilai = 0; // Jika belum ada yang mengerjakan, min nilai 0
+        }
+        
+        const rataRata = total > 0 ? sumNilai / total : 0;
+        
+        // Update data di learning_sessions agar dashboard utama juga terupdate
+        await db.collection('learning_sessions').doc(currentSession.id).update({
+            totalSiswaJoin: total,
+            totalSiswaSelesai: total,
+            rataRataNilai: rataRata,
+            updatedAt: new Date().toISOString()
+        });
+        
+        // Menggunakan alert bawaan browser agar pasti muncul (tidak bergantung pada fungsi custom)
+        alert(`✅ Statistik berhasil diperbarui!\n\nTotal: ${total} siswa\nRata-rata: ${Math.round(rataRata)}\nTertinggi: ${maxNilai}\nTerendah: ${minNilai}\nLulus: ${lulusCount}`);
+        
+        // Reload halaman untuk memperbarui tampilan tabel dan angka
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error recalculate:', error);
+        alert('❌ Gagal memperbarui statistik: ' + error.message);
+        
+        // Kembalikan tombol ke kondisi semula jika gagal
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 };
 </script>
-
 </body>
 </html>
