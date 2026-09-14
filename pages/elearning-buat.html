@@ -389,14 +389,15 @@
 <script>
 let uploadedImages = [];
 let soalCounter = 0;
-let currentUser = null;
+// ✅ HAPUS: let currentUser = null; (karena sudah ada di elearning-core.js)
 
 // ✅ TAMBAHAN: Auth State Listener untuk memastikan user login
 firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
-        // User sudah login
-        currentUser = user;
+        // User sudah login - gunakan currentUser yang sudah ada di core
+        // currentUser = user; // Jangan assign ulang, biarkan dari core
         console.log('✅ User logged in:', user.email);
+        console.log('Current User UID:', currentUser.uid);
         
         // Load data setelah auth confirmed
         loadInfoGuru();
@@ -404,7 +405,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
         setupImageUpload();
     } else {
         // User belum login - redirect ke halaman login
-        console.warn('️ User tidak login, redirecting...');
+        console.warn('⚠️ User tidak login, redirecting...');
         showAlert('Anda harus login terlebih dahulu!', 'error');
         setTimeout(() => {
             window.location.href = '../index.html'; // Sesuaikan path login
