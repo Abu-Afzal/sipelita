@@ -389,7 +389,7 @@
 <script>
 let uploadedImages = [];
 let soalCounter = 0;
-window.currentUser = window.currentUser || null;
+currentUser = null;
 
 // ✅ TAMBAHAN: Auth State Listener untuk memastikan user login
 firebase.auth().onAuthStateChanged(async (user) => {
