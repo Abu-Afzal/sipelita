@@ -389,8 +389,29 @@
 <script>
 let uploadedImages = [];
 let soalCounter = 0;
+let currentUser = null;
 
-// ✅ TAMBAHAN: Fungsi showAlert yang hilang
+// ✅ TAMBAHAN: Auth State Listener untuk memastikan user login
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+        // User sudah login
+        currentUser = user;
+        console.log('✅ User logged in:', user.email);
+        
+        // Load data setelah auth confirmed
+        loadInfoGuru();
+        await loadKelasSipena();
+        setupImageUpload();
+    } else {
+        // User belum login - redirect ke halaman login
+        console.warn('️ User tidak login, redirecting...');
+        showAlert('Anda harus login terlebih dahulu!', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html'; // Sesuaikan path login
+        }, 2000);
+    }
+});
+
 function showAlert(message, type) {
     const alertEl = document.getElementById('alertInfo');
     if (alertEl) {
@@ -400,12 +421,6 @@ function showAlert(message, type) {
         alert(message);
     }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadInfoGuru();
-    loadKelasSipena(); // ✅ PERBAIKAN 1: Nama fungsi disesuaikan
-    setupImageUpload();
-});
 
 function loadInfoGuru() {
     try {
@@ -428,14 +443,18 @@ function loadInfoGuru() {
 
 // ✅ FUNGSI LOAD KELAS DARI SIPENA (DIPERBAIKI)
 async function loadKelasSipena() {
-    // ✅ PERBAIKAN 2: ID disesuaikan dengan HTML (kelasSipenaId)
     const select = document.getElementById('kelasSipenaId');
     select.innerHTML = '<option value="">-- Memuat kelas... --</option>';
     
     try {
-        const user = firebase.auth().currentUser;
+        // ✅ PASTIKAN USER SUDAH LOGIN
+        if (!currentUser) {
+            throw new Error('User belum login. Silakan refresh halaman.');
+        }
+        
         console.log('🔍 Memulai load kelas dari Firestore...');
-        console.log('User:', user ? user.email : 'Not logged in');
+        console.log('User UID:', currentUser.uid);
+        console.log('User Email:', currentUser.email);
         
         const kelasSnap = await db.collection('kelas')
             .where('archived', '==', false)
@@ -466,18 +485,24 @@ async function loadKelasSipena() {
         
     } catch (error) {
         console.error('❌ Error load kelas:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        
         select.innerHTML = '<option value="">-- Error saat memuat kelas --</option>';
         
         let errorMsg = 'Gagal memuat kelas.';
+        
         if (error.code === 'permission-denied') {
-            errorMsg = '❌ Akses ditolak. Pastikan Anda sudah login sebagai guru dan Rules Firestore sudah di-Publish.';
+            errorMsg = '❌ Akses ditolak. Pastikan:\n1. Anda sudah login sebagai guru\n2. Rules Firestore sudah di-Publish\n3. Collection "kelas" memiliki field "archived" bertipe boolean';
         } else if (error.code === 'unavailable') {
             errorMsg = '⚠️ Database tidak tersedia. Periksa koneksi internet.';
         }
         
-        showAlert(errorMsg + ' (Detail: ' + error.message + ')', 'error');
+        showAlert(errorMsg + '\n\n(Detail: ' + error.message + ')', 'error');
     }
 }
+
+// ... [fungsi-fungsi lainnya tetap sama seperti sebelumnya] ...
 
 // ✅ FUNGSI LOAD SISWA SAAT KELAS DIPILIH
 async function loadSiswaFromSipena() {
@@ -518,6 +543,8 @@ async function loadSiswaFromSipena() {
         preview.style.display = 'block';
     }
 }
+
+// ... [semua fungsi lainnya tetap sama] ...
 
 window.switchMateriTab = function(tabName, btn) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -745,6 +772,11 @@ async function publishSesi() {
     alertEl.classList.remove('show');
     
     try {
+        // ✅ PASTIKAN USER LOGIN
+        if (!currentUser) {
+            throw new Error('Anda harus login terlebih dahulu!');
+        }
+        
         const judul = document.getElementById('judulSesi').value.trim();
         const mapel = document.getElementById('mataPelajaran').value.trim();
         
