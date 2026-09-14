@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -389,8 +390,30 @@
 <script>
 let uploadedImages = [];
 let soalCounter = 0;
+let currentUser = null;
 
-// ✅ HAPUS: let currentUser = null; (sudah ada di elearning-core.js)
+// Pengecekan gabungan (localStorage & Firebase Auth)
+document.addEventListener('DOMContentLoaded', () => {
+    firebase.auth().onAuthStateChanged(async (user) => {
+        const localUser = localStorage.getItem('sipelita_user');
+        
+        if (user || localUser) {
+            // Gunakan sesi Firebase Auth jika ada, atau fallback ke localStorage
+            currentUser = user || JSON.parse(localUser);
+            console.log('✅ User logged in:', currentUser);
+            
+            loadInfoGuru();
+            await loadKelasSipena();
+            setupImageUpload();
+        } else {
+            console.warn('⚠️ User tidak login, redirecting...');
+            showAlert('Anda harus login terlebih dahulu!', 'error');
+            setTimeout(() => {
+                window.location.href = '../index.html'; // Path halaman login
+            }, 2000);
+        }
+    });
+});
 
 function showAlert(message, type) {
     const alertEl = document.getElementById('alertInfo');
@@ -421,19 +444,13 @@ function loadInfoGuru() {
     document.getElementById('tanggalHariIni').textContent = today;
 }
 
-// ✅ FUNGSI LOAD KELAS DARI SIPENA
+// ✅ FUNGSI LOAD KELAS DARI SIPENA (DIPERBAIKI)
 async function loadKelasSipena() {
     const select = document.getElementById('kelasSipenaId');
     select.innerHTML = '<option value="">-- Memuat kelas... --</option>';
     
     try {
-        // ✅ TUNGGU sampai currentUser tersedia dari core
-        let attempts = 0;
-        while (!currentUser && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-        
+        // ✅ PASTIKAN USER SUDAH LOGIN
         if (!currentUser) {
             throw new Error('User belum login. Silakan refresh halaman.');
         }
@@ -488,6 +505,8 @@ async function loadKelasSipena() {
     }
 }
 
+// ... [fungsi-fungsi lainnya tetap sama seperti sebelumnya] ...
+
 // ✅ FUNGSI LOAD SISWA SAAT KELAS DIPILIH
 async function loadSiswaFromSipena() {
     const kelasId = document.getElementById('kelasSipenaId').value;
@@ -527,6 +546,8 @@ async function loadSiswaFromSipena() {
         preview.style.display = 'block';
     }
 }
+
+// ... [semua fungsi lainnya tetap sama] ...
 
 window.switchMateriTab = function(tabName, btn) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -754,6 +775,7 @@ async function publishSesi() {
     alertEl.classList.remove('show');
     
     try {
+        // ✅ PASTIKAN USER LOGIN
         if (!currentUser) {
             throw new Error('Anda harus login terlebih dahulu!');
         }
@@ -852,32 +874,4 @@ async function publishSesi() {
 window.simpanDraft = function() {
     alert('Fitur draft akan segera hadir!');
 };
-
-// ✅ INISIALISASI: Tunggu currentUser dari core, lalu load data
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('⏳ Menunggu auth state dari core...');
-    
-    // Tunggu sampai currentUser tersedia
-    let attempts = 0;
-    while (!currentUser && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-    }
-    
-    if (currentUser) {
-        console.log('✅ User authenticated:', currentUser.email);
-        loadInfoGuru();
-        await loadKelasSipena();
-        setupImageUpload();
-    } else {
-        console.error('❌ User tidak login setelah 5 detik');
-        showAlert('Anda harus login terlebih dahulu!', 'error');
-        setTimeout(() => {
-            window.location.href = '../index.html';
-        }, 2000);
-    }
-});
 </script>
-
-</body>
-</html>
