@@ -390,9 +390,20 @@
 let uploadedImages = [];
 let soalCounter = 0;
 
+// ✅ TAMBAHAN: Fungsi showAlert yang hilang
+function showAlert(message, type) {
+    const alertEl = document.getElementById('alertInfo');
+    if (alertEl) {
+        alertEl.textContent = message;
+        alertEl.className = `alert alert-${type} show`;
+    } else {
+        alert(message);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadInfoGuru();
-    loadKelasFromSipena(); // ✅ Load kelas dari SIPENA saat halaman dimuat
+    loadKelasSipena(); // ✅ PERBAIKAN 1: Nama fungsi disesuaikan
     setupImageUpload();
 });
 
@@ -415,103 +426,56 @@ function loadInfoGuru() {
     document.getElementById('tanggalHariIni').textContent = today;
 }
 
-// ✅ FUNGSI LOAD KELAS DARI SIPENA (DIPERBAIKI & LEBIH ROBUST)
-async function loadKelasFromSipena() {
+// ✅ FUNGSI LOAD KELAS DARI SIPENA (DIPERBAIKI)
+async function loadKelasSipena() {
+    // ✅ PERBAIKAN 2: ID disesuaikan dengan HTML (kelasSipenaId)
     const select = document.getElementById('kelasSipenaId');
-    const preview = document.getElementById('siswaPreview');
+    select.innerHTML = '<option value="">-- Memuat kelas... --</option>';
     
     try {
-        const userStr = localStorage.getItem('sipelita_user');
-        if (!userStr) {
-            console.warn('⚠️ User tidak ditemukan di localStorage');
-            select.innerHTML = '<option value="">-- User tidak login --</option>';
+        const user = firebase.auth().currentUser;
+        console.log('🔍 Memulai load kelas dari Firestore...');
+        console.log('User:', user ? user.email : 'Not logged in');
+        
+        const kelasSnap = await db.collection('kelas')
+            .where('archived', '==', false)
+            .orderBy('nama')
+            .get();
+        
+        console.log(`✅ Berhasil load ${kelasSnap.size} kelas`);
+        
+        if (kelasSnap.empty) {
+            select.innerHTML = '<option value="">-- Tidak ada kelas --</option>';
+            showAlert('Belum ada kelas di SIPENA. Silakan buat kelas terlebih dahulu.', 'warning');
             return;
         }
         
-        const user = JSON.parse(userStr);
-        console.log('👤 Data User:', user);
-        
-        if (!user.uid && !user.email) {
-            console.error('❌ Data user tidak lengkap (tidak ada uid atau email)');
-            select.innerHTML = '<option value="">-- Data user tidak lengkap --</option>';
-            return;
-        }
-        
-        let kelasSnap = null;
-        
-        // Strategi 1: Cari berdasarkan pengajar_uids (array) - Paling umum
-        if (user.uid) {
-            kelasSnap = await db.collection('kelas')
-                .where('pengajar_uids', 'array-contains', user.uid)
-                .where('archived', '==', false)
-                .get();
-        }
-        
-        // Strategi 2: Jika kosong, cari berdasarkan wali_kelas_uid
-        if ((!kelasSnap || kelasSnap.empty) && user.uid) {
-            kelasSnap = await db.collection('kelas')
-                .where('wali_kelas_uid', '==', user.uid)
-                .where('archived', '==', false)
-                .get();
-        }
-        
-        // Strategi 3: Jika masih kosong, cari berdasarkan guru_email
-        if ((!kelasSnap || kelasSnap.empty) && user.email) {
-            kelasSnap = await db.collection('kelas')
-                .where('guru_email', '==', user.email)
-                .where('archived', '==', false)
-                .get();
-        }
-        
-        console.log('📚 Jumlah kelas ditemukan:', kelasSnap ? kelasSnap.size : 0);
-        
-        if (!kelasSnap || kelasSnap.empty) {
-            console.warn('⚠️ Tidak ada kelas yang ditemukan untuk user ini.');
-            select.innerHTML = '<option value="">-- Tidak ada kelas tersedia --</option>';
-            
-            // Tampilkan pesan bantuan visual di layar
-            if (preview) {
-                preview.style.display = 'block';
-                preview.innerHTML = `
-                    <div style="color: #b45309; padding: 12px; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b; font-size: 0.85rem;">
-                        <strong>⚠️ Tidak ada kelas yang ditemukan</strong><br><br>
-                        Kemungkinan penyebab:<br>
-                        1. Anda belum membuat/mengajar kelas di menu "Kelola Kelas" SIPENA.<br>
-                        2. Data kelas tidak memiliki field <code>pengajar_uids</code>, <code>wali_kelas_uid</code>, atau <code>guru_email</code>.<br>
-                        3. Kelas sudah diarsipkan (archived = true).<br><br>
-                        <small>Silakan buat kelas baru di SIPENA terlebih dahulu.</small>
-                    </div>
-                `;
-            }
-            return;
-        }
-        
-        // Tampilkan kelas di dropdown
         select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        
         kelasSnap.forEach(doc => {
             const kelas = doc.data();
             const option = document.createElement('option');
             option.value = doc.id;
-            option.textContent = `${kelas.nama} (${kelas.mapel || kelas.mata_pelajaran || 'Umum'})`;
+            option.textContent = `${kelas.nama} (${kelas.tahun_ajaran || '2024/2025'})`;
             option.dataset.nama = kelas.nama;
+            option.dataset.tahun = kelas.tahun_ajaran || '';
             select.appendChild(option);
         });
         
-        console.log('✅ Berhasil memuat', kelasSnap.size, 'kelas ke dropdown.');
+        console.log('✅ Dropdown kelas berhasil diisi');
         
     } catch (error) {
         console.error('❌ Error load kelas:', error);
         select.innerHTML = '<option value="">-- Error saat memuat kelas --</option>';
         
-        if (preview) {
-            preview.style.display = 'block';
-            preview.innerHTML = `
-                <div style="color: #991b1b; padding: 12px; background: #fee2e2; border-radius: 8px; border-left: 4px solid #ef4444; font-size: 0.85rem;">
-                    <strong>❌ Error:</strong> ${error.message}<br>
-                    <small>Periksa console browser (tekan F12) untuk detail lebih lanjut.</small>
-                </div>
-            `;
+        let errorMsg = 'Gagal memuat kelas.';
+        if (error.code === 'permission-denied') {
+            errorMsg = '❌ Akses ditolak. Pastikan Anda sudah login sebagai guru dan Rules Firestore sudah di-Publish.';
+        } else if (error.code === 'unavailable') {
+            errorMsg = '⚠️ Database tidak tersedia. Periksa koneksi internet.';
         }
+        
+        showAlert(errorMsg + ' (Detail: ' + error.message + ')', 'error');
     }
 }
 
@@ -542,7 +506,6 @@ async function loadSiswaFromSipena() {
                 `<div style="padding: 4px 0;"><i class="fas fa-user" style="color: #10b981; margin-right: 8px;"></i> ${i + 1}. ${nama}</div>`
             ).join('');
             preview.style.display = 'block';
-            // Pastikan style box preview kembali ke hijau jika sebelumnya merah/kuning
             preview.style.background = '#f0fdf4';
             preview.style.borderLeft = '4px solid #10b981';
         } else {
@@ -773,7 +736,6 @@ document.getElementById('formSesi').addEventListener('submit', async function(e)
     await publishSesi();
 });
 
-// ✅ FUNGSI PUBLISH YANG SUDAH DIUPDATE
 async function publishSesi() {
     const btn = document.getElementById('btnPublish');
     const alertEl = document.getElementById('alertInfo');
@@ -786,7 +748,6 @@ async function publishSesi() {
         const judul = document.getElementById('judulSesi').value.trim();
         const mapel = document.getElementById('mataPelajaran').value.trim();
         
-        // ✅ AMBIL NAMA KELAS DARI DROPDOWN SIPENA
         const kelasSipenaId = document.getElementById('kelasSipenaId').value;
         const kelasSelect = document.getElementById('kelasSipenaId');
         const kelasNama = kelasSelect.options[kelasSelect.selectedIndex]?.dataset.nama || 'Unknown';
@@ -838,8 +799,8 @@ async function publishSesi() {
             const result = await publishSesiBaru({
                 judul: judul, 
                 mapel: mapel, 
-                kelas: kelasNama, // ✅ GUNAKAN NAMA KELAS DARI SIPENA
-                kelasSipenaId: kelasSipenaId, // ✅ KIRIM ID KELAS SIPENA
+                kelas: kelasNama, 
+                kelasSipenaId: kelasSipenaId, 
                 durasi: durasi, 
                 maxPercobaan: maxPercobaan, 
                 acakSoal: acakSoal,
@@ -863,7 +824,7 @@ async function publishSesi() {
                 window.location.href = 'elearning-hasil.html?id=' + result.id;
             }, 2000);
         } else {
-            throw new Error('Function publishSesiBaru tidak ditemukan');
+            throw new Error('Function publishSesiBaru tidak ditemukan di elearning-core.js');
         }
         
     } catch (error) {
@@ -879,6 +840,3 @@ window.simpanDraft = function() {
     alert('Fitur draft akan segera hadir!');
 };
 </script>
-
-</body>
-</html>
