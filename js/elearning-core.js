@@ -2,13 +2,14 @@
 // FIREBASE CONFIG
 // ══════════════════════════════════════════════
 const firebaseConfig = {
-    apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
-    authDomain: "sipelita-digital.firebaseapp.com",
-    databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "sipelita-digital",
-    storageBucket: "sipelita-digital.firebasestorage.app",
-    messagingSenderId: "787840817745",
-    appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+  apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+  authDomain: "sipelita-guru.firebaseapp.com",
+  databaseURL: "https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "sipelita-guru",
+  storageBucket: "sipelita-guru.firebasestorage.app",
+  messagingSenderId: "595996765157",
+  appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
+  measurementId: "G-1D5DWJV54E"
 };
 
 // Initialize Firebase
@@ -17,7 +18,7 @@ if (!firebase.apps.length) {
 }
 
 const db = firebase.firestore();
-const auth = firebase.auth(); // ✅ PASTIKAN INI ADA
+const auth = firebase.auth();
 
 // ═════════════════════════════════════════════
 // STATE
@@ -69,43 +70,19 @@ window.loadDaftarSesi = async function() {
     }
     
     try {
+        // ✅ OPTIMASI 1: HAPUS N+1 QUERY! 
+        // Cukup ambil data sesi. Statistik (totalSiswaJoin, rataRataNilai) sudah disimpan 
+        // di dokumen learning_sessions oleh fungsi updateStatistikSesi saat siswa submit.
+        // Ini mengubah ratusan reads menjadi hanya 1 read per sesi.
         const snapshot = await db.collection('learning_sessions')
             .where('guruEmail', '==', currentUser.email)
             .orderBy('createdAt', 'desc')
             .get();
         
-        daftarSesi = [];
-        
-        // ✅ HITUNG REAL-TIME DARI student_responses
-        for (const doc of snapshot.docs) {
-            const sesiData = doc.data();
-            
-            // Hitung jumlah siswa yang sudah submit untuk sesi ini
-            const responsesSnap = await db.collection('student_responses')
-                .where('sessionId', '==', doc.id)
-                .get();
-            
-            const totalSiswaJoin = responsesSnap.size;
-            
-            // Hitung rata-rata nilai dari jawaban yang ada
-            let sumNilai = 0;
-            let countNilai = 0;
-            responsesSnap.forEach(respDoc => {
-                const nilai = respDoc.data().nilai || 0;
-                sumNilai += nilai;
-                countNilai++;
-            });
-            const rataRataNilai = countNilai > 0 ? sumNilai / countNilai : 0;
-            
-            // Update data sesi dengan nilai real-time
-            daftarSesi.push({
-                id: doc.id,
-                ...sesiData,
-                totalSiswaJoin: totalSiswaJoin, // ✅ Override dengan nilai real-time
-                totalSiswaSelesai: totalSiswaJoin,
-                rataRataNilai: rataRataNilai // ✅ Override dengan nilai real-time
-            });
-        }
+        daftarSesi = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         
         loading.style.display = 'none';
         
@@ -116,14 +93,14 @@ window.loadDaftarSesi = async function() {
         }
         
         empty.style.display = 'none';
-        sessionList.style.display = 'flex';
+        sessionList.style.display = 'flex'; // Sesuaikan dengan CSS Anda (flex atau block)
         renderSesiList();
         updateStatistik();
         
     } catch (error) {
         console.error('Error:', error);
         if (loading) {
-            loading.innerHTML = `<div style="color: red; padding: 20px;">❌ ${error.message}</div>`;
+            loading.innerHTML = `<div style="color: var(--danger); padding: 20px;"><i class="fas fa-exclamation-circle"></i> ${error.message}</div>`;
             loading.style.display = 'block';
         }
     }
@@ -149,6 +126,11 @@ function renderSesiList() {
         const joinLink = `${window.location.origin}/pages/join.html?pin=${sesi.pin}`;
         const judulEscaped = sesi.judul.replace(/'/g, "\\'");
         
+        // Fallback ke 0 jika field belum ada (untuk data lama)
+        const totalJoin = sesi.totalSiswaJoin || 0;
+        const totalSelesai = sesi.totalSiswaSelesai || 0;
+        const rataRata = sesi.rataRataNilai ? Math.round(sesi.rataRataNilai) : '-';
+        
         return `
             <div class="session-card ${statusClass}">
                 <div class="session-main">
@@ -173,15 +155,15 @@ function renderSesiList() {
                     
                     <div class="session-stats">
                         <div class="session-stat">
-                            <div class="num">${sesi.totalSiswaJoin || 0}</div>
+                            <div class="num">${totalJoin}</div>
                             <div class="lbl">Siswa Join</div>
                         </div>
                         <div class="session-stat">
-                            <div class="num">${sesi.totalSiswaSelesai || 0}</div>
+                            <div class="num">${totalSelesai}</div>
                             <div class="lbl">Selesai</div>
                         </div>
                         <div class="session-stat">
-                            <div class="num">${sesi.rataRataNilai ? Math.round(sesi.rataRataNilai) : '-'}</div>
+                            <div class="num">${rataRata}</div>
                             <div class="lbl">Rata-rata</div>
                         </div>
                     </div>
@@ -214,7 +196,9 @@ function updateStatistik() {
     const total = daftarSesi.length;
     const aktif = daftarSesi.filter(s => s.status === 'aktif').length;
     const totalSiswa = daftarSesi.reduce((sum, s) => sum + (s.totalSiswaJoin || 0), 0);
-    const nilaiList = daftarSesi.filter(s => s.rataRataNilai).map(s => s.rataRataNilai);
+    
+    // Hitung rata-rata global hanya dari sesi yang memiliki nilai
+    const nilaiList = daftarSesi.filter(s => s.rataRataNilai !== undefined && s.rataRataNilai !== null).map(s => s.rataRataNilai);
     const rataNilai = nilaiList.length > 0 
         ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length)
         : '-';
@@ -262,63 +246,61 @@ window.tutupSesi = async function(id) {
 // HAPUS SESI (Permanen)
 // ══════════════════════════════════════════════
 window.hapusSesi = async function(id, judul) {
-    console.log('=== DEBUG HAPUS SESI ===');
-    console.log('Session ID:', id);
-    console.log('Judul:', judul);
-    
-    const user = getCurrentUser();
-    console.log('Current User:', user);
-    
-    console.log('Firebase Auth:', firebase.auth);
-    console.log('Current User Auth:', firebase.auth().currentUser);
-    
     if (!confirm(`⚠️ PERINGATAN!\n\nAnda akan menghapus sesi "${judul}" secara PERMANEN.\n\nSemua data jawaban siswa akan ikut terhapus.`)) return;
     
     try {
-        // 1. Cek dokumen sesi terlebih dahulu
-        console.log('Mengecek dokumen sesi...');
-        const sessionDoc = await db.collection('learning_sessions').doc(id).get();
-        
-        if (!sessionDoc.exists) {
-            throw new Error('Dokumen sesi tidak ditemukan!');
-        }
-        
-        const sessionData = sessionDoc.data();
-        console.log('Data sesi:', sessionData);
-        console.log('Guru Email di DB:', sessionData.guruEmail);
-        
-        // 2. Hapus semua jawaban siswa
-        console.log('Mencari jawaban siswa...');
+        // 1. Hapus semua jawaban siswa dengan CHUNKING (Maksimal 500 per batch di Firestore)
         const responsesSnap = await db.collection('student_responses')
             .where('sessionId', '==', id)
             .get();
         
-        console.log(`Ditemukan ${responsesSnap.size} jawaban`);
-        
         if (!responsesSnap.empty) {
-            console.log('Menghapus jawaban secara batch...');
-            const batch = db.batch();
-            responsesSnap.forEach(doc => {
-                console.log('  - Hapus:', doc.id);
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-            console.log(`✅ ${responsesSnap.size} jawaban dihapus`);
+            const docsToDelete = responsesSnap.docs;
+            const batchSize = 500;
+            
+            for (let i = 0; i < docsToDelete.length; i += batchSize) {
+                const batch = db.batch();
+                const chunk = docsToDelete.slice(i, i + batchSize);
+                
+                chunk.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+            }
+            console.log(`✅ ${docsToDelete.length} jawaban dihapus`);
         }
         
-        // 3. Hapus sesi
-        console.log('Menghapus sesi...');
+        // 2. Hapus catatan siswa (jika ada)
+        const notesSnap = await db.collection('student_notes')
+            .where('sessionId', '==', id)
+            .get();
+            
+        if (!notesSnap.empty) {
+            const docsToDelete = notesSnap.docs;
+            const batchSize = 500;
+            
+            for (let i = 0; i < docsToDelete.length; i += batchSize) {
+                const batch = db.batch();
+                const chunk = docsToDelete.slice(i, i + batchSize);
+                
+                chunk.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+            }
+        }
+        
+        // 3. Hapus dokumen sesi
         await db.collection('learning_sessions').doc(id).delete();
-        console.log('✅ Sesi berhasil dihapus');
         
         alert('✅ Sesi berhasil dihapus permanen!');
         loadDaftarSesi();
         
     } catch (error) {
         console.error('❌ ERROR DETAIL:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        alert(`❌ Gagal menghapus:\n\nCode: ${error.code}\nMessage: ${error.message}`);
+        alert(`❌ Gagal menghapus:\n\n${error.message}`);
     }
 };
 
@@ -343,7 +325,7 @@ window.publishSesiBaru = async function(data) {
         judul: data.judul,
         mataPelajaran: data.mapel,
         kelasTarget: data.kelas,
-        kelasSipenaId: data.kelasSipenaId || '', // ✅ TAMBAHKAN BARIS INI AGAR TERSIMPAN
+        kelasSipenaId: data.kelasSipenaId || '',
         pin: pin,
         slug: slug,
         materi: data.materi,
@@ -394,54 +376,34 @@ window.getSesiBySlug = async function(slug) {
 };
 
 // ══════════════════════════════════════════════
-// HALAMAN JOIN: Submit Jawaban Siswa
+// HALAMAN JOIN: Update Statistik Sesi
 // ══════════════════════════════════════════════
-window.submitJawabanSiswa = async function(data) {
-    const siswaId = `${data.siswaNama}-${data.siswaKelas}-${data.sessionId}`.toLowerCase().replace(/\s+/g, '-');
-    
-    const existing = await db.collection('student_responses')
-        .where('siswaId', '==', siswaId)
-        .limit(1)
-        .get();
-    
-    if (!existing.empty) {
-        throw new Error('Anda sudah mengerjakan sesi ini!');
-    }
-    
-    await db.collection('student_responses').add({
-        sessionId: data.sessionId,
-        siswaId: siswaId,
-        siswaNama: data.siswaNama,
-        siswaKelas: data.siswaKelas,
-        jawaban: data.jawaban,
-        totalBenar: data.totalBenar,
-        totalSalah: data.totalSalah,
-        nilai: data.nilai,
-        waktuMulai: data.waktuMulai,
-        waktuSelesai: data.waktuSelesai,
-        createdAt: new Date().toISOString()
-    });
-    
-    await updateStatistikSesi(data.sessionId);
-};
-
+// ✅ CATATAN: Fungsi ini dipanggil setelah siswa submit. 
+// Meskipun membaca semua respons, ini hanya terjadi 1x per submit siswa, 
+// dan SANGAT PENTING agar dashboard guru (loadDaftarSesi) tidak perlu 
+// melakukan N+1 query yang jauh lebih boros.
 async function updateStatistikSesi(sessionId) {
-    const responses = await db.collection('student_responses')
-        .where('sessionId', '==', sessionId)
-        .get();
-    
-    const total = responses.size;
-    let sumNilai = 0;
-    responses.forEach(doc => {
-        sumNilai += doc.data().nilai || 0;
-    });
-    
-    const rataRata = total > 0 ? sumNilai / total : 0;
-    
-    await db.collection('learning_sessions').doc(sessionId).update({
-        totalSiswaJoin: total,
-        totalSiswaSelesai: total,
-        rataRataNilai: rataRata,
-        updatedAt: new Date().toISOString()
-    });
+    try {
+        const responses = await db.collection('student_responses')
+            .where('sessionId', '==', sessionId)
+            .get();
+        
+        const total = responses.size;
+        let sumNilai = 0;
+        responses.forEach(doc => {
+            sumNilai += doc.data().nilai || 0;
+        });
+        
+        const rataRata = total > 0 ? sumNilai / total : 0;
+        
+        await db.collection('learning_sessions').doc(sessionId).update({
+            totalSiswaJoin: total,
+            totalSiswaSelesai: total,
+            rataRataNilai: rataRata,
+            updatedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Gagal update statistik sesi:', error);
+        // Jangan throw error agar proses submit siswa tetap dianggap berhasil
+    }
 }

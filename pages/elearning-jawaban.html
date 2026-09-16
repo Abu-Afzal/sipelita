@@ -12,6 +12,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <!-- âœ… OPTIMASI: Menambahkan Cache Manager untuk mencegah Read Amplification -->
+    <script src="../js/cache-manager.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -494,7 +496,7 @@ let isCatatan = false;
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
-            console.log('✅ Guru terautentikasi:', user.email);
+            console.log('âœ… Guru terautentikasi:', user.email);
             loadData();
         } else {
             alert('Anda harus login sebagai guru!');
@@ -515,42 +517,58 @@ async function loadData() {
     }
     
     try {
-        // Load sesi (untuk mendapatkan daftar soal)
+        // âœ… OPTIMASI 1: Cache data sesi (berlaku 1 jam) agar tidak dibaca berulang saat guru membuka jawaban siswa yang berbeda di sesi yang sama
+        let sesiData = null;
         if (sessionId) {
-            const sesiDoc = await db.collection('learning_sessions').doc(sessionId).get();
-            if (sesiDoc.exists) {
-                currentSession = { id: sesiDoc.id, ...sesiDoc.data() };
+            const sessionCacheKey = `session_detail_${sessionId}`;
+            sesiData = CacheManager.get(sessionCacheKey);
+            
+            if (!sesiData) {
+                console.log('ðŸ“š Mengambil data sesi dari Firestore...');
+                const sesiDoc = await db.collection('learning_sessions').doc(sessionId).get();
+                if (sesiDoc.exists) {
+                    sesiData = { id: sesiDoc.id, ...sesiDoc.data() };
+                    // Cache selama 1 jam (3600 detik) karena data sesi jarang berubah setelah publish
+                    CacheManager.set(sessionCacheKey, sesiData, 3600); 
+                }
+            } else {
+                console.log('âœ… Menggunakan data sesi dari cache (Hemat Reads!)');
             }
+            currentSession = sesiData;
         }
         
-        // Tentukan collection dan load data berdasarkan tipe
-        if (tipe === 'catatan') {
-            // Load dari student_notes
-            isCatatan = true;
-            const doc = await db.collection('student_notes').doc(responseId).get();
-            
-            if (!doc.exists) {
-                showError('Data catatan tidak ditemukan!');
-                return;
+        // âœ… OPTIMASI 2: Cache data jawaban/catatan (berlaku 5 menit) untuk mencegah read berulang jika guru tidak sengaja refresh halaman
+        const responseCacheKey = `${tipe === 'catatan' ? 'note' : 'response'}_${responseId}`;
+        let responseData = CacheManager.get(responseCacheKey);
+        
+        if (!responseData) {
+            console.log(`ðŸ“š Mengambil data ${tipe} dari Firestore...`);
+            if (tipe === 'catatan') {
+                const doc = await db.collection('student_notes').doc(responseId).get();
+                if (!doc.exists) {
+                    showError('Data catatan tidak ditemukan!');
+                    return;
+                }
+                responseData = { id: doc.id, ...doc.data() };
+            } else {
+                const doc = await db.collection('student_responses').doc(responseId).get();
+                if (!doc.exists) {
+                    showError('Data jawaban tidak ditemukan!');
+                    return;
+                }
+                responseData = { id: doc.id, ...doc.data() };
             }
-            
-            currentData = { id: doc.id, ...doc.data() };
-            
+            // Cache selama 5 menit (300 detik)
+            CacheManager.set(responseCacheKey, responseData, 300); 
         } else {
-            // Load dari student_responses
-            const doc = await db.collection('student_responses').doc(responseId).get();
-            
-            if (!doc.exists) {
-                showError('Data jawaban tidak ditemukan!');
-                return;
-            }
-            
-            currentData = { id: doc.id, ...doc.data() };
+            console.log('âœ… Menggunakan data jawaban/catatan dari cache (Hemat Reads & Bandwidth!)');
         }
         
+        currentData = responseData;
         document.getElementById('loadingState').style.display = 'none';
         
-        if (isCatatan) {
+        if (tipe === 'catatan') {
+            isCatatan = true;
             tampilkanCatatan();
         } else {
             tampilkanJawaban();
@@ -571,18 +589,27 @@ function tampilkanJawaban() {
     document.getElementById('infoKelas').textContent = currentData.siswaKelas;
     
     // Waktu
-    const durasi = Math.round((currentData.waktuSelesai - currentData.waktuMulai) / 60000);
-    document.getElementById('infoWaktu').textContent = `${durasi} menit`;
+    let durasiText = '-';
+    if (currentData.waktuSelesai && currentData.waktuMulai) {
+        const durasi = Math.round((currentData.waktuSelesai - currentData.waktuMulai) / 60000);
+        durasiText = `${durasi} menit`;
+    }
+    document.getElementById('infoWaktu').textContent = durasiText;
     
     // Tanggal
-    const tanggal = new Date(currentData.createdAt).toLocaleString('id-ID');
-    document.getElementById('infoTanggal').textContent = tanggal;
+    let tanggalText = '-';
+    if (currentData.createdAt) {
+        // Handle both Firestore Timestamp and ISO string
+        const dateObj = currentData.createdAt.toDate ? currentData.createdAt.toDate() : new Date(currentData.createdAt);
+        tanggalText = dateObj.toLocaleString('id-ID');
+    }
+    document.getElementById('infoTanggal').textContent = tanggalText;
     
     // Nilai
-    document.getElementById('infoNilai').textContent = currentData.nilai || 0;
-    document.getElementById('infoBenar').textContent = currentData.totalBenar || 0;
-    document.getElementById('infoSalah').textContent = currentData.totalSalah || 0;
-    document.getElementById('infoEssay').textContent = currentData.totalEssay || 0;
+    document.getElementById('infoNilai').textContent = currentData.nilai ?? 0;
+    document.getElementById('infoBenar').textContent = currentData.totalBenar ?? 0;
+    document.getElementById('infoSalah').textContent = currentData.totalSalah ?? 0;
+    document.getElementById('infoEssay').textContent = currentData.totalEssay ?? 0;
     
     // Tampilkan soal dan jawaban
     tampilkanDaftarSoal();
@@ -670,8 +697,13 @@ function tampilkanCatatan() {
     document.getElementById('catatanNama').textContent = currentData.siswaNama;
     document.getElementById('catatanKelas').textContent = currentData.siswaKelas;
     
-    const tanggal = new Date(currentData.uploadedAt || currentData.createdAt).toLocaleString('id-ID');
-    document.getElementById('catatanTanggal').textContent = tanggal;
+    let tanggalText = '-';
+    const dateSource = currentData.uploadedAt || currentData.createdAt;
+    if (dateSource) {
+        const dateObj = dateSource.toDate ? dateSource.toDate() : new Date(dateSource);
+        tanggalText = dateObj.toLocaleString('id-ID');
+    }
+    document.getElementById('catatanTanggal').textContent = tanggalText;
     
     document.getElementById('fotoCatatan').src = currentData.imageBase64;
 }
@@ -726,7 +758,10 @@ window.printFoto = function() {
         </html>
     `);
     printWindow.document.close();
-    printWindow.print();
+    // Tunggu sebentar agar gambar ter-render sebelum print
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
 };
 </script>
 

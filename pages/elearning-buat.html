@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale= 1.0">
     <title>Buat Sesi - E-Learning SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
     
@@ -11,10 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase -->
+    <!-- Firebase & Cache -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="../js/cache-manager.js"></script> <!-- ✅ OPTIMASI: Menambahkan Cache Manager -->
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -200,6 +200,7 @@
         .alert.show { display: block; }
         .alert-success { background: #dcfce7; color: #166534; }
         .alert-error { background: #fee2e2; color: #991b1b; }
+        .alert-warning { background: #fffbeb; color: #92400e; }
         
         .spinner {
             display: inline-block; width: 16px; height: 16px;
@@ -259,7 +260,6 @@
                 </div>
             </div>
             
-            <!-- ✅ FITUR BARU: Pilih Kelas dari SIPENA -->
             <div class="form-group">
                 <label>Pilih Kelas dari SIPENA *</label>
                 <select id="kelasSipenaId" required onchange="loadSiswaFromSipena()">
@@ -272,9 +272,8 @@
                 <div style="font-weight: 600; color: #166534; margin-bottom: 8px;">
                     <i class="fas fa-users"></i> Daftar Siswa di Kelas Ini:
                 </div>
-                <div id="siswaList" style="font-size: 0.85rem; color: #475569;"></div>
+                <div id="siswaList" style="font-size: 0.85rem; color: #475569; max-height: 150px; overflow-y: auto;"></div>
             </div>
-            <!-- ✅ AKHIR FITUR BARU -->
             
             <div class="form-row">
                 <div class="form-group">
@@ -321,9 +320,12 @@
                     <div style="font-size: 3rem; margin-bottom: 8px;"><i class="fas fa-cloud-upload-alt"></i></div>
                     <div style="font-weight: 600; color: #475569;">Klik atau seret gambar buku paket</div>
                     <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 4px;">
-                        Format: JPG, PNG - Maks: 2 MB per gambar - Maks 5 gambar
+                        Format: JPG, PNG - Maks: 2 MB per gambar - Maks 3 gambar (Total maks ~800KB untuk aman di Firestore)
                     </div>
                     <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
+                </div>
+                <div id="imageSizeWarning" class="alert alert-warning" style="margin-top: 12px; display: none;">
+                    ⚠️ Total ukuran gambar mendekati batas aman Firestore (1MB). Pertimbangkan untuk mengurangi jumlah atau ukuran gambar.
                 </div>
                 <div class="image-preview" id="imagePreview"></div>
             </div>
@@ -331,7 +333,7 @@
             <div id="tab-youtube" class="materi-tab-content">
                 <div class="form-group">
                     <label>Link YouTube</label>
-                    <input type="url" id="youtubeLink" placeholder="https://www.youtube.com/watch?v=..." oninput="previewYoutube()">
+                    <input type="url" id="youtubeLink" placeholder="https://www.youtube.com/watch?v=..." oninput="debouncePreviewYoutube()">
                     <small style="color: #64748b;">Paste link video YouTube, preview akan muncul otomatis</small>
                 </div>
                 <div id="youtubePreview" class="youtube-preview" style="display: none;"></div>
@@ -386,128 +388,220 @@
 </div>
 
 <script src="../js/elearning-core.js"></script>
+<script src="../js/cache-manager.js"></script>
 <script src="../js/elearning-ai.js"></script>
 <script>
 let uploadedImages = [];
 let soalCounter = 0;
-let currentUser = null;
+let youtubeDebounceTimer;
 
-// Pengecekan gabungan (localStorage & Firebase Auth)
+// Firebase sudah diinisialisasi di elearning-core.js
+
 document.addEventListener('DOMContentLoaded', () => {
-    firebase.auth().onAuthStateChanged(async (user) => {
-        const localUser = localStorage.getItem('sipelita_user');
-        
-        if (user || localUser) {
-            // Gunakan sesi Firebase Auth jika ada, atau fallback ke localStorage
-            currentUser = user || JSON.parse(localUser);
-            console.log('✅ User logged in:', currentUser);
-            
-            loadInfoGuru();
-            await loadKelasSipena();
-            setupImageUpload();
-        } else {
-            console.warn('⚠️ User tidak login, redirecting...');
-            showAlert('Anda harus login terlebih dahulu!', 'error');
-            setTimeout(() => {
-                window.location.href = '../index.html'; // Path halaman login
-            }, 2000);
-        }
-    });
+    console.log('🚀 Halaman dimuat, memulai inisialisasi...');
+    initUserData();
+    setupImageUpload();
 });
 
-function showAlert(message, type) {
-    const alertEl = document.getElementById('alertInfo');
-    if (alertEl) {
-        alertEl.textContent = message;
-        alertEl.className = `alert alert-${type} show`;
-    } else {
-        alert(message);
-    }
-}
-
-function loadInfoGuru() {
+async function initUserData() {
+    console.log(' Langkah 1: Mencari data user...');
+    let user = null;
+    
     try {
         const userStr = localStorage.getItem('sipelita_user');
         if (userStr) {
-            const user = JSON.parse(userStr);
-            document.getElementById('guruNama').textContent = user.nama || 'Guru';
-            document.getElementById('guruMapel').textContent = user.mataPelajaran || user.role || 'Guru';
-            document.getElementById('mataPelajaran').value = user.mataPelajaran || 'Umum';
+            user = JSON.parse(userStr);
+            console.log('✅ User dari localStorage:', user);
         }
     } catch (e) {
-        console.error('Error load user:', e);
+        console.warn('⚠️ localStorage korup:', e);
+        localStorage.removeItem('sipelita_user');
     }
+
+    if (!user) {
+        console.log('🔄 LocalStorage kosong, cek Firebase Auth...');
+        const currentUser = auth.currentUser;
+        console.log(' Current User Auth:', currentUser);
+        
+        if (currentUser) {
+            user = {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                nama: currentUser.displayName || 'Guru',
+                mataPelajaran: 'Umum',
+                role: 'guru'
+            };
+            
+            try {
+                console.log(' Mencari detail user di collection users...');
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                console.log(' User doc exists:', userDoc.exists);
+                
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    console.log(' Data user dari Firestore:', data);
+                    user.nama = data.nama || data.name || user.nama;
+                    user.mataPelajaran = data.mataPelajaran || data.mapel || user.mataPelajaran;
+                    user.role = data.role || user.role;
+                }
+            } catch (err) {
+                console.error('❌ Error ambil user detail:', err);
+            }
+
+            localStorage.setItem('sipelita_user', JSON.stringify(user));
+            console.log('✅ User disimpan ke localStorage');
+        } else {
+            console.error('❌ TIDAK ADA USER LOGIN!');
+            document.getElementById('guruNama').textContent = 'Belum Login';
+            document.getElementById('kelasSipenaId').innerHTML = '<option value="">-- Silakan login --</option>';
+            return;
+        }
+    }
+
+    // Update UI
+    document.getElementById('guruNama').textContent = user.nama || 'Guru';
+    document.getElementById('guruMapel').textContent = user.mataPelajaran || 'Umum';
+    document.getElementById('mataPelajaran').value = user.mataPelajaran || 'Umum';
     
     const today = new Date().toLocaleDateString('id-ID', { 
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
     });
     document.getElementById('tanggalHariIni').textContent = today;
+
+    console.log('📋 Langkah 2: Memuat kelas untuk user:', user);
+    loadKelasFromSipena(user);
 }
 
-// ✅ FUNGSI LOAD KELAS DARI SIPENA (DIPERBAIKI)
-async function loadKelasSipena() {
+async function loadKelasFromSipena(user) {
     const select = document.getElementById('kelasSipenaId');
-    select.innerHTML = '<option value="">-- Memuat kelas... --</option>';
+    console.log('🔍 Memulai loadKelasFromSipena...');
+    console.log('👤 User UID:', user.uid);
+    console.log('👤 User Email:', user.email);
     
     try {
-        // ✅ PASTIKAN USER SUDAH LOGIN
-        if (!currentUser) {
-            throw new Error('User belum login. Silakan refresh halaman.');
+        // Cek cache
+        const cacheKey = `guru_kelas_${user.uid || user.email}`;
+        let cachedKelas = null;
+        
+        try {
+            if (typeof CacheManager !== 'undefined') {
+                cachedKelas = CacheManager.get(cacheKey);
+                console.log('📦 Cache result:', cachedKelas);
+            } else {
+                console.warn('⚠️ CacheManager tidak tersedia!');
+            }
+        } catch (e) {
+            console.warn('⚠️ Error baca cache:', e);
         }
-        
-        console.log('🔍 Memulai load kelas dari Firestore...');
-        console.log('User UID:', currentUser.uid);
-        console.log('User Email:', currentUser.email);
-        
-        const kelasSnap = await db.collection('kelas')
-            .where('archived', '==', false)
-            .orderBy('nama')
-            .get();
-        
-        console.log(`✅ Berhasil load ${kelasSnap.size} kelas`);
-        
-        if (kelasSnap.empty) {
-            select.innerHTML = '<option value="">-- Tidak ada kelas --</option>';
-            showAlert('Belum ada kelas di SIPENA. Silakan buat kelas terlebih dahulu.', 'warning');
+
+        if (cachedKelas && cachedKelas.length > 0) {
+            console.log('✅ Menggunakan cache, jumlah kelas:', cachedKelas.length);
+            renderKelasDropdown(cachedKelas, select);
             return;
         }
         
-        select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        console.log('🔍 Cache kosong, query Firestore...');
+        let kelasSnap = null;
+        let queryType = '';
         
-        kelasSnap.forEach(doc => {
-            const kelas = doc.data();
-            const option = document.createElement('option');
-            option.value = doc.id;
-            option.textContent = `${kelas.nama} (${kelas.tahun_ajaran || '2024/2025'})`;
-            option.dataset.nama = kelas.nama;
-            option.dataset.tahun = kelas.tahun_ajaran || '';
-            select.appendChild(option);
-        });
+        // Strategi 1: pengajar_uids
+        if (user.uid) {
+            console.log(' Strategi 1: Query pengajar_uids array-contains', user.uid);
+            try {
+                kelasSnap = await db.collection('kelas')
+                    .where('pengajar_uids', 'array-contains', user.uid)
+                    .get();
+                queryType = 'pengajar_uids';
+                console.log('📊 Hasil strategi 1:', kelasSnap.size, 'dokumen');
+            } catch (err) {
+                console.error('❌ Error strategi 1:', err);
+            }
+        }
         
-        console.log('✅ Dropdown kelas berhasil diisi');
+        // Strategi 2: wali_kelas_uid
+        if ((!kelasSnap || kelasSnap.empty) && user.uid) {
+            console.log('📌 Strategi 2: Query wali_kelas_uid ==', user.uid);
+            try {
+                kelasSnap = await db.collection('kelas')
+                    .where('wali_kelas_uid', '==', user.uid)
+                    .get();
+                queryType = 'wali_kelas_uid';
+                console.log('📊 Hasil strategi 2:', kelasSnap.size, 'dokumen');
+            } catch (err) {
+                console.error(' Error strategi 2:', err);
+            }
+        }
+        
+        // Strategi 3: guru_email
+        if ((!kelasSnap || kelasSnap.empty) && user.email) {
+            console.log(' Strategi 3: Query guru_email ==', user.email);
+            try {
+                kelasSnap = await db.collection('kelas')
+                    .where('guru_email', '==', user.email)
+                    .get();
+                queryType = 'guru_email';
+                console.log('📊 Hasil strategi 3:', kelasSnap.size, 'dokumen');
+            } catch (err) {
+                console.error('❌ Error strategi 3:', err);
+            }
+        }
+        
+        // Strategi 4: email (field name alternatif)
+        if ((!kelasSnap || kelasSnap.empty) && user.email) {
+            console.log('📌 Strategi 4: Query email ==', user.email);
+            try {
+                kelasSnap = await db.collection('kelas')
+                    .where('email', '==', user.email)
+                    .get();
+                queryType = 'email';
+                console.log('📊 Hasil strategi 4:', kelasSnap.size, 'dokumen');
+            } catch (err) {
+                console.error('❌ Error strategi 4:', err);
+            }
+        }
+        
+        const kelasData = [];
+        if (kelasSnap && !kelasSnap.empty) {
+            console.log(`✅ Ditemukan ${kelasSnap.size} kelas via ${queryType}`);
+            kelasSnap.forEach(doc => {
+                const data = doc.data();
+                console.log('📄 Kelas data:', doc.id, data);
+                kelasData.push({ id: doc.id, ...data });
+            });
+            
+            if (typeof CacheManager !== 'undefined') {
+                CacheManager.set(cacheKey, kelasData, 3600);
+            }
+        } else {
+            console.warn('⚠️ TIDAK ADA KELAS DITEMUKAN dengan semua strategi!');
+            console.log('💡 Silakan cek Firebase Console > Firestore > collection "kelas"');
+            console.log('💡 Pastikan ada field: pengajar_uids (array), wali_kelas_uid, atau guru_email');
+        }
+        
+        renderKelasDropdown(kelasData, select);
         
     } catch (error) {
         console.error('❌ Error load kelas:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        
-        select.innerHTML = '<option value="">-- Error saat memuat kelas --</option>';
-        
-        let errorMsg = 'Gagal memuat kelas.';
-        
-        if (error.code === 'permission-denied') {
-            errorMsg = '❌ Akses ditolak. Pastikan:\n1. Anda sudah login sebagai guru\n2. Rules Firestore sudah di-Publish\n3. Collection "kelas" memiliki field "archived" bertipe boolean';
-        } else if (error.code === 'unavailable') {
-            errorMsg = '⚠️ Database tidak tersedia. Periksa koneksi internet.';
-        }
-        
-        showAlert(errorMsg + '\n\n(Detail: ' + error.message + ')', 'error');
+        select.innerHTML = '<option value="">-- Error: ' + error.message + ' --</option>';
     }
 }
 
-// ... [fungsi-fungsi lainnya tetap sama seperti sebelumnya] ...
+function renderKelasDropdown(kelasData, select) {
+    select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+    if (!kelasData || kelasData.length === 0) {
+        select.innerHTML = '<option value="">-- Tidak ada kelas ditemukan --</option>';
+        return;
+    }
+    
+    kelasData.forEach(kelas => {
+        const option = document.createElement('option');
+        option.value = kelas.id;
+        option.textContent = `${kelas.nama || kelas.name || 'Unnamed'} (${kelas.mapel || kelas.mata_pelajaran || kelas.mataPelajaran || 'Umum'})`;
+        option.dataset.nama = kelas.nama || kelas.name || 'Unnamed';
+        select.appendChild(option);
+    });
+}
 
-// ✅ FUNGSI LOAD SISWA SAAT KELAS DIPILIH
 async function loadSiswaFromSipena() {
     const kelasId = document.getElementById('kelasSipenaId').value;
     const preview = document.getElementById('siswaPreview');
@@ -519,20 +613,23 @@ async function loadSiswaFromSipena() {
     }
     
     try {
+        console.log(` Memuat siswa untuk kelas_id: ${kelasId}`);
         const siswaSnap = await db.collection('siswa')
             .where('kelas_id', '==', kelasId)
-            .orderBy('student_name')
+            .limit(100) 
             .get();
         
         const siswaList = [];
         siswaSnap.forEach(doc => {
-            siswaList.push(doc.data().student_name);
+            const data = doc.data();
+            siswaList.push(data.student_name || data.nama || data.name || 'Unknown');
         });
         
         if (siswaList.length > 0) {
-            listEl.innerHTML = siswaList.map((nama, i) => 
+            let html = siswaList.map((nama, i) => 
                 `<div style="padding: 4px 0;"><i class="fas fa-user" style="color: #10b981; margin-right: 8px;"></i> ${i + 1}. ${nama}</div>`
             ).join('');
+            listEl.innerHTML = html;
             preview.style.display = 'block';
             preview.style.background = '#f0fdf4';
             preview.style.borderLeft = '4px solid #10b981';
@@ -542,12 +639,12 @@ async function loadSiswaFromSipena() {
         }
     } catch (error) {
         console.error('❌ Error load siswa:', error);
-        listEl.innerHTML = `<div style="color: #ef4444;"><i class="fas fa-exclamation-circle"></i> Gagal memuat siswa: ${error.message}</div>`;
+        listEl.innerHTML = `<div style="color: #ef4444;"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
         preview.style.display = 'block';
     }
 }
 
-// ... [semua fungsi lainnya tetap sama] ...
+// ... (SISA FUNGSI LAINNYA TETAP SAMA: switchMateriTab, execCmd, setupImageUpload, handleImages, compressImage, checkTotalImageSize, renderImagePreview, removeImage, debouncePreviewYoutube, previewYoutube, extractYoutubeId, tambahSoal, hapusSoal, renumberSoal, generateSoalAI, publishSesi, simpanDraft)
 
 window.switchMateriTab = function(tabName, btn) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -576,18 +673,26 @@ function setupImageUpload() {
 }
 
 function handleImages(files) {
-    const remaining = 5 - uploadedImages.length;
-    if (remaining <= 0) { alert('Maksimal 5 gambar!'); return; }
+    const remaining = 3 - uploadedImages.length; // ✅ Dikurangi dari 5 menjadi 3 untuk keamanan batas 1MB Firestore
+    if (remaining <= 0) { 
+        alert('Maksimal 3 gambar untuk memastikan ukuran total aman di bawah batas 1MB Firestore!'); 
+        return; 
+    }
     
     Array.from(files).slice(0, remaining).forEach(file => {
-        if (file.size > 2 * 1024 * 1024) { alert(file.name + ' terlalu besar (maks 2MB)'); return; }
+        if (file.size > 2 * 1024 * 1024) { 
+            alert(file.name + ' terlalu besar (maks 2MB sebelum kompresi)'); 
+            return; 
+        }
         if (!file.type.startsWith('image/')) return;
         
         const reader = new FileReader();
         reader.onload = (e) => {
-            compressImage(e.target.result, 1024, 0.8).then(compressed => {
+            // ✅ OPTIMASI 3: Kompresi lebih ketat (800px, quality 0.6) untuk aman di Firestore
+            compressImage(e.target.result, 800, 0.6).then(compressed => {
                 uploadedImages.push(compressed);
                 renderImagePreview();
+                checkTotalImageSize();
             });
         };
         reader.readAsDataURL(file);
@@ -610,6 +715,24 @@ function compressImage(base64, maxWidth, quality) {
     });
 }
 
+// ✅ OPTIMASI 4: Validasi ukuran total sebelum disimpan
+function checkTotalImageSize() {
+    let totalBytes = 0;
+    uploadedImages.forEach(img => {
+        totalBytes += (img.length * 3) / 4; // Perkiraan ukuran base64 dalam byte
+    });
+    
+    const totalMB = totalBytes / (1024 * 1024);
+    const warningEl = document.getElementById('imageSizeWarning');
+    
+    if (totalMB > 0.7) { // Peringatan di 700KB, menyisakan 300KB untuk teks dan metadata
+        warningEl.style.display = 'block';
+        warningEl.textContent = `⚠️ Total ukuran gambar: ${totalMB.toFixed(2)} MB. Mendekati batas aman Firestore (1MB). Pertimbangkan untuk menghapus beberapa gambar.`;
+    } else {
+        warningEl.style.display = 'none';
+    }
+}
+
 function renderImagePreview() {
     const preview = document.getElementById('imagePreview');
     preview.innerHTML = uploadedImages.map((img, i) => 
@@ -620,6 +743,15 @@ function renderImagePreview() {
 window.removeImage = function(i) {
     uploadedImages.splice(i, 1);
     renderImagePreview();
+    checkTotalImageSize();
+};
+
+// ✅ OPTIMASI 5: Debounce untuk preview YouTube agar tidak spamming
+window.debouncePreviewYoutube = function() {
+    clearTimeout(youtubeDebounceTimer);
+    youtubeDebounceTimer = setTimeout(() => {
+        window.previewYoutube();
+    }, 500);
 };
 
 window.previewYoutube = function() {
@@ -770,16 +902,21 @@ async function publishSesi() {
     const btn = document.getElementById('btnPublish');
     const alertEl = document.getElementById('alertInfo');
     
+    // ✅ OPTIMASI 6: Pre-flight check ukuran data sebelum submit
+    let totalDataSize = 0;
+    uploadedImages.forEach(img => { totalDataSize += (img.length * 3) / 4; });
+    const materiTeksSize = new Blob([document.getElementById('materiTeks').innerHTML]).size;
+    
+    if ((totalDataSize + materiTeksSize) > 900000) { // 900KB safety margin
+        alert('❌ Total ukuran materi (terutama gambar) terlalu besar (>900KB).\n\nFirestore memiliki batas keras 1MB per dokumen. Silakan hapus beberapa gambar atau perkecil materi teks.');
+        return;
+    }
+    
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Mempublish...';
     alertEl.classList.remove('show');
     
     try {
-        // ✅ PASTIKAN USER LOGIN
-        if (!currentUser) {
-            throw new Error('Anda harus login terlebih dahulu!');
-        }
-        
         const judul = document.getElementById('judulSesi').value.trim();
         const mapel = document.getElementById('mataPelajaran').value.trim();
         
@@ -801,12 +938,7 @@ async function publishSesi() {
             const level = item.querySelector('.soal-level').value;
             const pertanyaan = item.querySelector('.soal-pertanyaan').value.trim();
             
-            let soalData = {
-                type: type,
-                level: level,
-                pertanyaan: pertanyaan,
-                poin: 10
-            };
+            let soalData = { type: type, level: level, pertanyaan: pertanyaan, poin: 10 };
 
             if (type === 'essay') {
                 soalData.kunciJawaban = item.querySelector('.soal-kunci').value.trim();
@@ -826,7 +958,6 @@ async function publishSesi() {
         });
         
         const tipeSesi = soalList.length > 0 ? 'Ujian/Kuis' : 'Materi Only';
-        console.log('Tipe Sesi: ' + tipeSesi + ', Jumlah Soal: ' + soalList.length);
         
         const dataSoalFinal = Array.isArray(soalList) ? soalList : [];
 
@@ -875,3 +1006,6 @@ window.simpanDraft = function() {
     alert('Fitur draft akan segera hadir!');
 };
 </script>
+
+</body>
+</html>

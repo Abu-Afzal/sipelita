@@ -23,7 +23,6 @@
     <div class="header">
         <div class="header-content">
             <div class="brand">
-                <!-- ✅ Menggunakan Icon Font Awesome (Aman dari error encoding) -->
                 <h1><i class="fas fa-graduation-cap"></i> E-Learning SIPELITA</h1>
                 <p>Platform Belajar Online untuk Guru & Siswa</p>
             </div>
@@ -58,11 +57,22 @@
         <!-- Daftar Sesi - Vertical List -->
         <div class="card">
             <div class="card-header">
-                <!-- ✅ Menggunakan Icon Font Awesome -->
                 <h2><i class="fas fa-book-open"></i> Daftar Sesi Belajar</h2>
-                <a href="elearning-buat.html" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Buat Sesi Baru
-                </a>
+                
+                <!-- ✅ WRAPPER TOMBOL AGAR RAPI -->
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    
+                    <!-- ✅ TOMBOL MONITORING (Hidden by default, akan muncul via JS jika Kamad/Wakamad/Admin) -->
+                    <a href="elearning-monitoring.html" id="btnMonitoring" class="btn" style="display: none; background: #8b5cf6; color: white;">
+                        <i class="fas fa-chart-line"></i> Monitoring
+                    </a>
+                    
+                    <!-- TOMBOL BUAT SESI (Untuk Guru) -->
+                    <a href="elearning-buat.html" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Buat Sesi Baru
+                    </a>
+                    
+                </div>
             </div>
             
             <div id="loadingState" class="loading-state">
@@ -71,7 +81,6 @@
             </div>
             
             <div id="emptyState" class="empty-state" style="display: none;">
-                <!-- ✅ Menggunakan Icon Font Awesome -->
                 <div class="icon"><i class="fas fa-inbox"></i></div>
                 <h3>Belum Ada Sesi</h3>
                 <p>Mulai buat sesi belajar pertama Anda!</p>
@@ -85,11 +94,88 @@
     <!-- Custom JS -->
     <script src="../js/elearning-core.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof loadDaftarSesi === 'function') {
-                loadDaftarSesi();
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. ✅ SAFEGUARD: Pastikan Firebase sudah diinisialisasi (jika elearning-core.js gagal/delay)
+        if (!firebase.apps.length) {
+            const firebaseConfig = {
+                apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
+                authDomain: "sipelita-digital.firebaseapp.com",
+                projectId: "sipelita-digital",
+                storageBucket: "sipelita-digital.firebasestorage.app",
+                messagingSenderId: "787840817745",
+                appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+            };
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // 2. ✅ Load daftar sesi dari core.js
+        if (typeof loadDaftarSesi === 'function') {
+            loadDaftarSesi();
+        } else {
+            console.warn('⚠️ Fungsi loadDaftarSesi tidak ditemukan di elearning-core.js');
+            document.getElementById('loadingState').innerHTML = '<p style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Gagal memuat modul utama. Silakan refresh halaman (Ctrl+F5).</p>';
+        }
+
+        // 3. ✅ Optimasi Pengecekan Role (Cepat & Hemat Read)
+        checkUserRole();
+    });
+
+    async function checkUserRole() {
+        const btnMonitoring = document.getElementById('btnMonitoring');
+        if (!btnMonitoring) return;
+
+        // ✅ PRIORITAS 1: Cek LocalStorage (0 Reads, Instant)
+        const userStr = localStorage.getItem('sipelita_user');
+        if (userStr) {
+            try {
+                const userData = JSON.parse(userStr);
+                const role = (userData.role || '').toLowerCase();
+                
+                // Tambahkan 'kamad' dan 'wakamad' sesuai kebutuhan bisnis
+                if (['kepala', 'wakil', 'admin', 'kamad', 'wakamad'].includes(role)) {
+                    btnMonitoring.style.display = 'inline-flex';
+                    console.log('✅ Akses Monitoring diberikan (via LocalStorage):', role);
+                    return; // Stop here, hemat 1 read Firestore
+                }
+            } catch (e) {
+                console.error('Gagal parse user data dari localStorage:', e);
+                // Jika corrupt, hapus agar bisa di-fetch ulang dari Firestore
+                localStorage.removeItem('sipelita_user');
             }
-        });
+        }
+
+        // ✅ PRIORITAS 2: Fallback ke Firestore (Hanya jika localStorage kosong/invalid)
+        console.log('🔄 LocalStorage tidak valid, mengecek Firestore...');
+        try {
+            const user = firebase.auth().currentUser;
+            if (user) {
+                const db = firebase.firestore();
+                // ✅ OPTIMASI: Gunakan .doc().get() langsung, bukan query, untuk hemat 1 read
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    const role = (data.role || '').toLowerCase();
+                    
+                    if (['kepala', 'wakil', 'admin', 'kamad', 'wakamad'].includes(role)) {
+                        btnMonitoring.style.display = 'inline-flex';
+                        console.log('✅ Akses Monitoring diberikan (via Firestore):', role);
+                        
+                        // ✅ SIMPAN ke localStorage agar pengecekan berikutnya INSTANT (0 reads)
+                        localStorage.setItem('sipelita_user', JSON.stringify({
+                            uid: user.uid,
+                            email: user.email,
+                            role: data.role,
+                            nama: data.nama || 'User',
+                            mataPelajaran: data.mataPelajaran || 'Umum'
+                        }));
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error cek role Firestore:', error);
+        }
+    }
     </script>
 </body>
 </html>
