@@ -15,15 +15,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 1. FIREBASE SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     
-    <!-- 2. EXCEL LIBRARY -->
+    <!-- Excel Library -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- ❌ DIHAPUS: cache-manager.js dan elearning-pdf.js untuk mencegah error 404 / not defined -->
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -161,7 +159,7 @@
 </div>
 
 <script>
-// ✅ 1. FIREBASE CONFIG SIPELITA GURU (SUDAH DIPERBARUI)
+// ✅ 1. FIREBASE CONFIG SIPELITA GURU
 const firebaseConfig = {
     apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
     authDomain: "sipelita-guru.firebaseapp.com",
@@ -179,43 +177,86 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// ✅ 2. SIMPLE CACHE (Menggantikan CacheManager agar tidak error 404)
-const SimpleCache = {
-    data: {},
-    get: function(key) {
-        const item = this.data[key];
-        if (!item) return undefined;
-        if (Date.now() > item.expiry) {
-            delete this.data[key];
-            return undefined;
+let currentSession = null;
+let daftarJawaban = [];
+let currentUser = null; // ✅ GLOBAL VARIABLE UNTUK AKSES DI FUNGSI PDF
+
+// ✅ 2. CACHE MANAGER (Inline, format MAN Bantaeng)
+const CacheManager = {
+    memory: new Map(),
+    storage: {
+        get(key) {
+            try {
+                const item = localStorage.getItem(`sipelita_cache_${key}`);
+                if (!item) return null;
+                const parsed = JSON.parse(item);
+                if (parsed.expiry && Date.now() > parsed.expiry) {
+                    localStorage.removeItem(`sipelita_cache_${key}`);
+                    return null;
+                }
+                return parsed.data;
+            } catch (e) { return null; }
+        },
+        set(key, data, ttlMinutes = 10) {
+            try {
+                const item = { data: data, expiry: Date.now() + (ttlMinutes * 60 * 1000) };
+                localStorage.setItem(`sipelita_cache_${key}`, JSON.stringify(item));
+            } catch (e) { console.warn('Cache penuh:', e); }
         }
-        return item.value;
     },
-    set: function(key, value, ttlSeconds) {
-        this.data[key] = { value: value, expiry: Date.now() + (ttlSeconds * 1000) };
+    get(key) {
+        if (this.memory.has(key)) return this.memory.get(key);
+        const fromStorage = this.storage.get(key);
+        if (fromStorage) this.memory.set(key, fromStorage);
+        return fromStorage;
     },
-    remove: function(key) {
-        delete this.data[key];
+    set(key, data, ttlMinutes = 10) {
+        this.memory.set(key, data);
+        this.storage.set(key, data, ttlMinutes);
     }
 };
 
-let currentSession = null;
-let daftarJawaban = [];
-
-function parseDate(dateData) {
-    if (!dateData) return new Date();
-    if (dateData.toDate) return dateData.toDate();
-    return new Date(dateData);
+// ✅ 3. FUNGSI FORMAT NAMA & GELAR
+function rapikanGelar(token) {
+    if (!token) return '';
+    let t = token.trim();
+    const adaTitikAkhir = t.endsWith('.');
+    const clean = t.replace(/\.+$/, '');
+    const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.S','M.S','S.Sos','M.Sos',
+        'S.Kom','M.Kom','S.E','M.M','S.H','M.H','S.Psi','M.Psi','S.T','M.T','S.Farm','A.Md',
+        'Dra','Drs','Dr','Prof','H','Hj','Ir','KH'];
+    const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
+    if (found) return found + (adaTitikAkhir ? '.' : '');
+    if (clean.includes('.')) {
+        return clean.split('.').map(seg =>
+            seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()
+        ).join('.');
+    }
+    return clean.length <= 2 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
 }
 
-function normalizeNama(nama) {
-    if (!nama) return '';
-    return nama.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[^\w\s]/gi, '').trim();
+function formatNamaGelar(text) {
+    if (!text) return '';
+    const parts = text.split(',');
+    const GELAR_DEPAN = ['Drs','Dra','Dr','Prof','H','Hj','Ir','KH'];
+    let tokens = parts[0].trim().split(/\s+/);
+    const depan = [];
+    while (tokens.length) {
+        const t = tokens[0].replace(/\.+$/, '');
+        const m = GELAR_DEPAN.find(g => g.toLowerCase() === t.toLowerCase());
+        if (m) { depan.push(m + '.'); tokens.shift(); } else break;
+    }
+    const namaInti = tokens.join(' ').toUpperCase();
+    const belakang = parts.slice(1).map(rapikanGelar).filter(Boolean).join(',');
+    let hasil = (depan.length ? depan.join(' ') + ' ' : '') + namaInti;
+    if (belakang) hasil += ', ' + belakang;
+    return hasil;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
+            currentUser = user; // ✅ SIMPAN USER KE VARIABLE GLOBAL
             console.log('✅ User terautentikasi:', user.email);
             loadHasilSesi();
         } else {
@@ -236,15 +277,14 @@ async function loadHasilSesi() {
     }
     
     try {
-        // 1. Load data sesi
         const cacheKeySesi = `sesi_${sessionId}`;
-        let sesiDoc = SimpleCache.get(cacheKeySesi);
+        let sesiDoc = CacheManager.get(cacheKeySesi);
         
         if (!sesiDoc) {
             const docSnap = await db.collection('learning_sessions').doc(sessionId).get();
             if (!docSnap.exists) throw new Error('Sesi tidak ditemukan');
             sesiDoc = { id: docSnap.id, ...docSnap.data() };
-            SimpleCache.set(cacheKeySesi, sesiDoc, 900);
+            CacheManager.set(cacheKeySesi, sesiDoc, 900);
         }
         
         currentSession = sesiDoc;
@@ -256,11 +296,10 @@ async function loadHasilSesi() {
         document.getElementById('infoDurasi').textContent = currentSession.durasiMenit > 0 ? `${currentSession.durasiMenit} menit` : 'Tanpa batas';
         document.getElementById('infoPin').textContent = currentSession.pin;
         
-        // 2. Load SEMUA siswa
         let semuaSiswa = [];
         if (currentSession.kelasSipenaId) {
             const cacheKeySiswa = `siswa_${currentSession.kelasSipenaId}`;
-            let cachedSiswa = SimpleCache.get(cacheKeySiswa);
+            let cachedSiswa = CacheManager.get(cacheKeySiswa);
             
             if (cachedSiswa && cachedSiswa.length > 0) {
                 semuaSiswa = cachedSiswa;
@@ -271,11 +310,10 @@ async function loadHasilSesi() {
                     semuaSiswa.push({ id: doc.id, nama: data.student_name || data.nama || data.name || 'Tanpa Nama', kelas: currentSession.kelasTarget });
                 });
                 semuaSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
-                SimpleCache.set(cacheKeySiswa, semuaSiswa, 1800);
+                CacheManager.set(cacheKeySiswa, semuaSiswa, 1800);
             }
         }
         
-        // 3. Load responses & notes
         const snap = await db.collection('student_responses').where('sessionId', '==', sessionId).get({ source: 'server' });
         const responsesData = [];
         snap.forEach(doc => responsesData.push({ id: doc.id, ...doc.data() }));
@@ -284,7 +322,6 @@ async function loadHasilSesi() {
         const notesData = [];
         notesSnap.forEach(doc => notesData.push({ id: doc.id, ...doc.data() }));
         
-        // 4. Gabungkan data
         const jawabanMap = new Map();
         responsesData.forEach(item => jawabanMap.set(normalizeNama(item.siswaNama), { id: item.id, ...item, tipe: 'jawaban' }));
         notesData.forEach(item => {
@@ -325,10 +362,15 @@ async function loadHasilSesi() {
     }
 }
 
+function normalizeNama(nama) {
+    if (!nama) return '';
+    return nama.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[^\w\s]/gi, '').trim();
+}
+
 window.forceRefreshData = async function() {
     if (currentSession) {
-        SimpleCache.remove(`sesi_${currentSession.id}`);
-        if (currentSession.kelasSipenaId) SimpleCache.remove(`siswa_${currentSession.kelasSipenaId}`);
+        CacheManager.remove(`sesi_${currentSession.id}`);
+        if (currentSession.kelasSipenaId) CacheManager.remove(`siswa_${currentSession.kelasSipenaId}`);
     }
     await loadHasilSesi();
     alert('✅ Data berhasil di-refresh!');
@@ -371,7 +413,7 @@ function updateStatistik() {
     // ✅ PERBAIKAN: Hitung SEMUA yang sudah submit (jawaban ATAU catatan)
     const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
     
-    // Untuk nilai, hanya yang tipe 'jawaban' yang punya nilai
+    // Untuk nilai, hanya yang tipe 'jawaban' yang punya data nilai
     const yangAdaNilai = yangSudah.filter(d => d.tipe === 'jawaban' && d.nilai !== undefined && d.nilai !== null);
     const nilaiList = yangAdaNilai.map(d => d.nilai);
     
@@ -394,7 +436,7 @@ window.lihatTugasSiswa = function(responseId, tipe) {
 
 window.exportExcel = function() {
     if (daftarJawaban.length === 0) { alert('Belum ada data untuk diexport!'); return; }
-    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', currentSession.judul], ['Mata Pelajaran', currentSession.mataPelajaran], ['Kelas', currentSession.kelasTarget], ['Tanggal', parseDate(currentSession.createdAt).toLocaleDateString('id-ID')], ['PIN', currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (mnt)', 'Status']];
+    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', currentSession.judul], ['Mata Pelajaran', currentSession.mataPelajaran], ['Kelas', currentSession.kelasTarget], ['Tanggal', new Date().toLocaleDateString('id-ID')], ['PIN', currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (mnt)', 'Status']];
     daftarJawaban.forEach((d, idx) => {
         const durasi = d.sudahKirim && d.waktuSelesai && d.waktuMulai ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
         data.push([idx + 1, d.siswaNama, d.siswaKelas, d.sudahKirim ? (d.totalBenar || '-') : '-', d.sudahKirim ? (d.totalSalah || '-') : '-', d.sudahKirim ? (d.nilai || '-') : 'Belum', durasi, d.sudahKirim ? 'Selesai' : 'Belum']);
@@ -405,25 +447,6 @@ window.exportExcel = function() {
     XLSX.writeFile(wb, `Hasil_${currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
-// ✅ 3. INLINE PDF EXPORT (Tidak lagi bergantung pada file eksternal elearning-pdf.js)
-window.exportPDFLaporan = function() {
-    if (!daftarJawaban || daftarJawaban.length === 0) { alert('Tidak ada data untuk diekspor!'); return; }
-    const printWindow = window.open('', '_blank');
-    const htmlContent = `<!DOCTYPE html><html><head><title>Laporan - ${currentSession.judul}</title>
-    <style>body{font-family:Arial,sans-serif;padding:40px} .header{text-align:center;border-bottom:2px solid #333;padding-bottom:20px;margin-bottom:20px} table{width:100%;border-collapse:collapse;margin-top:20px} th,td{border:1px solid #ddd;padding:8px;text-align:left} th{background:#f2f2f2} .stat-box{display:inline-block;margin:10px;padding:15px;border:1px solid #ccc;border-radius:5px;text-align:center}</style></head><body>
-    <div class="header"><h2>LAPORAN HASIL E-LEARNING</h2><p>${currentSession.judul} | ${currentSession.mataPelajaran} | ${currentSession.kelasTarget}</p></div>
-    <div style="text-align:center;margin-bottom:20px">
-        <div class="stat-box"><strong>Total Siswa:</strong> ${daftarJawaban.length}</div>
-        <div class="stat-box"><strong>Sudah Mengerjakan:</strong> ${daftarJawaban.filter(d => d.sudahKirim).length}</div>
-        <div class="stat-box"><strong>Rata-rata:</strong> ${document.getElementById('statRata').textContent}</div>
-    </div>
-    <table><thead><tr><th>No</th><th>Nama Siswa</th><th>Kelas</th><th>Benar</th><th>Salah</th><th>Nilai</th><th>Status</th></tr></thead><tbody>
-    ${daftarJawaban.map((d, idx) => `<tr><td>${idx + 1}</td><td>${d.siswaNama}</td><td>${d.siswaKelas || '-'}</td><td>${d.totalBenar || '-'}</td><td>${d.totalSalah || '-'}</td><td><strong>${d.nilai || '-'}</strong></td><td>${d.sudahKirim ? 'Selesai' : 'Belum'}</td></tr>`).join('')}
-    </tbody></table><script>window.onload=function(){window.print()}<\/script></body></html>`;
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-};
-
 window.shareWA = function() {
     const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban').length;
     const total = daftarJawaban.length;
@@ -431,40 +454,294 @@ window.shareWA = function() {
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 
-window.recalculateStatistik = async function() {
-    if (!currentSession) return;
+// ✅ 4. FUNGSI EXPORT PDF LENGKAP (FORMAT MAN BANTAENG)
+window.exportPDFLaporan = async function() {
+    if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
+        alert('Tidak ada data untuk dicetak!');
+        return;
+    }
+
     const btn = event.target.closest('button');
     const originalText = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan Dokumen...';
+
     try {
-        const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban');
+        const sesi = typeof currentSession !== 'undefined' ? currentSession : {};
+        const today = new Date();
+        const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const tglSurat = `${today.getDate()} ${NAMA_BULAN[today.getMonth()]} ${today.getFullYear()}`;
+        
+        // Data Statistik
+        const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
         const nilaiList = yangSudah.map(d => d.nilai).filter(n => n !== undefined && n !== null);
-        const total = yangSudah.length;
-        let sumNilai = 0, maxNilai = 0, minNilai = 100, lulusCount = 0;
-        if (total > 0) {
-            nilaiList.forEach(nilai => {
-                sumNilai += nilai;
-                if (nilai > maxNilai) maxNilai = nilai;
-                if (nilai < minNilai) minNilai = nilai;
-                if (nilai >= 70) lulusCount++;
-            });
-        } else { minNilai = 0; }
-        const rataRata = total > 0 ? sumNilai / total : 0;
-        
-        document.getElementById('statTotal').textContent = `${total} / ${daftarJawaban.length}`;
-        document.getElementById('statRata').textContent = Math.round(rataRata);
-        document.getElementById('statMax').textContent = maxNilai;
-        document.getElementById('statMin').textContent = minNilai;
-        document.getElementById('statLulus').textContent = `${lulusCount} (${total > 0 ? Math.round(lulusCount/total*100) : 0}%)`;
-        
-        await db.collection('learning_sessions').doc(currentSession.id).update({
-            'statistik.totalSiswa': total, 'statistik.rataRata': Math.round(rataRata), 'statistik.tertinggi': maxNilai, 'statistik.terendah': minNilai, 'statistik.lulus': lulusCount, updatedAt: new Date().toISOString()
+        const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
+        const maxNilai = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
+        const minNilai = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
+        const kkm = sesi.kkm || 70;
+        const lulus = nilaiList.filter(n => n >= kkm).length;
+        const pctLulus = yangSudah.length > 0 ? Math.round(lulus / yangSudah.length * 100) : 0;
+
+        // Konfigurasi Madrasah (Fallback aman)
+        const CONFIG_MADRASAH = typeof window.CONFIG_MADRASAH !== 'undefined' ? window.CONFIG_MADRASAH : {
+            kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+            kop2: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
+            kop3: 'MADRASAH ALIYAH NEGERI BANTAENG',
+            alamat: 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng',
+            kota: 'Bantaeng',
+            logoData: location.origin + '/assets/images/kemenag-app.png',
+            logoKananData: location.origin + '/assets/images/manbtg-app.png'
+        };
+
+        const logoKop = CONFIG_MADRASAH.logoData || (location.origin + '/assets/images/kemenag-app.png');
+        const logoKananUrl = CONFIG_MADRASAH.logoKananData || (location.hostname.includes('manbantaeng') ? location.origin + '/assets/images/manbtg-app.png' : '');
+
+        const kopHtml = `
+            <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                        <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+                            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+                        </td>
+                        <td style="text-align:center; border:none;">
+                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
+                            <div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
+                            <div style="font-size:11pt; font-weight:bold;">${CONFIG_MADRASAH.kop3}</div>
+                            <div style="font-size:9pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+                        </td>
+                        <td style="width:90px; text-align:center; vertical-align:middle; border:none;">
+                            ${logoKananUrl ? `<img src="${logoKananUrl}" style="width:85px; height:auto; max-height:75px;" onerror="this.style.visibility='hidden'">` : ''}
+                        </td>
+                    </tr>
+                </table>
+            </div>`;
+
+        const sorted = [...daftarJawaban].sort((a, b) => {
+            if (a.sudahKirim && !b.sudahKirim) return -1;
+            if (!a.sudahKirim && b.sudahKirim) return 1;
+            if (a.sudahKirim && b.sudahKirim) return (b.nilai || 0) - (a.nilai || 0);
+            return 0;
         });
-        alert(`✅ Statistik berhasil diperbarui!`);
+
+        const cellStyle = "border:1px solid #000; padding:4px; font-size:11pt;";
+        const headerStyle = "border:1px solid #000; padding:4px; font-size:11pt; background:#f0f0f0; font-weight:bold; text-align:center;";
+
+        const siswaRows = sorted.map((d, i) => {
+            const durasi = d.sudahKirim && d.waktuSelesai && d.waktuMulai 
+                ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) + ' mnt' 
+                : '-';
+            const status = d.sudahKirim ? (d.tipe === 'catatan' ? 'Catatan' : 'Selesai') : 'Belum';
+            
+            return `<tr>
+                <td style="${cellStyle} text-align:center;">${i + 1}</td>
+                <td style="${cellStyle}">${d.siswaNama}</td>
+                <td style="${cellStyle} text-align:center;">${d.siswaKelas}</td>
+                <td style="${cellStyle} text-align:center;">${d.sudahKirim ? d.totalBenar : '-'}</td>
+                <td style="${cellStyle} text-align:center;">${d.sudahKirim ? d.totalSalah : '-'}</td>
+                <td style="${cellStyle} text-align:center; font-weight:bold;">${d.sudahKirim ? d.nilai : '-'}</td>
+                <td style="${cellStyle} text-align:center;">${durasi}</td>
+                <td style="${cellStyle} text-align:center;">${status}</td>
+            </tr>`;
+        }).join('');
+
+        // BLOK TANDA TANGAN (Dengan Cache)
+        let kepalaNama = '................................................';
+        let kepalaNip = 'NIP. ............................................';
+        let guruNama = '................................................';
+        let guruNip = 'NIP. ............................................';
+
+        const cacheKeyUsers = 'users_all';
+        let allUsers = CacheManager.get(cacheKeyUsers);
+        
+        if (!allUsers) {
+            console.log('📚 Fetch semua users dari Firestore...');
+            try {
+                const usersSnap = await db.collection('users').get();
+                allUsers = [];
+                usersSnap.forEach(doc => {
+                    allUsers.push({ id: doc.id, data: doc.data() });
+                });
+                CacheManager.set(cacheKeyUsers, allUsers, 10); // Cache 10 menit
+                console.log('✅ Cache users disimpan');
+            } catch (e) {
+                console.warn('Gagal fetch users:', e);
+            }
+        } else {
+            console.log('✅ Menggunakan cache users (hemat reads!)');
+        }
+        
+        if (allUsers) {
+            const currentUserEmail = currentUser ? currentUser.email : '';
+            const currentUserId = currentUser ? currentUser.uid : '';
+            const sesiEmail = sesi.guruEmail || '';
+            
+            allUsers.forEach(item => {
+                const data = item.data;
+                const role = (data.role || '').toString().toLowerCase();
+                
+                if (role.includes('kepala') || role.includes('head') || role.includes('kamad')) {
+                    const namaKamad = data.namaResmi || data.nama || data.name || data.displayName || '';
+                    if (namaKamad) kepalaNama = namaKamad;
+                    
+                    const rawNip = data.nip || data.NIP || '';
+                    if (rawNip) {
+                        kepalaNip = rawNip.startsWith('NIP.') ? rawNip : 'NIP. ' + rawNip;
+                    }
+                }
+                
+                const isGuruLogin = 
+                    (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
+                    (item.id === currentUserId) ||
+                    (data.email && data.email.toLowerCase() === sesiEmail.toLowerCase());
+                
+                if (isGuruLogin) {
+                    const namaGuruDb = data.namaResmi || data.nama || data.name || data.displayName || '';
+                    if (namaGuruDb) guruNama = namaGuruDb;
+                    
+                    const rawGuruNip = data.nip || data.NIP || '';
+                    if (rawGuruNip) {
+                        guruNip = rawGuruNip.startsWith('NIP.') ? rawGuruNip : 'NIP. ' + rawGuruNip;
+                    }
+                }
+            });
+        }
+
+        // Fallback ke data sesi
+        if (guruNama === '................................................') {
+            if (sesi.guruNama) guruNama = sesi.guruNama;
+            if (sesi.guruNIP) {
+                guruNip = sesi.guruNIP.startsWith('NIP.') ? sesi.guruNIP : 'NIP. ' + sesi.guruNIP;
+            }
+        }
+
+        // Fallback ke CONFIG_MADRASAH untuk Kepala
+        if (kepalaNama === '................................................') {
+            kepalaNama = CONFIG_MADRASAH.kepalaMadrasah || kepalaNama;
+            kepalaNip = CONFIG_MADRASAH.nipKepala || kepalaNip;
+            if (kepalaNip && !kepalaNip.startsWith('NIP.')) {
+                kepalaNip = 'NIP. ' + kepalaNip;
+            }
+        }
+
+        kepalaNama = formatNamaGelar(kepalaNama);
+        guruNama = formatNamaGelar(guruNama);
+        
+        const kota = CONFIG_MADRASAH.kota || 'Bantaeng';
+
+        const ttdHtml = `
+            <table style="width:100%; margin-top:28px; font-size:10pt;">
+                <tr>
+                    <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+                        Mengetahui,<br>Kepala Madrasah
+                        <div style="height:60px;"></div>
+                        <b><u><span style="font-size:9pt; white-space:nowrap;">${kepalaNama}</span></u></b><br>
+                        <b style="font-size:9pt;">${kepalaNip}</b>
+                    </td>
+                    <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+                        ${kota}, ${tglSurat}<br>Guru Mata Pelajaran
+                        <div style="height:60px;"></div>
+                        <b><u><span style="font-size:9pt; white-space:nowrap;">${guruNama}</span></u></b><br>
+                        <b style="font-size:9pt;">${guruNip}</b>
+                    </td>
+                </tr>
+            </table>`;
+
+        // GABUNGKAN KE HTML PRINT WINDOW
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Laporan E-Learning - ${sesi.kelasTarget || 'Kelas'}</title>
+            </head>
+            <body style="font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000;">
+                ${kopHtml}
+                
+                <div style="text-align:center; margin:12px 0;">
+                    <div style="font-size:12pt; font-weight:bold; text-decoration:underline;">LAPORAN HASIL PEMBELAJARAN DARING</div>
+                    <div style="font-size:11pt; font-weight:bold;">E-LEARNING SIPELITA</div>
+                </div>
+                
+                <table style="width:100%; margin-bottom:12px; font-size:10pt; border:none;">
+                    <tr><td style="width:120px; border:none;">Judul Sesi</td><td style="border:none;">: <b>${sesi.judul || '-'}</b></td></tr>
+                    <tr><td style="border:none;">Mata Pelajaran</td><td style="border:none;">: <b>${sesi.mataPelajaran || '-'}</b></td></tr>
+                    <tr><td style="border:none;">Kelas</td><td style="border:none;">: <b>${sesi.kelasTarget || '-'}</b></td></tr>
+                    <tr><td style="border:none;">Tanggal Dibuat</td><td style="border:none;">: <b>${new Date(sesi.createdAt || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</b></td></tr>
+                    <tr><td style="border:none;">Durasi</td><td style="border:none;">: <b>${sesi.durasiMenit > 0 ? sesi.durasiMenit + ' menit' : 'Tanpa batas'}</b></td></tr>
+                    <tr><td style="border:none;">Total Soal</td><td style="border:none;">: <b>${sesi.totalSoal || 0} soal</b></td></tr>
+                </table>
+
+                <div style="font-size:11pt; font-weight:bold; margin:12px 0 8px 0;">STATISTIK HASIL</div>
+                <table style="width:100%; border-collapse:collapse; font-size:10pt; margin-bottom:14px;">
+                    <tr>
+                        <td style="${cellStyle} width:25%;">Total Siswa</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold; width:25%;">${daftarJawaban.length} siswa</td>
+                        <td style="${cellStyle} width:25%;">Sudah Mengerjakan</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold; width:25%;">${yangSudah.length} siswa</td>
+                    </tr>
+                    <tr>
+                        <td style="${cellStyle}">Rata-rata Nilai</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${rata}</td>
+                        <td style="${cellStyle}">Nilai Tertinggi</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${maxNilai}</td>
+                    </tr>
+                    <tr>
+                        <td style="${cellStyle}">Nilai Terendah</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${minNilai}</td>
+                        <td style="${cellStyle}">Lulus (≥${kkm})</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${lulus} siswa (${pctLulus}%)</td>
+                    </tr>
+                </table>
+
+                <div style="font-size:11pt; font-weight:bold; margin:12px 0 8px 0;">DAFTAR NILAI SISWA</div>
+                <table style="width:100%; border-collapse:collapse; font-size:10pt;">
+                    <thead>
+                        <tr>
+                            <th style="${headerStyle}" width="30">No</th>
+                            <th style="${headerStyle}">Nama Siswa</th>
+                            <th style="${headerStyle}" width="50">Kelas</th>
+                            <th style="${headerStyle}" width="40">Benar</th>
+                            <th style="${headerStyle}" width="40">Salah</th>
+                            <th style="${headerStyle}" width="40">Nilai</th>
+                            <th style="${headerStyle}" width="60">Waktu</th>
+                            <th style="${headerStyle}" width="70">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${siswaRows}
+                    </tbody>
+                </table>
+
+                ${ttdHtml}
+
+                <div style="margin-top:20px; font-size:8pt; text-align:center; color:#666;">
+                    Laporan ini digenerate otomatis oleh Sistem E-Learning SIPELITA
+                </div>
+
+                <script>
+                    window.onload = function() {
+                        let attempts = 0;
+                        const check = setInterval(() => {
+                            const imgs = document.querySelectorAll('img');
+                            const allLoaded = Array.from(imgs).every(img => img.complete && img.naturalHeight > 0);
+                            attempts++;
+                            if (allLoaded || attempts > 20) {
+                                clearInterval(check);
+                                setTimeout(() => window.print(), 300);
+                            }
+                        }, 100);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+
     } catch (error) {
-        alert('❌ Gagal: ' + error.message);
+        console.error('Error mencetak laporan:', error);
+        alert('❌ Gagal menyiapkan dokumen: ' + error.message);
     } finally {
-        btn.disabled = false; btn.innerHTML = originalText;
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 };
 </script>
