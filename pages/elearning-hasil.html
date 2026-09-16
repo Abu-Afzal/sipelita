@@ -367,8 +367,13 @@ function renderTabel() {
 
 function updateStatistik() {
     const totalSiswaKelas = daftarJawaban.length;
-    const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban');
-    const nilaiList = yangSudah.map(d => d.nilai).filter(n => n !== undefined && n !== null);
+    
+    // ✅ PERBAIKAN: Hitung SEMUA yang sudah submit (jawaban ATAU catatan)
+    const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
+    
+    // Untuk nilai, hanya yang tipe 'jawaban' yang punya nilai
+    const yangAdaNilai = yangSudah.filter(d => d.tipe === 'jawaban' && d.nilai !== undefined && d.nilai !== null);
+    const nilaiList = yangAdaNilai.map(d => d.nilai);
     
     const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
     const max = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
@@ -379,7 +384,7 @@ function updateStatistik() {
     document.getElementById('statRata').textContent = rata;
     document.getElementById('statMax').textContent = max;
     document.getElementById('statMin').textContent = min;
-    document.getElementById('statLulus').textContent = `${lulus} (${yangSudah.length > 0 ? Math.round(lulus/yangSudah.length*100) : 0}%)`;
+    document.getElementById('statLulus').textContent = `${lulus} (${yangAdaNilai.length > 0 ? Math.round(lulus/yangAdaNilai.length*100) : 0}%)`;
 }
 
 window.lihatTugasSiswa = function(responseId, tipe) {
