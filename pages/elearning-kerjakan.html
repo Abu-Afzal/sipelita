@@ -11,7 +11,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="../js/cache-manager.js"></script>
+    <!-- ✅ HAPUS: Script cache-manager.js yang menyebabkan 404 -->
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -171,14 +171,15 @@
 </div>
 
 <script>
+// ✅ Firebase Config untuk SIPELITA GURU
 const firebaseConfig = {
-    apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
-    authDomain: "sipelita-digital.firebaseapp.com",
-    databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "sipelita-digital",
-    storageBucket: "sipelita-digital.firebasestorage.app",
-    messagingSenderId: "787840817745",
-    appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+    apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+    authDomain: "sipelita-guru.firebaseapp.com",
+    projectId: "sipelita-guru",
+    storageBucket: "sipelita-guru.firebasestorage.app",
+    messagingSenderId: "595996765157",
+    appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
+    measurementId: "G-ZGT7K2N7L5"
 };
 
 if (!firebase.apps.length) {
@@ -195,6 +196,26 @@ let waktuMulai = null;
 let waktuSelesai = null;
 let sisaWaktu = 0;
 let uploadedImageBase64 = null;
+
+// ✅ SIMPLE CACHE (menggantikan CacheManager yang tidak ada)
+const SimpleCache = {
+    data: {},
+    get: function(key) {
+        const item = this.data[key];
+        if (!item) return undefined;
+        if (Date.now() > item.expiry) {
+            delete this.data[key];
+            return undefined;
+        }
+        return item.value;
+    },
+    set: function(key, value, ttlSeconds) {
+        this.data[key] = {
+            value: value,
+            expiry: Date.now() + (ttlSeconds * 1000)
+        };
+    }
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -217,17 +238,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentSession.maxPercobaan === 1) {
             const siswaId = siswaNama.toLowerCase().replace(/\s+/g, '-');
             const cacheKeyCheck = `check_done_${sessionId}_${siswaId}`;
-            let alreadyDone = CacheManager.get(cacheKeyCheck);
+            let alreadyDone = SimpleCache.get(cacheKeyCheck);
             
             if (alreadyDone === undefined) {
-                console.log('📚 Cek apakah sudah mengerjakan...');
-                // ✅ OPTIMASI 1: Gunakan .doc() langsung, bukan .where(). Ini menghilangkan kebutuhan Composite Index
+                console.log(' Cek apakah sudah mengerjakan...');
                 const docId = `${sessionId}_${siswaId}`;
                 const responseDoc = await db.collection('student_responses').doc(docId).get();
                 
                 alreadyDone = responseDoc.exists;
-                // ✅ OPTIMASI 2: Durasi cache 3600 detik (1 jam), bukan 60 detik
-                CacheManager.set(cacheKeyCheck, alreadyDone, 3600); 
+                SimpleCache.set(cacheKeyCheck, alreadyDone, 3600);
             } else {
                 console.log('✅ Menggunakan cache pengecekan');
             }
@@ -426,7 +445,6 @@ window.submitJawaban = async function() {
         window.onbeforeunload = null;
         
         const siswaId = siswaNama.toLowerCase().replace(/\s+/g, '-');
-        // ✅ OPTIMASI 3: Gunakan ID deterministik untuk mencegah duplikasi jika tombol diklik 2x
         const docId = `${currentSession.id}_${siswaId}`;
         
         await db.collection('student_responses').doc(docId).set({
@@ -442,11 +460,9 @@ window.submitJawaban = async function() {
             waktuMulai: waktuMulai,
             waktuSelesai: waktuSelesai,
             createdAt: firebase.firestore.FieldValue.serverTimestamp() 
-        }, { merge: true }); // merge: true memastikan update, bukan overwrite total jika ada field lain
+        }, { merge: true });
         
-        // Update cache agar jika siswa refresh, dia langsung tahu sudah selesai
-        const cacheKeyCheck = `check_done_${currentSession.id}_${siswaId}`;
-        CacheManager.set(cacheKeyCheck, true, 3600);
+        SimpleCache.set(`check_done_${currentSession.id}_${siswaId}`, true, 3600);
         
         if (timerInterval) clearInterval(timerInterval);
         
@@ -490,10 +506,6 @@ window.onbeforeunload = function() {
     if (Object.keys(jawabanSiswa).length > 0) return "Anda yakin ingin keluar? Jawaban belum dikumpulkan!";
 };
 
-// ==========================================
-// FUNGSI UPLOAD FOTO CATATAN (FIRESTORE ONLY + KOMPRESI)
-// ==========================================
-
 window.handleFileSelect = function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -509,12 +521,10 @@ window.handleFileSelect = function(event) {
         return;
     }
     
-    // ✅ OPTIMASI 4: Kompresi gambar sebelum diubah ke base64
-    compressImage(file, 800, 0.7) // Max lebar 800px, kualitas 70%
+    compressImage(file, 800, 0.7)
         .then(compressedBase64 => {
             uploadedImageBase64 = compressedBase64;
             
-            // Cek ukuran base64 hasil kompresi
             const sizeInBytes = (uploadedImageBase64.length * 3) / 4;
             const sizeInMB = sizeInBytes / (1024 * 1024);
             
@@ -536,7 +546,6 @@ window.handleFileSelect = function(event) {
         });
 };
 
-// Fungsi helper untuk kompresi gambar menggunakan Canvas
 function compressImage(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -577,7 +586,7 @@ window.resetUpload = function() {
 
 window.uploadCatatan = async function() {
     if (!uploadedImageBase64) {
-        alert('⚠️ Silakan pilih foto catatan terlebih dahulu!');
+        alert('️ Silakan pilih foto catatan terlebih dahulu!');
         return;
     }
     
@@ -589,7 +598,6 @@ window.uploadCatatan = async function() {
         const siswaId = siswaNama.toLowerCase().replace(/\s+/g, '-');
         const docId = `${currentSession.id}_${siswaId}`;
         
-        // ✅ Simpan base64 yang sudah dikompresi ke Firestore
         await db.collection('student_notes').doc(docId).set({
             sessionId: currentSession.id,
             siswaId: siswaId,
