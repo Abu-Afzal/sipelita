@@ -448,7 +448,7 @@ window.shareWA = function() {
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 
-// ✅ 4. FUNGSI EXPORT PDF LENGKAP (ADOPSI FORMAT KOP & TTD DARI SISTEM SIG)
+// ✅ 4. FUNGSI EXPORT PDF (DIPERBAIKI - Ambil dari pengaturan_user)
 window.exportPDFLaporan = async function() {
     if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
         alert('Tidak ada data untuk dicetak!');
@@ -473,38 +473,58 @@ window.exportPDFLaporan = async function() {
         const tertinggi = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
         const terendah = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
         const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
-        const dayaSerap = nilaiList.length > 0 ? ((nilaiList.reduce((a, b) => a + b, 0) / (nilaiList.length * 100)) * 100).toFixed(1) : 0;
         
         const kkm = sesi.kkm || 70;
         const tuntas = nilaiList.filter(n => n >= kkm).length;
         const belum = nilaiList.filter(n => n < kkm).length;
         const pctTuntas = nilaiList.length > 0 ? Math.round((tuntas / nilaiList.length) * 100) : 0;
 
-        // Konfigurasi Madrasah
-        const CONFIG_MADRASAH = typeof window.CONFIG_MADRASAH !== 'undefined' ? window.CONFIG_MADRASAH : {
+        // ✅ PENGATURAN MADRASAH - Ambil dari collection pengaturan_user
+        let CONFIG_MADRASAH = {
             kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-            kop2: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
-            kop3: 'MADRASAH ALIYAH NEGERI BANTAENG',
-            alamat: 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng',
-            kota: 'Bantaeng',
-            kepalaMadrasah: '',
-            nipKepala: '',
-            logo: location.origin + '/assets/images/kemenag-app.png'
+            kop2: '',
+            namaMadrasah: '',
+            alamatMadrasah: '',
+            tempat: '',
+            kamadNama: '',
+            kamadNip: ''
         };
 
-        // ✅ KOP SURAT - Format SIG (Persis seperti Analisis Nilai)
-        const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
+        // Ambil dari Firestore collection pengaturan_user
+        if (currentUser && currentUser.email) {
+            try {
+                const pengaturanDoc = await db.collection('pengaturan_user').doc(currentUser.email).get();
+                if (pengaturanDoc.exists) {
+                    const data = pengaturanDoc.data();
+                    CONFIG_MADRASAH = {
+                        kop1: data.kop1 || CONFIG_MADRASAH.kop1,
+                        kop2: data.kop2 || CONFIG_MADRASAH.kop2,
+                        namaMadrasah: data.namaMadrasah || '',
+                        alamatMadrasah: data.alamatMadrasah || '',
+                        tempat: data.tempat || '',
+                        kamadNama: data.kamadNama || '',
+                        kamadNip: data.kamadNip || ''
+                    };
+                    console.log('✅ Pengaturan madrasah berhasil dimuat:', CONFIG_MADRASAH);
+                }
+            } catch (e) {
+                console.warn('Gagal load pengaturan_user:', e);
+            }
+        }
+
+        // ✅ KOP SURAT - Format SIG
         const kopHtml = `
             <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
                 <table style="width:100%; border-collapse:collapse;">
                     <tr>
                         <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-                            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+                            <img src="/assets/images/kemenag-app.png" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
                         </td>
                         <td style="text-align:center; border:none;">
                             <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
-                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
-                            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+                            ${CONFIG_MADRASAH.kop2 ? `<div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>` : ''}
+                            ${CONFIG_MADRASAH.namaMadrasah ? `<div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.namaMadrasah}</div>` : ''}
+                            ${CONFIG_MADRASAH.alamatMadrasah ? `<div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamatMadrasah}</div>` : ''}
                         </td>
                         <td style="width:75px; border:none;"></td>
                     </tr>
@@ -542,60 +562,18 @@ window.exportPDFLaporan = async function() {
             </tr>`;
         }).join('');
 
-        // ✅ BLOK TANDA TANGAN - Format SIG (Mengambil data dari cache allUsers)
-        let rawNipGuru = '';
-        let namaGuruResmi = '';
-        let rawNipKamad = '';
-        let namaKamadResmi = '';
-
-        const cacheKeyUsers = 'users_all';
-        let allUsers = CacheManager.get(cacheKeyUsers);
+        // ✅ BLOK TANDA TANGAN - Format SIG dengan data dari pengaturan_user
+        const kepalaNama = CONFIG_MADRASAH.kamadNama || '................................................';
+        const kepalaNip = CONFIG_MADRASAH.kamadNip ? `NIP. ${CONFIG_MADRASAH.kamadNip}` : 'NIP. ............................................';
         
-        if (!allUsers) {
-            try {
-                const usersSnap = await db.collection('users').get();
-                allUsers = [];
-                usersSnap.forEach(doc => allUsers.push({ id: doc.id, data: doc.data() }));
-                CacheManager.set(cacheKeyUsers, allUsers, 10);
-            } catch (e) { console.warn('Gagal fetch users:', e); }
-        }
-        
-        if (allUsers && allUsers.length > 0) {
-            const currentUserEmail = currentUser ? currentUser.email : '';
-            const currentUserId = currentUser ? currentUser.uid : '';
-            const sesiEmail = sesi.guruEmail || '';
+        // Ambil nama guru dari sesi atau user yang login
+        let guruNama = sesi.guruNama || (currentUser?.displayName) || '................................................';
+        let guruNip = sesi.guruNIP || 'NIP. ............................................';
 
-            allUsers.forEach(item => {
-                const data = item.data;
-                const role = (data.role || '').toString().toLowerCase();
-
-                if (role.includes('kepala') || role.includes('head') || role.includes('kamad')) {
-                    namaKamadResmi = data.namaResmi || data.nama || data.name || '';
-                    rawNipKamad = data.nip || data.NIP || '';
-                }
-
-                const isGuruLogin = (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
-                                    (item.id === currentUserId) ||
-                                    (data.email && data.email.toLowerCase() === sesiEmail.toLowerCase());
-                if (isGuruLogin) {
-                    namaGuruResmi = data.namaResmi || data.nama || data.name || '';
-                    rawNipGuru = data.nip || data.NIP || '';
-                }
-            });
-        }
-
-        // Fallback ke CONFIG_MADRASAH atau data sesi jika kosong
-        if (!namaKamadResmi) namaKamadResmi = CONFIG_MADRASAH.kepalaMadrasah || '................................................';
-        if (!rawNipKamad) rawNipKamad = CONFIG_MADRASAH.nipKepala || 'NIP. ............................................';
-        if (!namaGuruResmi) namaGuruResmi = sesi.guruNama || '................................................';
-        if (!rawNipGuru) rawNipGuru = sesi.guruNIP || 'NIP. ............................................';
-
-        // Format Nama (Menggunakan fungsi formatNamaGelar yang sudah ada)
-        const namaGuruCetak = formatNamaGelar(namaGuruResmi);
-        const namaKamadCetak = formatNamaGelar(namaKamadResmi);
-        const nipGuru = rawNipGuru.startsWith('NIP.') ? rawNipGuru : 'NIP. ' + rawNipGuru;
-        const nipKamad = rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad;
-        const kota = CONFIG_MADRASAH.kota || 'Bantaeng';
+        // Format nama dengan gelar
+        const namaGuruCetak = formatNamaGelar(guruNama);
+        const namaKamadCetak = formatNamaGelar(kepalaNama);
+        const kota = CONFIG_MADRASAH.tempat || 'Bantaeng';
 
         const ttdHtml = `
             <table style="width:100%; margin-top:28px; font-size:12pt;">
@@ -603,14 +581,14 @@ window.exportPDFLaporan = async function() {
                     <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
                         Mengetahui,<br>Kepala Madrasah
                         <div style="height:60px;"></div>
-                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br><b style="font-size:10pt;">${nipKamad}</b>
+                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br><b style="font-size:10pt;">${kepalaNip}</b>
                     </td>
                     <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
                         ${kota}, ${tglSurat}
                         <div style="height:22px;"></div>
                         Guru Mata Pelajaran
                         <div style="height:60px;"></div>
-                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaGuruCetak}</span></u></b><br><b style="font-size:10pt;">${nipGuru}</b>
+                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaGuruCetak}</span></u></b><br><b style="font-size:10pt;">${guruNip}</b>
                     </td>
                 </tr>
             </table>`;
@@ -638,8 +616,6 @@ window.exportPDFLaporan = async function() {
                     <tr><td style="border:none;">Mata Pelajaran</td><td style="border:none;">: <b>${sesi.mataPelajaran || '-'}</b></td></tr>
                     <tr><td style="border:none;">Kelas</td><td style="border:none;">: <b>${sesi.kelasTarget || '-'}</b></td></tr>
                     <tr><td style="border:none;">Tanggal Dibuat</td><td style="border:none;">: <b>${new Date(sesi.createdAt || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</b></td></tr>
-                    <tr><td style="border:none;">Durasi</td><td style="border:none;">: <b>${sesi.durasiMenit > 0 ? sesi.durasiMenit + ' menit' : 'Tanpa batas'}</b></td></tr>
-                    <tr><td style="border:none;">Total Soal</td><td style="border:none;">: <b>${sesi.totalSoal || 0} soal</b></td></tr>
                 </table>
 
                 <div style="font-size:11pt; font-weight:bold; margin:12px 0 8px 0;">STATISTIK HASIL</div>
