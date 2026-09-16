@@ -365,27 +365,7 @@ function renderTabel() {
     }).join('');
 }
 
-function updateStatistik() {
-    const totalSiswaKelas = daftarJawaban.length;
-    
-    // ✅ PERBAIKAN: Hitung SEMUA yang sudah submit (jawaban ATAU catatan)
-    const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
-    
-    // Untuk nilai, hanya yang tipe 'jawaban' yang punya nilai
-    const yangAdaNilai = yangSudah.filter(d => d.tipe === 'jawaban' && d.nilai !== undefined && d.nilai !== null);
-    const nilaiList = yangAdaNilai.map(d => d.nilai);
-    
-    const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
-    const max = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
-    const min = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
-    const lulus = nilaiList.filter(n => n >= 70).length;
-    
-    document.getElementById('statTotal').textContent = `${yangSudah.length} / ${totalSiswaKelas}`;
-    document.getElementById('statRata').textContent = rata;
-    document.getElementById('statMax').textContent = max;
-    document.getElementById('statMin').textContent = min;
-    document.getElementById('statLulus').textContent = `${lulus} (${yangAdaNilai.length > 0 ? Math.round(lulus/yangAdaNilai.length*100) : 0}%)`;
-}
+
 
 window.lihatTugasSiswa = function(responseId, tipe) {
     if (!currentSession) { alert('Data sesi tidak ditemukan!'); return; }
@@ -407,21 +387,206 @@ window.exportExcel = function() {
 
 // ✅ 3. INLINE PDF EXPORT (Tidak lagi bergantung pada file eksternal elearning-pdf.js)
 window.exportPDFLaporan = function() {
-    if (!daftarJawaban || daftarJawaban.length === 0) { alert('Tidak ada data untuk diekspor!'); return; }
-    const printWindow = window.open('', '_blank');
-    const htmlContent = `<!DOCTYPE html><html><head><title>Laporan - ${currentSession.judul}</title>
-    <style>body{font-family:Arial,sans-serif;padding:40px} .header{text-align:center;border-bottom:2px solid #333;padding-bottom:20px;margin-bottom:20px} table{width:100%;border-collapse:collapse;margin-top:20px} th,td{border:1px solid #ddd;padding:8px;text-align:left} th{background:#f2f2f2} .stat-box{display:inline-block;margin:10px;padding:15px;border:1px solid #ccc;border-radius:5px;text-align:center}</style></head><body>
-    <div class="header"><h2>LAPORAN HASIL E-LEARNING</h2><p>${currentSession.judul} | ${currentSession.mataPelajaran} | ${currentSession.kelasTarget}</p></div>
-    <div style="text-align:center;margin-bottom:20px">
-        <div class="stat-box"><strong>Total Siswa:</strong> ${daftarJawaban.length}</div>
-        <div class="stat-box"><strong>Sudah Mengerjakan:</strong> ${daftarJawaban.filter(d => d.sudahKirim).length}</div>
-        <div class="stat-box"><strong>Rata-rata:</strong> ${document.getElementById('statRata').textContent}</div>
+    if (!currentSession || daftarJawaban.length === 0) {
+        alert('Belum ada data untuk dicetak!');
+        return;
+    }
+
+    // 1. Persiapan Data
+    const tanggal = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const tanggalPendek = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    const totalSiswa = daftarJawaban.length;
+    const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban');
+    const nilaiList = yangSudah.map(d => d.nilai).filter(n => n !== undefined && n !== null);
+    
+    const rataRata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
+    const tertinggi = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
+    const terendah = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
+    const lulus = nilaiList.filter(n => n >= 70).length;
+    const persenLulus = yangSudah.length > 0 ? Math.round((lulus / yangSudah.length) * 100) : 0;
+
+    // 2. Generate Baris Tabel Siswa
+    let tabelRows = '';
+    daftarJawaban.forEach((d, idx) => {
+        const statusText = d.sudahKirim ? 'Selesai' : 'Belum';
+        const waktuText = (d.sudahKirim && d.waktuSelesai && d.waktuMulai) ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) + ' mnt' : '-';
+        
+        tabelRows += `
+            <tr>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${idx + 1}</td>
+                <td style="border: 1px solid black; padding: 6px;">${d.siswaNama}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${d.siswaKelas || '-'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${d.sudahKirim ? (d.totalBenar || '-') : '-'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${d.sudahKirim ? (d.totalSalah || '-') : '-'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold;">${d.sudahKirim ? (d.nilai || '-') : '-'}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${waktuText}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${statusText}</td>
+            </tr>
+        `;
+    });
+
+    // 3. Template HTML Laporan Resmi (Kop Surat & Tanda Tangan)
+    const htmlLaporan = `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan E-Learning - ${currentSession.judul}</title>
+    <style>
+        @page { size: A4 portrait; margin: 2cm 2cm 2cm 2cm; }
+        body { font-family: 'Times New Roman', Times, serif; color: #000; line-height: 1.3; font-size: 12pt; }
+        
+        /* KOP SURAT */
+        .kop-surat { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; }
+        .kop-surat h2 { margin: 2px 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+        .kop-surat p { margin: 2px 0; font-size: 11pt; }
+        .kop-surat h1 { margin: 10px 0 0 0; font-size: 14pt; text-decoration: underline; font-weight: bold; }
+
+        /* INFO SESI */
+        .info-sesi { margin-bottom: 20px; font-size: 12pt; }
+        .info-sesi table { width: 100%; border: none; }
+        .info-sesi td { padding: 2px 0; border: none; vertical-align: top; }
+        .info-sesi td:first-child { width: 160px; }
+
+        /* STATISTIK */
+        .statistik-box { margin-bottom: 20px; }
+        .statistik-box h3 { margin: 0 0 10px 0; font-size: 12pt; font-weight: bold; text-transform: uppercase; }
+        .stat-table { width: 100%; border-collapse: collapse; font-size: 12pt; }
+        .stat-table td { border: 1px solid black; padding: 8px; }
+        .stat-table b { font-weight: bold; }
+
+        /* TABEL NILAI */
+        .tabel-nilai { margin-bottom: 30px; }
+        .tabel-nilai h3 { margin: 0 0 10px 0; font-size: 12pt; font-weight: bold; text-transform: uppercase; }
+        .main-table { width: 100%; border-collapse: collapse; font-size: 11pt; }
+        .main-table th { border: 1px solid black; padding: 8px; background-color: #f0f0f0; font-weight: bold; text-align: center; }
+        
+        /* TANDA TANGAN */
+        .tanda-tangan { display: flex; justify-content: space-between; margin-top: 40px; font-size: 12pt; }
+        .ttd-box { width: 45%; text-align: center; }
+        .ttd-box p { margin: 2px 0; }
+        .ttd-space { height: 80px; }
+        .ttd-nama { font-weight: bold; text-decoration: underline; }
+
+        /* FOOTER */
+        .footer { margin-top: 40px; text-align: center; font-size: 10pt; font-style: italic; border-top: 1px solid #ccc; padding-top: 10px; }
+
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- KOP SURAT -->
+    <div class="kop-surat">
+        <h2>KEMENTERIAN AGAMA REPUBLIK INDONESIA</h2>
+        <h2>KEMENTERIAN AGAMA KABUPATEN BANTAENG<br>MADRASAH ALIYAH NEGERI BANTAENG</h2>
+        <p>Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng</p>
+        <h1>LAPORAN HASIL PEMBELAJARAN DARING E-LEARNING SIPELITA</h1>
     </div>
-    <table><thead><tr><th>No</th><th>Nama Siswa</th><th>Kelas</th><th>Benar</th><th>Salah</th><th>Nilai</th><th>Status</th></tr></thead><tbody>
-    ${daftarJawaban.map((d, idx) => `<tr><td>${idx + 1}</td><td>${d.siswaNama}</td><td>${d.siswaKelas || '-'}</td><td>${d.totalBenar || '-'}</td><td>${d.totalSalah || '-'}</td><td><strong>${d.nilai || '-'}</strong></td><td>${d.sudahKirim ? 'Selesai' : 'Belum'}</td></tr>`).join('')}
-    </tbody></table><script>window.onload=function(){window.print()}<\/script></body></html>`;
-    printWindow.document.write(htmlContent);
+
+    <!-- INFO SESI -->
+    <div class="info-sesi">
+        <table>
+            <tr><td>Judul Sesi</td><td>: ${currentSession.judul || '-'}</td></tr>
+            <tr><td>Mata Pelajaran</td><td>: ${currentSession.mataPelajaran || '-'}</td></tr>
+            <tr><td>Kelas</td><td>: ${currentSession.kelasTarget || '-'}</td></tr>
+            <tr><td>Tanggal Dibuat</td><td>: ${tanggal}</td></tr>
+            <tr><td>Durasi</td><td>: ${currentSession.durasiMenit > 0 ? currentSession.durasiMenit + ' menit' : 'Tanpa batas'}</td></tr>
+            <tr><td>Total Soal</td><td>: ${currentSession.totalSoal || 0} soal</td></tr>
+        </table>
+    </div>
+
+    <!-- STATISTIK HASIL -->
+    <div class="statistik-box">
+        <h3>STATISTIK HASIL</h3>
+        <table class="stat-table">
+            <tr>
+                <td style="width: 25%;"><b>Total Siswa</b></td>
+                <td style="width: 25%;">${totalSiswa} siswa</td>
+                <td style="width: 25%;"><b>Sudah Mengerjakan</b></td>
+                <td style="width: 25%;">${yangSudah.length} siswa</td>
+            </tr>
+            <tr>
+                <td><b>Rata-rata Nilai</b></td>
+                <td>${rataRata}</td>
+                <td><b>Nilai Tertinggi</b></td>
+                <td>${tertinggi}</td>
+            </tr>
+            <tr>
+                <td><b>Nilai Terendah</b></td>
+                <td>${terendah}</td>
+                <td><b>Lulus (≥70)</b></td>
+                <td>${lulus} siswa (${persenLulus}%)</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- DAFTAR NILAI SISWA -->
+    <div class="tabel-nilai">
+        <h3>DAFTAR NILAI SISWA</h3>
+        <table class="main-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 30%;">Nama Siswa</th>
+                    <th style="width: 10%;">Kelas</th>
+                    <th style="width: 10%;">Benar</th>
+                    <th style="width: 10%;">Salah</th>
+                    <th style="width: 10%;">Nilai</th>
+                    <th style="width: 10%;">Waktu</th>
+                    <th style="width: 15%;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tabelRows}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TANDA TANGAN (SIG) -->
+    <div class="tanda-tangan">
+        <div class="ttd-box">
+            <p>Mengetahui,</p>
+            <p>Kepala Madrasah</p>
+            <div class="ttd-space"></div>
+            <!-- Ganti dengan Nama Kepala Madrasah dari Database jika ada -->
+            <p class="ttd-nama">MUHAMMAD ARIF PITHER, S.Ag.,MM,M.Pd</p>
+            <p>NIP. 19710930 200710 1 001</p>
+        </div>
+        <div class="ttd-box">
+            <p>Bantaeng, ${tanggalPendek}</p>
+            <p>Guru Mata Pelajaran</p>
+            <div class="ttd-space"></div>
+            <p class="ttd-nama">${(currentSession.guruNama || 'Guru').toUpperCase()}</p>
+            <p>NIP. ${currentSession.guruNip || '-'}</p>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        Laporan ini digenerate otomatis oleh Sistem E-Learning SIPELITA- MAN Bantaeng
+    </div>
+
+    <div class="no-print" style="margin-top: 30px; text-align: center;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">🖨️ Cetak / Simpan PDF</button>
+    </div>
+
+</body>
+</html>
+    `;
+
+    // Buka window print
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlLaporan);
     printWindow.document.close();
+    
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
 };
 
 window.shareWA = function() {
