@@ -179,9 +179,9 @@ const auth = firebase.auth();
 
 let currentSession = null;
 let daftarJawaban = [];
-let currentUser = null; // ✅ GLOBAL VARIABLE UNTUK AKSES DI FUNGSI PDF
+let currentUser = null;
 
-// ✅ 2. CACHE MANAGER (Inline, format MAN Bantaeng)
+// ✅ 2. CACHE MANAGER
 const CacheManager = {
     memory: new Map(),
     storage: {
@@ -228,9 +228,7 @@ function rapikanGelar(token) {
     const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
     if (found) return found + (adaTitikAkhir ? '.' : '');
     if (clean.includes('.')) {
-        return clean.split('.').map(seg =>
-            seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()
-        ).join('.');
+        return clean.split('.').map(seg => seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()).join('.');
     }
     return clean.length <= 2 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
 }
@@ -256,7 +254,7 @@ function formatNamaGelar(text) {
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
-            currentUser = user; // ✅ SIMPAN USER KE VARIABLE GLOBAL
+            currentUser = user;
             console.log('✅ User terautentikasi:', user.email);
             loadHasilSesi();
         } else {
@@ -409,11 +407,7 @@ function renderTabel() {
 
 function updateStatistik() {
     const totalSiswaKelas = daftarJawaban.length;
-    
-    // ✅ PERBAIKAN: Hitung SEMUA yang sudah submit (jawaban ATAU catatan)
     const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
-    
-    // Untuk nilai, hanya yang tipe 'jawaban' yang punya data nilai
     const yangAdaNilai = yangSudah.filter(d => d.tipe === 'jawaban' && d.nilai !== undefined && d.nilai !== null);
     const nilaiList = yangAdaNilai.map(d => d.nilai);
     
@@ -454,7 +448,7 @@ window.shareWA = function() {
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 
-// ✅ 4. FUNGSI EXPORT PDF LENGKAP (DIPERBAIKI)
+// ✅ 4. FUNGSI EXPORT PDF LENGKAP (ADOPSI FORMAT KOP & TTD DARI SISTEM SIG)
 window.exportPDFLaporan = async function() {
     if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
         alert('Tidak ada data untuk dicetak!');
@@ -475,43 +469,47 @@ window.exportPDFLaporan = async function() {
         // Data Statistik
         const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
         const nilaiList = yangSudah.filter(d => d.tipe === 'jawaban').map(d => d.nilai).filter(n => n !== undefined && n !== null);
+        
+        const tertinggi = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
+        const terendah = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
         const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
-        const maxNilai = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
-        const minNilai = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
+        const dayaSerap = nilaiList.length > 0 ? ((nilaiList.reduce((a, b) => a + b, 0) / (nilaiList.length * 100)) * 100).toFixed(1) : 0;
+        
         const kkm = sesi.kkm || 70;
-        const lulus = nilaiList.filter(n => n >= kkm).length;
-        const pctLulus = yangSudah.filter(d => d.tipe === 'jawaban').length > 0 ? Math.round(lulus / yangSudah.filter(d => d.tipe === 'jawaban').length * 100) : 0;
+        const tuntas = nilaiList.filter(n => n >= kkm).length;
+        const belum = nilaiList.filter(n => n < kkm).length;
+        const pctTuntas = nilaiList.length > 0 ? Math.round((tuntas / nilaiList.length) * 100) : 0;
 
-        // ✅ KONFIGURASI MADRASAH - Prioritas dari CONFIG_MADRASAH atau fallback
+        // Konfigurasi Madrasah
         const CONFIG_MADRASAH = typeof window.CONFIG_MADRASAH !== 'undefined' ? window.CONFIG_MADRASAH : {
             kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
             kop2: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
             kop3: 'MADRASAH ALIYAH NEGERI BANTAENG',
             alamat: 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng',
             kota: 'Bantaeng',
-            logoData: location.origin + '/assets/images/kemenag-app.png',
-            logoKananData: location.origin + '/assets/images/manbtg-app.png',
             kepalaMadrasah: '',
-            nipKepala: ''
+            nipKepala: '',
+            logo: location.origin + '/assets/images/kemenag-app.png'
         };
 
+        // ✅ KOP SURAT - Format SIG (Persis seperti Analisis Nilai)
         const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
-  const kopHtml = `
-    <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
-      <table style="width:100%; border-collapse:collapse;">
-        <tr>
-          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
-          </td>
-          <td style="text-align:center; border:none;">
-            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
-            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
-            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
-          </td>
-          <td style="width:75px; border:none;"></td>
-        </tr>
-      </table>
-    </div>`;
+        const kopHtml = `
+            <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                        <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+                            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+                        </td>
+                        <td style="text-align:center; border:none;">
+                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
+                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
+                            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+                        </td>
+                        <td style="width:75px; border:none;"></td>
+                    </tr>
+                </table>
+            </div>`;
 
         const sorted = [...daftarJawaban].sort((a, b) => {
             if (a.sudahKirim && !b.sudahKirim) return -1;
@@ -528,8 +526,6 @@ window.exportPDFLaporan = async function() {
                 ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) + ' mnt' 
                 : '-';
             const status = d.sudahKirim ? (d.tipe === 'catatan' ? 'Catatan' : 'Selesai') : 'Belum';
-            
-            // ✅ HANDLE UNDEFINED - Tampilkan "-" jika data tidak ada
             const benar = d.sudahKirim && d.totalBenar !== undefined ? d.totalBenar : '-';
             const salah = d.sudahKirim && d.totalSalah !== undefined ? d.totalSalah : '-';
             const nilai = d.sudahKirim && d.nilai !== undefined ? d.nilai : '-';
@@ -546,114 +542,78 @@ window.exportPDFLaporan = async function() {
             </tr>`;
         }).join('');
 
-        // ✅ BLOK TANDA TANGAN - Dengan perbaikan untuk Kepala Madrasah
-        let kepalaNama = CONFIG_MADRASAH.kepalaMadrasah || '................................................';
-        let kepalaNip = CONFIG_MADRASAH.nipKepala || 'NIP. ............................................';
-        let guruNama = '................................................';
-        let guruNip = 'NIP. ............................................';
+        // ✅ BLOK TANDA TANGAN - Format SIG (Mengambil data dari cache allUsers)
+        let rawNipGuru = '';
+        let namaGuruResmi = '';
+        let rawNipKamad = '';
+        let namaKamadResmi = '';
 
-        // ✅ PRIORITAS 1: Ambil dari cache/database users
         const cacheKeyUsers = 'users_all';
         let allUsers = CacheManager.get(cacheKeyUsers);
         
         if (!allUsers) {
-            console.log('📚 Fetch semua users dari Firestore...');
             try {
                 const usersSnap = await db.collection('users').get();
                 allUsers = [];
-                usersSnap.forEach(doc => {
-                    allUsers.push({ id: doc.id, data: doc.data() });
-                });
-                CacheManager.set(cacheKeyUsers, allUsers, 10); // Cache 10 menit
-                console.log('✅ Cache users disimpan');
-            } catch (e) {
-                console.warn('Gagal fetch users:', e);
-            }
-        } else {
-            console.log('✅ Menggunakan cache users (hemat reads!)');
+                usersSnap.forEach(doc => allUsers.push({ id: doc.id, data: doc.data() }));
+                CacheManager.set(cacheKeyUsers, allUsers, 10);
+            } catch (e) { console.warn('Gagal fetch users:', e); }
         }
         
         if (allUsers && allUsers.length > 0) {
             const currentUserEmail = currentUser ? currentUser.email : '';
             const currentUserId = currentUser ? currentUser.uid : '';
             const sesiEmail = sesi.guruEmail || '';
-            
+
             allUsers.forEach(item => {
                 const data = item.data;
                 const role = (data.role || '').toString().toLowerCase();
-                
-                // ✅ Cari Kepala Madrasah
+
                 if (role.includes('kepala') || role.includes('head') || role.includes('kamad')) {
-                    const namaKamad = data.namaResmi || data.nama || data.name || data.displayName || '';
-                    if (namaKamad) kepalaNama = namaKamad;
-                    
-                    const rawNip = data.nip || data.NIP || '';
-                    if (rawNip) {
-                        kepalaNip = rawNip.startsWith('NIP.') ? rawNip : 'NIP. ' + rawNip;
-                    }
+                    namaKamadResmi = data.namaResmi || data.nama || data.name || '';
+                    rawNipKamad = data.nip || data.NIP || '';
                 }
-                
-                // ✅ Cari Guru yang login
-                const isGuruLogin = 
-                    (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
-                    (item.id === currentUserId) ||
-                    (data.email && data.email.toLowerCase() === sesiEmail.toLowerCase());
-                
+
+                const isGuruLogin = (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
+                                    (item.id === currentUserId) ||
+                                    (data.email && data.email.toLowerCase() === sesiEmail.toLowerCase());
                 if (isGuruLogin) {
-                    const namaGuruDb = data.namaResmi || data.nama || data.name || data.displayName || '';
-                    if (namaGuruDb) guruNama = namaGuruDb;
-                    
-                    const rawGuruNip = data.nip || data.NIP || '';
-                    if (rawGuruNip) {
-                        guruNip = rawGuruNip.startsWith('NIP.') ? rawGuruNip : 'NIP. ' + rawGuruNip;
-                    }
+                    namaGuruResmi = data.namaResmi || data.nama || data.name || '';
+                    rawNipGuru = data.nip || data.NIP || '';
                 }
             });
         }
 
-        // ✅ FALLBACK 2: Jika masih kosong, gunakan data dari sesi
-        if (guruNama === '................................................') {
-            if (sesi.guruNama) guruNama = sesi.guruNama;
-            if (sesi.guruNIP) {
-                guruNip = sesi.guruNIP.startsWith('NIP.') ? sesi.guruNIP : 'NIP. ' + sesi.guruNIP;
-            }
-        }
+        // Fallback ke CONFIG_MADRASAH atau data sesi jika kosong
+        if (!namaKamadResmi) namaKamadResmi = CONFIG_MADRASAH.kepalaMadrasah || '................................................';
+        if (!rawNipKamad) rawNipKamad = CONFIG_MADRASAH.nipKepala || 'NIP. ............................................';
+        if (!namaGuruResmi) namaGuruResmi = sesi.guruNama || '................................................';
+        if (!rawNipGuru) rawNipGuru = sesi.guruNIP || 'NIP. ............................................';
 
-        // ✅ FALLBACK 3: Untuk Kepala Madrasah, coba ambil dari CONFIG jika masih kosong
-        if (kepalaNama === '................................................') {
-            if (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.kepalaMadrasah) {
-                kepalaNama = CONFIG_MADRASAH.kepalaMadrasah;
-            }
-        }
-        if (kepalaNip === 'NIP. ............................................') {
-            if (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.nipKepala) {
-                kepalaNip = CONFIG_MADRASAH.nipKepala;
-            }
-        }
-
-        // ✅ FORMAT NAMA DENGAN GELAR
-        kepalaNama = formatNamaGelar(kepalaNama);
-        guruNama = formatNamaGelar(guruNama);
-        
+        // Format Nama (Menggunakan fungsi formatNamaGelar yang sudah ada)
+        const namaGuruCetak = formatNamaGelar(namaGuruResmi);
+        const namaKamadCetak = formatNamaGelar(namaKamadResmi);
+        const nipGuru = rawNipGuru.startsWith('NIP.') ? rawNipGuru : 'NIP. ' + rawNipGuru;
+        const nipKamad = rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad;
         const kota = CONFIG_MADRASAH.kota || 'Bantaeng';
 
         const ttdHtml = `
-    <table style="width:100%; margin-top:28px; font-size:12pt;">
-      <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
-          Mengetahui,<br>Kepala Madrasah
-          <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt; white-space:nowrap;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, FORMAT_NAMA.kepala)}</span></u></b><br><b style="font-size:10pt;">${CONFIG_MADRASAH.nipKepala}</b>
-        </td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
-          ${CONFIG_MADRASAH.kota}, ${tglSurat}
-          <div style="height:22px;"></div>
-          Guru Mata Pelajaran
-          <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt; white-space:nowrap;">${namaGuruCetak}</span></u></b><br><b style="font-size:10pt;">${nipGuru}</b>
-        </td>
-      </tr>
-    </table>`;
+            <table style="width:100%; margin-top:28px; font-size:12pt;">
+                <tr>
+                    <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
+                        Mengetahui,<br>Kepala Madrasah
+                        <div style="height:60px;"></div>
+                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br><b style="font-size:10pt;">${nipKamad}</b>
+                    </td>
+                    <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+                        ${kota}, ${tglSurat}
+                        <div style="height:22px;"></div>
+                        Guru Mata Pelajaran
+                        <div style="height:60px;"></div>
+                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaGuruCetak}</span></u></b><br><b style="font-size:10pt;">${nipGuru}</b>
+                    </td>
+                </tr>
+            </table>`;
 
         // GABUNGKAN KE HTML PRINT WINDOW
         const printWindow = window.open('', '_blank');
@@ -662,10 +622,7 @@ window.exportPDFLaporan = async function() {
             <head>
                 <title>Laporan E-Learning - ${sesi.kelasTarget || 'Kelas'}</title>
                 <style>
-                    @media print {
-                        body { margin: 0; padding: 20px; }
-                        .no-print { display: none; }
-                    }
+                    @media print { body { margin: 0; padding: 20px; } .no-print { display: none; } }
                 </style>
             </head>
             <body style="font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000;">
@@ -697,13 +654,13 @@ window.exportPDFLaporan = async function() {
                         <td style="${cellStyle}">Rata-rata Nilai</td>
                         <td style="${cellStyle} text-align:center; font-weight:bold;">${rata}</td>
                         <td style="${cellStyle}">Nilai Tertinggi</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${maxNilai}</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${tertinggi}</td>
                     </tr>
                     <tr>
                         <td style="${cellStyle}">Nilai Terendah</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${minNilai}</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${terendah}</td>
                         <td style="${cellStyle}">Lulus (≥${kkm})</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${lulus} siswa (${pctLulus}%)</td>
+                        <td style="${cellStyle} text-align:center; font-weight:bold;">${tuntas} siswa (${pctTuntas}%)</td>
                     </tr>
                 </table>
 
