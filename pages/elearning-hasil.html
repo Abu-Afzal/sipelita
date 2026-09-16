@@ -454,7 +454,7 @@ window.shareWA = function() {
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 
-// ✅ 4. FUNGSI EXPORT PDF LENGKAP (FORMAT MAN BANTAENG)
+// ✅ 4. FUNGSI EXPORT PDF LENGKAP (DIPERBAIKI)
 window.exportPDFLaporan = async function() {
     if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
         alert('Tidak ada data untuk dicetak!');
@@ -474,15 +474,15 @@ window.exportPDFLaporan = async function() {
         
         // Data Statistik
         const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
-        const nilaiList = yangSudah.map(d => d.nilai).filter(n => n !== undefined && n !== null);
+        const nilaiList = yangSudah.filter(d => d.tipe === 'jawaban').map(d => d.nilai).filter(n => n !== undefined && n !== null);
         const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
         const maxNilai = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
         const minNilai = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
         const kkm = sesi.kkm || 70;
         const lulus = nilaiList.filter(n => n >= kkm).length;
-        const pctLulus = yangSudah.length > 0 ? Math.round(lulus / yangSudah.length * 100) : 0;
+        const pctLulus = yangSudah.filter(d => d.tipe === 'jawaban').length > 0 ? Math.round(lulus / yangSudah.filter(d => d.tipe === 'jawaban').length * 100) : 0;
 
-        // Konfigurasi Madrasah (Fallback aman)
+        // ✅ KONFIGURASI MADRASAH - Prioritas dari CONFIG_MADRASAH atau fallback
         const CONFIG_MADRASAH = typeof window.CONFIG_MADRASAH !== 'undefined' ? window.CONFIG_MADRASAH : {
             kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
             kop2: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
@@ -490,7 +490,9 @@ window.exportPDFLaporan = async function() {
             alamat: 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng',
             kota: 'Bantaeng',
             logoData: location.origin + '/assets/images/kemenag-app.png',
-            logoKananData: location.origin + '/assets/images/manbtg-app.png'
+            logoKananData: location.origin + '/assets/images/manbtg-app.png',
+            kepalaMadrasah: '',
+            nipKepala: ''
         };
 
         const logoKop = CONFIG_MADRASAH.logoData || (location.origin + '/assets/images/kemenag-app.png');
@@ -504,10 +506,10 @@ window.exportPDFLaporan = async function() {
                             <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
                         </td>
                         <td style="text-align:center; border:none;">
-                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
-                            <div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
-                            <div style="font-size:11pt; font-weight:bold;">${CONFIG_MADRASAH.kop3}</div>
-                            <div style="font-size:9pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1 || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA'}</div>
+                            <div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2 || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG'}</div>
+                            <div style="font-size:11pt; font-weight:bold;">${CONFIG_MADRASAH.kop3 || 'MADRASAH ALIYAH NEGERI BANTAENG'}</div>
+                            <div style="font-size:9pt; font-style:italic;">${CONFIG_MADRASAH.alamat || 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng'}</div>
                         </td>
                         <td style="width:90px; text-align:center; vertical-align:middle; border:none;">
                             ${logoKananUrl ? `<img src="${logoKananUrl}" style="width:85px; height:auto; max-height:75px;" onerror="this.style.visibility='hidden'">` : ''}
@@ -532,24 +534,30 @@ window.exportPDFLaporan = async function() {
                 : '-';
             const status = d.sudahKirim ? (d.tipe === 'catatan' ? 'Catatan' : 'Selesai') : 'Belum';
             
+            // ✅ HANDLE UNDEFINED - Tampilkan "-" jika data tidak ada
+            const benar = d.sudahKirim && d.totalBenar !== undefined ? d.totalBenar : '-';
+            const salah = d.sudahKirim && d.totalSalah !== undefined ? d.totalSalah : '-';
+            const nilai = d.sudahKirim && d.nilai !== undefined ? d.nilai : '-';
+            
             return `<tr>
                 <td style="${cellStyle} text-align:center;">${i + 1}</td>
                 <td style="${cellStyle}">${d.siswaNama}</td>
-                <td style="${cellStyle} text-align:center;">${d.siswaKelas}</td>
-                <td style="${cellStyle} text-align:center;">${d.sudahKirim ? d.totalBenar : '-'}</td>
-                <td style="${cellStyle} text-align:center;">${d.sudahKirim ? d.totalSalah : '-'}</td>
-                <td style="${cellStyle} text-align:center; font-weight:bold;">${d.sudahKirim ? d.nilai : '-'}</td>
+                <td style="${cellStyle} text-align:center;">${d.siswaKelas || '-'}</td>
+                <td style="${cellStyle} text-align:center;">${benar}</td>
+                <td style="${cellStyle} text-align:center;">${salah}</td>
+                <td style="${cellStyle} text-align:center; font-weight:bold;">${nilai}</td>
                 <td style="${cellStyle} text-align:center;">${durasi}</td>
                 <td style="${cellStyle} text-align:center;">${status}</td>
             </tr>`;
         }).join('');
 
-        // BLOK TANDA TANGAN (Dengan Cache)
-        let kepalaNama = '................................................';
-        let kepalaNip = 'NIP. ............................................';
+        // ✅ BLOK TANDA TANGAN - Dengan perbaikan untuk Kepala Madrasah
+        let kepalaNama = CONFIG_MADRASAH.kepalaMadrasah || '................................................';
+        let kepalaNip = CONFIG_MADRASAH.nipKepala || 'NIP. ............................................';
         let guruNama = '................................................';
         let guruNip = 'NIP. ............................................';
 
+        // ✅ PRIORITAS 1: Ambil dari cache/database users
         const cacheKeyUsers = 'users_all';
         let allUsers = CacheManager.get(cacheKeyUsers);
         
@@ -570,7 +578,7 @@ window.exportPDFLaporan = async function() {
             console.log('✅ Menggunakan cache users (hemat reads!)');
         }
         
-        if (allUsers) {
+        if (allUsers && allUsers.length > 0) {
             const currentUserEmail = currentUser ? currentUser.email : '';
             const currentUserId = currentUser ? currentUser.uid : '';
             const sesiEmail = sesi.guruEmail || '';
@@ -579,6 +587,7 @@ window.exportPDFLaporan = async function() {
                 const data = item.data;
                 const role = (data.role || '').toString().toLowerCase();
                 
+                // ✅ Cari Kepala Madrasah
                 if (role.includes('kepala') || role.includes('head') || role.includes('kamad')) {
                     const namaKamad = data.namaResmi || data.nama || data.name || data.displayName || '';
                     if (namaKamad) kepalaNama = namaKamad;
@@ -589,6 +598,7 @@ window.exportPDFLaporan = async function() {
                     }
                 }
                 
+                // ✅ Cari Guru yang login
                 const isGuruLogin = 
                     (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
                     (item.id === currentUserId) ||
@@ -606,7 +616,7 @@ window.exportPDFLaporan = async function() {
             });
         }
 
-        // Fallback ke data sesi
+        // ✅ FALLBACK 2: Jika masih kosong, gunakan data dari sesi
         if (guruNama === '................................................') {
             if (sesi.guruNama) guruNama = sesi.guruNama;
             if (sesi.guruNIP) {
@@ -614,15 +624,19 @@ window.exportPDFLaporan = async function() {
             }
         }
 
-        // Fallback ke CONFIG_MADRASAH untuk Kepala
+        // ✅ FALLBACK 3: Untuk Kepala Madrasah, coba ambil dari CONFIG jika masih kosong
         if (kepalaNama === '................................................') {
-            kepalaNama = CONFIG_MADRASAH.kepalaMadrasah || kepalaNama;
-            kepalaNip = CONFIG_MADRASAH.nipKepala || kepalaNip;
-            if (kepalaNip && !kepalaNip.startsWith('NIP.')) {
-                kepalaNip = 'NIP. ' + kepalaNip;
+            if (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.kepalaMadrasah) {
+                kepalaNama = CONFIG_MADRASAH.kepalaMadrasah;
+            }
+        }
+        if (kepalaNip === 'NIP. ............................................') {
+            if (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.nipKepala) {
+                kepalaNip = CONFIG_MADRASAH.nipKepala;
             }
         }
 
+        // ✅ FORMAT NAMA DENGAN GELAR
         kepalaNama = formatNamaGelar(kepalaNama);
         guruNama = formatNamaGelar(guruNama);
         
@@ -652,6 +666,12 @@ window.exportPDFLaporan = async function() {
             <html>
             <head>
                 <title>Laporan E-Learning - ${sesi.kelasTarget || 'Kelas'}</title>
+                <style>
+                    @media print {
+                        body { margin: 0; padding: 20px; }
+                        .no-print { display: none; }
+                    }
+                </style>
             </head>
             <body style="font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000;">
                 ${kopHtml}
