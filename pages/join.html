@@ -20,9 +20,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     
-    <!-- Cache Manager -->
-    <script src="../js/cache-manager.js"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -100,7 +97,6 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
-        /* Search Container */
         .search-container {
             position: relative;
         }
@@ -154,6 +150,21 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover {
+            background: #cbd5e1;
         }
         
         .alert {
@@ -239,8 +250,7 @@
                 <small style="color: #64748b;">
                     Ketik minimal 2 huruf sesuai nama di SIPENA
                 </small>
-                <button type="button" class="btn-sm" onclick="forceReloadSiswa()" id="btnRefreshSiswa" 
-                    style="padding: 4px 10px; border: none; border-radius: 4px; background: #e2e8f0; color: #475569; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                <button type="button" class="btn-sm" onclick="forceReloadSiswa()" id="btnRefreshSiswa">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -254,7 +264,7 @@
 </div>
 
 <script>
-// Firebase Config untuk SIPELITA GURU (Versi Terbaru & Akurat)
+// Firebase Config untuk SIPELITA GURU
 const firebaseConfig = {
   apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
   authDomain: "sipelita-guru.firebaseapp.com",
@@ -352,8 +362,6 @@ async function loadSiswaList() {
         return;
     }
 
-    const cacheKey = `siswa_list_${currentSession.kelasSipenaId}`;
-    
     console.log('🔍 Mengambil data siswa REAL-TIME...');
     try {
         // ✅ BYPASS CACHE - Ambil langsung dari server
@@ -367,11 +375,9 @@ async function loadSiswaList() {
             return data.student_name || data.nama || data.name || 'Tanpa Nama';
         });
         
-        // Simpan ke cache dengan durasi pendek (1 menit)
-        CacheManager.set(cacheKey, localSiswaList, 60);
         console.log(`✅ Berhasil memuat ${localSiswaList.length} siswa.`);
     } catch (error) {
-        console.error('❌ Gagal memuat daftar siswa:', error);
+        console.error(' Gagal memuat daftar siswa:', error);
         showAlert('Gagal memuat daftar siswa. Klik tombol Refresh.', 'error');
     }
 }
@@ -382,7 +388,7 @@ function setupPencarianSiswa() {
     
     if (localSiswaList.length === 0) {
         searchInput.disabled = true;
-        showAlert('⚠️ Tidak ada data siswa. Klik Refresh.', 'error');
+        showAlert('️ Tidak ada data siswa. Klik Refresh.', 'error');
         return;
     }
     
@@ -463,9 +469,6 @@ window.forceReloadSiswa = async function() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat...';
     
     try {
-        const cacheKey = `siswa_list_${currentSession.kelasSipenaId}`;
-        CacheManager.remove(cacheKey);
-        
         await loadSiswaList();
         
         document.getElementById('searchNama').value = '';
@@ -491,7 +494,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ✅ MULAI MENGERJAKAN
+// ✅ MULAI MENGERJAKAN (TANPA CACHEMANAGER)
 window.mulaiMengerjakan = async function() {
     if (!selectedSiswa) {
         showAlert('Pilih nama Anda dari daftar!', 'error');
@@ -504,21 +507,15 @@ window.mulaiMengerjakan = async function() {
     
     try {
         const siswaId = selectedSiswa.toLowerCase().replace(/\s+/g, '-');
-        const cacheKeyCheck = `check_done_${currentSession.id}_${siswaId}`;
-        let alreadyDone = CacheManager.get(cacheKeyCheck);
         
-        if (alreadyDone === undefined) {
-            const existing = await db.collection('student_responses')
-                .where('sessionId', '==', currentSession.id)
-                .where('siswaId', '==', siswaId)
-                .limit(1)
-                .get();
-            
-            alreadyDone = !existing.empty;
-            CacheManager.set(cacheKeyCheck, alreadyDone, 3600);
-        }
+        // Cek apakah sudah mengerjakan (tanpa cache, langsung query ke DB)
+        const existing = await db.collection('student_responses')
+            .where('sessionId', '==', currentSession.id)
+            .where('siswaId', '==', siswaId)
+            .limit(1)
+            .get();
         
-        if (alreadyDone && currentSession.maxPercobaan === 1) {
+        if (!existing.empty && currentSession.maxPercobaan === 1) {
             showAlert('Anda sudah mengerjakan sesi ini!', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-play"></i> Mulai Mengerjakan';
