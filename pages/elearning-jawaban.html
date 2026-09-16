@@ -9,358 +9,68 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <!-- âœ… OPTIMASI: Menambahkan Cache Manager untuk mencegah Read Amplification -->
-    <script src="../js/cache-manager.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg: #f1f5f9;
-            --card-bg: #ffffff;
-            --text: #1e293b;
-            --text-light: #64748b;
-            --border: #e2e8f0;
-        }
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 16px 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .brand h1 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-        
-        .brand p {
-            font-size: 0.8rem;
-            opacity: 0.9;
-        }
-        
-        .back-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.3s;
-        }
-        
-        .back-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .card {
-            background: var(--card-bg);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            margin-bottom: 16px;
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--border);
-        }
-        
-        .card-header h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        
-        .info-box {
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 3px solid var(--primary);
-        }
-        
-        .info-box .label {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            margin-bottom: 4px;
-        }
-        
-        .info-box .value {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-        
-        .nilai-display {
-            text-align: center;
-            padding: 24px;
-            background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-        
-        .nilai-display .label {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            margin-bottom: 8px;
-        }
-        
-        .nilai-display .angka {
-            font-size: 3.5rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-        
-        .nilai-display .sub {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            margin-top: 8px;
-        }
-        
-        .soal-item {
-            background: #f8fafc;
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        
-        .soal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .soal-number {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.1rem;
-        }
-        
-        .soal-level {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .brand h1 { font-size: 1.3rem; font-weight: 600; margin-bottom: 2px; }
+        .brand p { font-size: 0.8rem; opacity: 0.9; }
+        .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.3s; }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+        .card-header h2 { font-size: 1.1rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .info-box { background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary); }
+        .info-box .label { font-size: 0.75rem; color: var(--text-light); margin-bottom: 4px; }
+        .info-box .value { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+        .nilai-display { text-align: center; padding: 24px; background: linear-gradient(135deg, #f0f4ff, #e0e7ff); border-radius: 12px; margin-bottom: 20px; }
+        .nilai-display .label { font-size: 0.9rem; color: var(--text-light); margin-bottom: 8px; }
+        .nilai-display .angka { font-size: 3.5rem; font-weight: 800; color: var(--primary); }
+        .nilai-display .sub { font-size: 0.9rem; color: var(--text-light); margin-top: 8px; }
+        .soal-item { background: #f8fafc; border: 1.5px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .soal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .soal-number { font-weight: 700; color: var(--primary); font-size: 1.1rem; }
+        .soal-level { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
         .level-lots { background: #dcfce7; color: #166534; }
         .level-mots { background: #fef3c7; color: #92400e; }
         .level-hots { background: #fee2e2; color: #991b1b; }
-        
-        .soal-text {
-            font-size: 0.95rem;
-            margin-bottom: 16px;
-            line-height: 1.6;
-            font-weight: 500;
-        }
-        
-        .jawaban-siswa {
-            background: white;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-        
-        .jawaban-siswa .label {
-            font-size: 0.8rem;
-            color: var(--text-light);
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-        
-        .jawaban-siswa .isi {
-            font-size: 0.95rem;
-            color: var(--text);
-        }
-        
-        .jawaban-benar {
-            background: #dcfce7;
-            border: 2px solid #10b981;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-        
-        .jawaban-benar .label {
-            font-size: 0.8rem;
-            color: #166534;
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-        
-        .jawaban-benar .isi {
-            font-size: 0.95rem;
-            color: #166534;
-            font-weight: 600;
-        }
-        
-        .status-jawaban {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .status-benar {
-            background: #dcfce7;
-            color: #166534;
-        }
-        
-        .status-salah {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .status-essay {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        
-        .foto-container {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .foto-container img {
-            max-width: 100%;
-            max-height: 70vh;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            margin-bottom: 16px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-        
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
-        
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-        
-        .btn-warning:hover {
-            background: #d97706;
-        }
-        
-        .btn-secondary {
-            background: #64748b;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #475569;
-        }
-        
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border);
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
+        .soal-text { font-size: 0.95rem; margin-bottom: 16px; line-height: 1.6; font-weight: 500; }
+        .jawaban-siswa { background: white; border: 2px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .jawaban-siswa .label { font-size: 0.8rem; color: var(--text-light); margin-bottom: 6px; font-weight: 600; }
+        .jawaban-siswa .isi { font-size: 0.95rem; color: var(--text); }
+        .jawaban-benar { background: #dcfce7; border: 2px solid #10b981; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .jawaban-benar .label { font-size: 0.8rem; color: #166534; margin-bottom: 6px; font-weight: 600; }
+        .jawaban-benar .isi { font-size: 0.95rem; color: #166534; font-weight: 600; }
+        .status-jawaban { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .status-benar { background: #dcfce7; color: #166534; }
+        .status-salah { background: #fee2e2; color: #991b1b; }
+        .status-essay { background: #dbeafe; color: #1e40af; }
+        .foto-container { text-align: center; padding: 20px; }
+        .foto-container img { max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 16px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-secondary { background: #64748b; color: white; }
+        .btn-secondary:hover { background: #475569; }
+        .spinner { display: inline-block; width: 40px; height: 40px; border: 3px solid var(--border); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-            
-            .container {
-                padding: 12px;
-            }
-            
-            .nilai-display .angka {
-                font-size: 2.5rem;
-            }
+            .header-content { flex-direction: column; gap: 12px; text-align: center; }
+            .container { padding: 12px; }
+            .nilai-display .angka { font-size: 2.5rem; }
         }
     </style>
 </head>
@@ -389,78 +99,40 @@
         <p style="color: var(--danger); font-weight: 600;" id="errorMessage">Terjadi kesalahan</p>
     </div>
     
-    <!-- KONTEN: JAWABAN SOAL -->
     <div id="contentJawaban" style="display: none;">
-        <!-- Info Siswa -->
         <div class="card">
             <div class="info-grid">
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-user"></i> Nama Siswa</div>
-                    <div class="value" id="infoNama">-</div>
-                </div>
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-users"></i> Kelas</div>
-                    <div class="value" id="infoKelas">-</div>
-                </div>
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-clock"></i> Waktu Pengerjaan</div>
-                    <div class="value" id="infoWaktu">-</div>
-                </div>
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-calendar"></i> Tanggal Submit</div>
-                    <div class="value" id="infoTanggal">-</div>
-                </div>
+                <div class="info-box"><div class="label"><i class="fas fa-user"></i> Nama Siswa</div><div class="value" id="infoNama">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-users"></i> Kelas</div><div class="value" id="infoKelas">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-clock"></i> Waktu Pengerjaan</div><div class="value" id="infoWaktu">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-calendar"></i> Tanggal Submit</div><div class="value" id="infoTanggal">-</div></div>
             </div>
-            
             <div class="nilai-display">
                 <div class="label">NILAI SISWA</div>
                 <div class="angka" id="infoNilai">0</div>
-                <div class="sub">
-                    <span id="infoBenar">0</span> Benar | 
-                    <span id="infoSalah">0</span> Salah | 
-                    <span id="infoEssay">0</span> Essay
-                </div>
+                <div class="sub"><span id="infoBenar">0</span> Benar | <span id="infoSalah">0</span> Salah | <span id="infoEssay">0</span> Essay</div>
             </div>
         </div>
-        
-        <!-- Daftar Soal & Jawaban -->
         <div class="card">
-            <div class="card-header">
-                <h2><i class="fas fa-list-check"></i> Detail Jawaban Per Soal</h2>
-            </div>
+            <div class="card-header"><h2><i class="fas fa-list-check"></i> Detail Jawaban Per Soal</h2></div>
             <div id="soalList"></div>
         </div>
     </div>
     
-    <!-- KONTEN: FOTO CATATAN -->
     <div id="contentCatatan" style="display: none;">
         <div class="card">
             <div class="info-grid">
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-user"></i> Nama Siswa</div>
-                    <div class="value" id="catatanNama">-</div>
-                </div>
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-users"></i> Kelas</div>
-                    <div class="value" id="catatanKelas">-</div>
-                </div>
-                <div class="info-box">
-                    <div class="label"><i class="fas fa-calendar"></i> Tanggal Upload</div>
-                    <div class="value" id="catatanTanggal">-</div>
-                </div>
+                <div class="info-box"><div class="label"><i class="fas fa-user"></i> Nama Siswa</div><div class="value" id="catatanNama">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-users"></i> Kelas</div><div class="value" id="catatanKelas">-</div></div>
+                <div class="info-box"><div class="label"><i class="fas fa-calendar"></i> Tanggal Upload</div><div class="value" id="catatanTanggal">-</div></div>
             </div>
         </div>
-        
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-image"></i> Foto Catatan Siswa</h2>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-success" onclick="downloadFoto()">
-                        <i class="fas fa-download"></i> Download
-                    </button>
-                    <button class="btn btn-warning" onclick="printFoto()">
-                        <i class="fas fa-print"></i> Print
-                    </button>
+                    <button class="btn btn-success" onclick="downloadFoto()"><i class="fas fa-download"></i> Download</button>
+                    <button class="btn btn-warning" onclick="printFoto()"><i class="fas fa-print"></i> Print</button>
                 </div>
             </div>
             <div class="foto-container">
@@ -471,14 +143,15 @@
 </div>
 
 <script>
+// ✅ 1. FIREBASE CONFIG SIPELITA GURU (SUDAH DIPERBARUI)
 const firebaseConfig = {
-    apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
-    authDomain: "sipelita-digital.firebaseapp.com",
-    databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "sipelita-digital",
-    storageBucket: "sipelita-digital.firebasestorage.app",
-    messagingSenderId: "787840817745",
-    appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+    apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+    authDomain: "sipelita-guru.firebaseapp.com",
+    projectId: "sipelita-guru",
+    storageBucket: "sipelita-guru.firebasestorage.app",
+    messagingSenderId: "595996765157",
+    appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
+    measurementId: "G-ZGT7K2N7L5"
 };
 
 if (!firebase.apps.length) {
@@ -488,18 +161,32 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+// ✅ 2. SIMPLE CACHE (Menggantikan CacheManager agar anti-error 404)
+const SimpleCache = {
+    data: {},
+    get: function(key) {
+        const item = this.data[key];
+        if (!item) return undefined;
+        if (Date.now() > item.expiry) { delete this.data[key]; return undefined; }
+        return item.value;
+    },
+    set: function(key, value, ttlSeconds) {
+        this.data[key] = { value: value, expiry: Date.now() + (ttlSeconds * 1000) };
+    }
+};
+
 let currentData = null;
 let currentSession = null;
 let isCatatan = false;
 
-// Cek login guru
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
-            console.log('âœ… Guru terautentikasi:', user.email);
+            console.log('✅ Guru terautentikasi:', user.email);
             loadData();
         } else {
-            alert('Anda harus login sebagai guru!');
+            // Fallback: Jika session hilang, arahkan ke login
+            console.warn('⚠️ User belum login');
             window.location.href = '../index.html';
         }
     });
@@ -509,7 +196,7 @@ async function loadData() {
     const urlParams = new URLSearchParams(window.location.search);
     const responseId = urlParams.get('id');
     const sessionId = urlParams.get('session');
-    const tipe = urlParams.get('tipe'); // 'jawaban' atau 'catatan'
+    const tipe = urlParams.get('tipe');
     
     if (!responseId) {
         showError('ID jawaban tidak ditemukan!');
@@ -517,51 +204,35 @@ async function loadData() {
     }
     
     try {
-        // âœ… OPTIMASI 1: Cache data sesi (berlaku 1 jam) agar tidak dibaca berulang saat guru membuka jawaban siswa yang berbeda di sesi yang sama
         let sesiData = null;
         if (sessionId) {
             const sessionCacheKey = `session_detail_${sessionId}`;
-            sesiData = CacheManager.get(sessionCacheKey);
+            sesiData = SimpleCache.get(sessionCacheKey);
             
             if (!sesiData) {
-                console.log('ðŸ“š Mengambil data sesi dari Firestore...');
                 const sesiDoc = await db.collection('learning_sessions').doc(sessionId).get();
                 if (sesiDoc.exists) {
                     sesiData = { id: sesiDoc.id, ...sesiDoc.data() };
-                    // Cache selama 1 jam (3600 detik) karena data sesi jarang berubah setelah publish
-                    CacheManager.set(sessionCacheKey, sesiData, 3600); 
+                    SimpleCache.set(sessionCacheKey, sesiData, 3600); 
                 }
-            } else {
-                console.log('âœ… Menggunakan data sesi dari cache (Hemat Reads!)');
             }
             currentSession = sesiData;
         }
         
-        // âœ… OPTIMASI 2: Cache data jawaban/catatan (berlaku 5 menit) untuk mencegah read berulang jika guru tidak sengaja refresh halaman
         const responseCacheKey = `${tipe === 'catatan' ? 'note' : 'response'}_${responseId}`;
-        let responseData = CacheManager.get(responseCacheKey);
+        let responseData = SimpleCache.get(responseCacheKey);
         
         if (!responseData) {
-            console.log(`ðŸ“š Mengambil data ${tipe} dari Firestore...`);
             if (tipe === 'catatan') {
                 const doc = await db.collection('student_notes').doc(responseId).get();
-                if (!doc.exists) {
-                    showError('Data catatan tidak ditemukan!');
-                    return;
-                }
+                if (!doc.exists) { showError('Data catatan tidak ditemukan!'); return; }
                 responseData = { id: doc.id, ...doc.data() };
             } else {
                 const doc = await db.collection('student_responses').doc(responseId).get();
-                if (!doc.exists) {
-                    showError('Data jawaban tidak ditemukan!');
-                    return;
-                }
+                if (!doc.exists) { showError('Data jawaban tidak ditemukan!'); return; }
                 responseData = { id: doc.id, ...doc.data() };
             }
-            // Cache selama 5 menit (300 detik)
-            CacheManager.set(responseCacheKey, responseData, 300); 
-        } else {
-            console.log('âœ… Menggunakan data jawaban/catatan dari cache (Hemat Reads & Bandwidth!)');
+            SimpleCache.set(responseCacheKey, responseData, 300); 
         }
         
         currentData = responseData;
@@ -573,7 +244,6 @@ async function loadData() {
         } else {
             tampilkanJawaban();
         }
-        
     } catch (error) {
         console.error('Error:', error);
         showError('Gagal memuat data: ' + error.message);
@@ -584,34 +254,27 @@ function tampilkanJawaban() {
     document.getElementById('contentJawaban').style.display = 'block';
     document.getElementById('headerInfo').textContent = `${currentData.siswaNama} - ${currentSession?.judul || 'E-Learning'}`;
     
-    // Info siswa
     document.getElementById('infoNama').textContent = currentData.siswaNama;
     document.getElementById('infoKelas').textContent = currentData.siswaKelas;
     
-    // Waktu
     let durasiText = '-';
     if (currentData.waktuSelesai && currentData.waktuMulai) {
-        const durasi = Math.round((currentData.waktuSelesai - currentData.waktuMulai) / 60000);
-        durasiText = `${durasi} menit`;
+        durasiText = `${Math.round((currentData.waktuSelesai - currentData.waktuMulai) / 60000)} menit`;
     }
     document.getElementById('infoWaktu').textContent = durasiText;
     
-    // Tanggal
     let tanggalText = '-';
     if (currentData.createdAt) {
-        // Handle both Firestore Timestamp and ISO string
         const dateObj = currentData.createdAt.toDate ? currentData.createdAt.toDate() : new Date(currentData.createdAt);
         tanggalText = dateObj.toLocaleString('id-ID');
     }
     document.getElementById('infoTanggal').textContent = tanggalText;
     
-    // Nilai
     document.getElementById('infoNilai').textContent = currentData.nilai ?? 0;
     document.getElementById('infoBenar').textContent = currentData.totalBenar ?? 0;
     document.getElementById('infoSalah').textContent = currentData.totalSalah ?? 0;
     document.getElementById('infoEssay').textContent = currentData.totalEssay ?? 0;
     
-    // Tampilkan soal dan jawaban
     tampilkanDaftarSoal();
 }
 
@@ -640,20 +303,13 @@ function tampilkanDaftarSoal() {
                 ? '<span class="status-jawaban status-benar"><i class="fas fa-check"></i> Benar</span>'
                 : '<span class="status-jawaban status-salah"><i class="fas fa-times"></i> Salah</span>';
             
-            // Tampilkan kunci jawaban
             if (soal.opsi && soal.jawabanBenar) {
                 const opsiLabels = { a: 'A', b: 'B', c: 'C', d: 'D', e: 'E' };
                 const kunciText = soal.opsi[soal.jawabanBenar] || soal.jawabanBenar;
-                jawabanBenarHtml = `
-                    <div class="jawaban-benar">
-                        <div class="label"><i class="fas fa-key"></i> Kunci Jawaban</div>
-                        <div class="isi">${opsiLabels[soal.jawabanBenar] || soal.jawabanBenar}. ${kunciText}</div>
-                    </div>
-                `;
+                jawabanBenarHtml = `<div class="jawaban-benar"><div class="label"><i class="fas fa-key"></i> Kunci Jawaban</div><div class="isi">${opsiLabels[soal.jawabanBenar] || soal.jawabanBenar}. ${kunciText}</div></div>`;
             }
         }
         
-        // Format jawaban siswa
         let jawabanSiswaHtml = '';
         if (soal.type === 'essay' || soal.type === 'esai') {
             jawabanSiswaHtml = jawabanSiswaVal || '<em style="color: var(--text-light);">Tidak dijawab</em>';
@@ -668,25 +324,18 @@ function tampilkanDaftarSoal() {
             }
         }
         
-        return `
-            <div class="soal-item">
-                <div class="soal-header">
-                    <span class="soal-number">Soal ${idx + 1}</span>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span class="soal-level ${levelClass}">${soal.level || 'MOTS'}</span>
-                        ${statusBadge}
-                    </div>
+        return `<div class="soal-item">
+            <div class="soal-header">
+                <span class="soal-number">Soal ${idx + 1}</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="soal-level ${levelClass}">${soal.level || 'MOTS'}</span>
+                    ${statusBadge}
                 </div>
-                <div class="soal-text">${soal.pertanyaan}</div>
-                
-                <div class="jawaban-siswa">
-                    <div class="label"><i class="fas fa-user-edit"></i> Jawaban Siswa</div>
-                    <div class="isi">${jawabanSiswaHtml}</div>
-                </div>
-                
-                ${jawabanBenarHtml}
             </div>
-        `;
+            <div class="soal-text">${soal.pertanyaan}</div>
+            <div class="jawaban-siswa"><div class="label"><i class="fas fa-user-edit"></i> Jawaban Siswa</div><div class="isi">${jawabanSiswaHtml}</div></div>
+            ${jawabanBenarHtml}
+        </div>`;
     }).join('');
 }
 
@@ -704,7 +353,6 @@ function tampilkanCatatan() {
         tanggalText = dateObj.toLocaleString('id-ID');
     }
     document.getElementById('catatanTanggal').textContent = tanggalText;
-    
     document.getElementById('fotoCatatan').src = currentData.imageBase64;
 }
 
@@ -724,7 +372,6 @@ window.kembaliKeHasil = function() {
 
 window.downloadFoto = function() {
     if (!currentData || !currentData.imageBase64) return;
-    
     const link = document.createElement('a');
     link.href = currentData.imageBase64;
     link.download = `Catatan_${currentData.siswaNama.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.jpg`;
@@ -737,33 +384,13 @@ window.printFoto = function() {
     const fotoSrc = document.getElementById('fotoCatatan').src;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
-        <html>
-        <head>
-            <title>Print - ${currentData.siswaNama}</title>
-            <style>
-                body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-                img { max-width: 100%; max-height: 100vh; }
-                @media print {
-                    body { margin: 0; }
-                    img { max-width: 100%; }
-                }
-            </style>
-        </head>
-        <body>
-            <div style="text-align: center; padding: 20px;">
-                <h2>${currentData.siswaNama} - ${currentData.siswaKelas}</h2>
-                <img src="${fotoSrc}">
-            </div>
-        </body>
-        </html>
+        <html><head><title>Print - ${currentData.siswaNama}</title>
+        <style>body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; } img { max-width: 100%; max-height: 100vh; } @media print { body { margin: 0; } img { max-width: 100%; } }</style>
+        </head><body><div style="text-align: center; padding: 20px;"><h2>${currentData.siswaNama} - ${currentData.siswaKelas}</h2><img src="${fotoSrc}"></div></body></html>
     `);
     printWindow.document.close();
-    // Tunggu sebentar agar gambar ter-render sebelum print
-    setTimeout(() => {
-        printWindow.print();
-    }, 500);
+    setTimeout(() => { printWindow.print(); }, 500);
 };
 </script>
-
 </body>
 </html>
