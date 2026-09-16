@@ -4,12 +4,11 @@
 const firebaseConfig = {
   apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
   authDomain: "sipelita-guru.firebaseapp.com",
-  databaseURL: "https://sipelita-guru-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "sipelita-guru",
   storageBucket: "sipelita-guru.firebasestorage.app",
   messagingSenderId: "595996765157",
   appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
-  measurementId: "G-1D5DWJV54E"
+  measurementId: "G-ZGT7K2N7L5"
 };
 
 // Initialize Firebase
