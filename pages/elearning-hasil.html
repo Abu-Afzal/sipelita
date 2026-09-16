@@ -15,19 +15,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- 1. FIREBASE SDK (WAJIB PERTAMA) -->
+    <!-- 1. FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     
-    <!-- 2. CACHE MANAGER (HANYA SEKALI) -->
-    <script src="../js/cache-manager.js"></script>
-    
-    <!-- 3. EXCEL LIBRARY -->
+    <!-- 2. EXCEL LIBRARY -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
-    <!-- 4. PDF SCRIPT (HANYA berisi fungsi exportPDFLaporan, TIDAK boleh ada inisialisasi Firebase/CacheManager) -->
-    <script src="../js/elearning-pdf.js"></script>
+    <!-- ❌ DIHAPUS: cache-manager.js dan elearning-pdf.js untuk mencegah error 404 / not defined -->
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -164,33 +160,44 @@
     </div>
 </div>
 
-<!-- 5. SCRIPT UTAMA -->
 <script>
-// ✅ PENGAMAN: Cek Firebase
-if (typeof firebase === 'undefined') {
-    document.body.innerHTML = '<div style="padding: 50px; text-align: center; font-family: sans-serif; color: red;">' +
-        '<h2>⚠️ Error: Firebase Belum Terload</h2>' +
-        '<p>Periksa koneksi internet atau pastikan tag &lt;script src="...firebase-app-compat.js"&gt; ada di bagian &lt;head&gt;.</p>' +
-        '</div>';
-    throw new Error('Firebase SDK tidak ditemukan');
-}
+// ✅ 1. FIREBASE CONFIG SIPELITA GURU (SUDAH DIPERBARUI)
+const firebaseConfig = {
+    apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+    authDomain: "sipelita-guru.firebaseapp.com",
+    projectId: "sipelita-guru",
+    storageBucket: "sipelita-guru.firebasestorage.app",
+    messagingSenderId: "595996765157",
+    appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
+    measurementId: "G-ZGT7K2N7L5"
+};
 
-// Inisialisasi Firebase
 if (!firebase.apps.length) {
-    const firebaseConfig = {
-        apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
-        authDomain: "sipelita-digital.firebaseapp.com",
-        databaseURL: "https://sipelita-digital-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "sipelita-digital",
-        storageBucket: "sipelita-digital.firebasestorage.app",
-        messagingSenderId: "787840817745",
-        appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
-    };
     firebase.initializeApp(firebaseConfig);
 }
 
 const db = firebase.firestore();
 const auth = firebase.auth();
+
+// ✅ 2. SIMPLE CACHE (Menggantikan CacheManager agar tidak error 404)
+const SimpleCache = {
+    data: {},
+    get: function(key) {
+        const item = this.data[key];
+        if (!item) return undefined;
+        if (Date.now() > item.expiry) {
+            delete this.data[key];
+            return undefined;
+        }
+        return item.value;
+    },
+    set: function(key, value, ttlSeconds) {
+        this.data[key] = { value: value, expiry: Date.now() + (ttlSeconds * 1000) };
+    },
+    remove: function(key) {
+        delete this.data[key];
+    }
+};
 
 let currentSession = null;
 let daftarJawaban = [];
@@ -201,15 +208,9 @@ function parseDate(dateData) {
     return new Date(dateData);
 }
 
-// ✅ FUNGSI NORMALISASI NAMA (untuk matching yang lebih akurat)
 function normalizeNama(nama) {
     if (!nama) return '';
-    return nama
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, ' ')  // Ganti spasi ganda dengan 1 spasi
-        .replace(/[^\w\s]/gi, '') // Hapus karakter spesial
-        .trim();
+    return nama.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[^\w\s]/gi, '').trim();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -237,25 +238,17 @@ async function loadHasilSesi() {
     try {
         // 1. Load data sesi
         const cacheKeySesi = `sesi_${sessionId}`;
-        let sesiDoc = CacheManager.get(cacheKeySesi);
+        let sesiDoc = SimpleCache.get(cacheKeySesi);
         
         if (!sesiDoc) {
-            console.log(' Fetch sesi dari Firestore...');
             const docSnap = await db.collection('learning_sessions').doc(sessionId).get();
             if (!docSnap.exists) throw new Error('Sesi tidak ditemukan');
-            
             sesiDoc = { id: docSnap.id, ...docSnap.data() };
-            CacheManager.set(cacheKeySesi, sesiDoc, 900);
-        } else {
-            console.log('✅ Menggunakan cache sesi');
+            SimpleCache.set(cacheKeySesi, sesiDoc, 900);
         }
         
         currentSession = sesiDoc;
         
-        console.log('📋 Data sesi:', currentSession);
-        console.log('🏫 kelasSipenaId:', currentSession.kelasSipenaId);
-        
-        // Update UI
         document.getElementById('headerJudul').textContent = currentSession.judul;
         document.getElementById('infoMapel').textContent = currentSession.mataPelajaran || '-';
         document.getElementById('infoKelas').textContent = currentSession.kelasTarget || '-';
@@ -263,111 +256,53 @@ async function loadHasilSesi() {
         document.getElementById('infoDurasi').textContent = currentSession.durasiMenit > 0 ? `${currentSession.durasiMenit} menit` : 'Tanpa batas';
         document.getElementById('infoPin').textContent = currentSession.pin;
         
-        // 2. Load SEMUA siswa dari collection 'siswa'
+        // 2. Load SEMUA siswa
         let semuaSiswa = [];
         if (currentSession.kelasSipenaId) {
-            console.log('🔍 Memuat siswa dari kelas:', currentSession.kelasSipenaId);
-            
             const cacheKeySiswa = `siswa_${currentSession.kelasSipenaId}`;
-            let cachedSiswa = CacheManager.get(cacheKeySiswa);
+            let cachedSiswa = SimpleCache.get(cacheKeySiswa);
             
             if (cachedSiswa && cachedSiswa.length > 0) {
-                console.log('✅ Menggunakan cache siswa:', cachedSiswa.length, 'siswa');
                 semuaSiswa = cachedSiswa;
             } else {
-                console.log('📚 Fetch siswa dari Firestore...');
-                const siswaSnap = await db.collection('siswa')
-                    .where('kelas_id', '==', currentSession.kelasSipenaId)
-                    .limit(500)
-                    .get();
-                
-                console.log('📊 Ditemukan', siswaSnap.size, 'siswa');
-                
+                const siswaSnap = await db.collection('siswa').where('kelas_id', '==', currentSession.kelasSipenaId).limit(500).get();
                 siswaSnap.forEach(doc => {
                     const data = doc.data();
-                    semuaSiswa.push({ 
-                        id: doc.id, 
-                        nama: data.student_name || data.nama || data.name || 'Tanpa Nama',
-                        kelas: currentSession.kelasTarget 
-                    });
+                    semuaSiswa.push({ id: doc.id, nama: data.student_name || data.nama || data.name || 'Tanpa Nama', kelas: currentSession.kelasTarget });
                 });
-                
                 semuaSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
-                CacheManager.set(cacheKeySiswa, semuaSiswa, 1800);
+                SimpleCache.set(cacheKeySiswa, semuaSiswa, 1800);
             }
-        } else {
-            console.warn('️ kelasSipenaId tidak ada di sesi ini!');
         }
         
-        // 3. ✅ PENTING: Load responses LANGSUNG DARI SERVER (Bypass Cache)
-        console.log('📚 Fetch responses REAL-TIME dari Server...');
-        const snap = await db.collection('student_responses')
-            .where('sessionId', '==', sessionId)
-            .get({ source: 'server' }); // Bypass cache lokal
-        
-        console.log('📊 Ditemukan', snap.size, 'responses terbaru');
-        
+        // 3. Load responses & notes
+        const snap = await db.collection('student_responses').where('sessionId', '==', sessionId).get({ source: 'server' });
         const responsesData = [];
-        snap.forEach(doc => {
-            responsesData.push({ id: doc.id, ...doc.data() });
-        });
+        snap.forEach(doc => responsesData.push({ id: doc.id, ...doc.data() }));
         
-        // 4. Load data notes (Juga dari server)
-        console.log('📚 Fetch notes REAL-TIME dari Server...');
-        const notesSnap = await db.collection('student_notes')
-            .where('sessionId', '==', sessionId)
-            .get({ source: 'server' });
-        
+        const notesSnap = await db.collection('student_notes').where('sessionId', '==', sessionId).get({ source: 'server' });
         const notesData = [];
-        notesSnap.forEach(doc => {
-            notesData.push({ id: doc.id, ...doc.data() });
-        });
+        notesSnap.forEach(doc => notesData.push({ id: doc.id, ...doc.data() }));
         
-        // 5. Gabungkan: Buat map dari responses dan notes dengan normalisasi nama
+        // 4. Gabungkan data
         const jawabanMap = new Map();
-        
-        responsesData.forEach(item => {
-            const namaLower = normalizeNama(item.siswaNama);
-            jawabanMap.set(namaLower, { id: item.id, ...item, tipe: 'jawaban' });
-        });
-        
+        responsesData.forEach(item => jawabanMap.set(normalizeNama(item.siswaNama), { id: item.id, ...item, tipe: 'jawaban' }));
         notesData.forEach(item => {
             const namaLower = normalizeNama(item.siswaNama);
-            if (!jawabanMap.has(namaLower)) {
-                jawabanMap.set(namaLower, { id: item.id, ...item, tipe: 'catatan' });
-            }
+            if (!jawabanMap.has(namaLower)) jawabanMap.set(namaLower, { id: item.id, ...item, tipe: 'catatan' });
         });
         
-        console.log('📊 Total responses + notes:', jawabanMap.size);
-        console.log('📊 Total siswa di kelas:', semuaSiswa.length);
-        
-        // 6. Gabungkan SEMUA: Mulai dari daftar siswa, lalu merge dengan responses
         daftarJawaban = semuaSiswa.map(siswa => {
-            const namaLower = normalizeNama(siswa.nama);
-            const data = jawabanMap.get(namaLower);
-            
-            return { 
-                siswaNama: siswa.nama, 
-                siswaKelas: siswa.kelas, 
-                ...(data || {}), 
-                sudahKirim: !!data 
-            };
+            const data = jawabanMap.get(normalizeNama(siswa.nama));
+            return { siswaNama: siswa.nama, siswaKelas: siswa.kelas, ...(data || {}), sudahKirim: !!data };
         });
         
-        // Fallback: jika tidak ada data siswa dari SIPENA, gunakan data dari responses
         if (daftarJawaban.length === 0 && jawabanMap.size > 0) {
-            console.log('⚠️ Fallback: menggunakan data dari responses saja');
             jawabanMap.forEach((data) => {
-                daftarJawaban.push({ 
-                    siswaNama: data.siswaNama, 
-                    siswaKelas: data.siswaKelas || currentSession.kelasTarget, 
-                    ...data, 
-                    sudahKirim: true 
-                });
+                daftarJawaban.push({ siswaNama: data.siswaNama, siswaKelas: data.siswaKelas || currentSession.kelasTarget, ...data, sudahKirim: true });
             });
         }
         
-        // 7. Sorting: yang sudah mengerjakan di atas, diurutkan berdasarkan nilai
         daftarJawaban.sort((a, b) => {
             if (a.sudahKirim && !b.sudahKirim) return -1;
             if (!a.sudahKirim && b.sudahKirim) return 1;
@@ -375,17 +310,7 @@ async function loadHasilSesi() {
             return 0;
         });
         
-        console.log('✅ Total daftarJawaban:', daftarJawaban.length);
-        console.log('✅ Yang sudah mengerjakan:', daftarJawaban.filter(d => d.sudahKirim).length);
-        console.log('✅ Yang belum mengerjakan:', daftarJawaban.filter(d => !d.sudahKirim).length);
-        
-        // Log detail untuk debugging
-        daftarJawaban.forEach((d, idx) => {
-            console.log(`${idx + 1}. ${d.siswaNama} - ${d.sudahKirim ? 'Sudah' : 'Belum'} - Nilai: ${d.nilai || '-'}`);
-        });
-        
         document.getElementById('loading').style.display = 'none';
-        
         if (daftarJawaban.length === 0) {
             document.getElementById('emptyState').style.display = 'block';
         } else {
@@ -396,85 +321,46 @@ async function loadHasilSesi() {
         
     } catch (error) {
         console.error('❌ Error:', error);
-        let errorMsg = error.message;
-        
-        if (error.code === 'failed-precondition' || error.message.includes('index')) {
-            errorMsg = 'Query memerlukan index Firestore. Silakan hubungi administrator.';
-        }
-        
-        document.getElementById('loading').innerHTML = `
-            <div style="color: var(--danger); padding: 20px;">
-                <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 12px;"></i>
-                <p>${errorMsg}</p>
-                <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-light);">
-                    Detail: ${error.code || 'Unknown error'}
-                </p>
-            </div>
-        `;
+        document.getElementById('loading').innerHTML = `<div style="color: var(--danger); padding: 20px;"><i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 12px;"></i><p>${error.message}</p></div>`;
     }
 }
 
-// ✅ FUNGSI FORCE REFRESH (Bypass semua cache)
 window.forceRefreshData = async function() {
-    console.log('🔄 Force refresh: membersihkan cache dan mengambil data terbaru...');
-    
-    // Hapus cache untuk sesi ini
     if (currentSession) {
-        CacheManager.remove(`sesi_${currentSession.id}`);
-        if (currentSession.kelasSipenaId) {
-            CacheManager.remove(`siswa_${currentSession.kelasSipenaId}`);
-        }
+        SimpleCache.remove(`sesi_${currentSession.id}`);
+        if (currentSession.kelasSipenaId) SimpleCache.remove(`siswa_${currentSession.kelasSipenaId}`);
     }
-    
-    // Reload data
     await loadHasilSesi();
     alert('✅ Data berhasil di-refresh!');
 };
 
 function renderTabel() {
     const tbody = document.getElementById('tabelBody');
-    
     tbody.innerHTML = daftarJawaban.map((d, idx) => {
         if (!d.sudahKirim) {
             return `<tr style="background: #f8fafc;">
-                <td>${idx + 1}</td>
-                <td><strong>${d.siswaNama}</strong></td>
-                <td>${d.siswaKelas}</td>
-                <td colspan="4" style="text-align: center; color: #94a3b8;">
-                    <i class="fas fa-hourglass-half"></i> Belum mengerjakan
-                </td>
+                <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
+                <td colspan="4" style="text-align: center; color: #94a3b8;"><i class="fas fa-hourglass-half"></i> Belum mengerjakan</td>
                 <td><span class="status-badge status-belum"><i class="fas fa-times-circle"></i> Belum</span></td>
             </tr>`;
         }
-        
         let kelasNilai = d.nilai >= 80 ? 'nilai-tinggi' : (d.nilai >= 60 ? 'nilai-sedang' : 'nilai-rendah');
         const durasiMenit = d.waktuSelesai && d.waktuMulai ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
         const tipeData = d.tipe || 'jawaban';
-        
-        let tombolLihat = '';
-        if (tipeData === 'catatan') {
-            tombolLihat = `<button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'catatan')"><i class="fas fa-image"></i> Lihat Foto</button>`;
-        } else {
-            tombolLihat = `<button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'jawaban')"><i class="fas fa-eye"></i> Lihat</button>`;
-        }
+        const tombolLihat = tipeData === 'catatan' 
+            ? `<button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'catatan')"><i class="fas fa-image"></i> Lihat</button>`
+            : `<button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'jawaban')"><i class="fas fa-eye"></i> Lihat</button>`;
         
         return `<tr>
-            <td>${idx + 1}</td>
-            <td><strong>${d.siswaNama}</strong></td>
-            <td>${d.siswaKelas}</td>
+            <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
             <td style="color: var(--success); font-weight: 700;">${d.totalBenar || '-'}</td>
             <td style="color: var(--danger); font-weight: 700;">${d.totalSalah || '-'}</td>
             <td><span class="nilai-badge ${kelasNilai}">${d.nilai || '-'}</span></td>
             <td>${durasiMenit} mnt</td>
-            <td>
-                <div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
-                    <span class="status-badge status-selesai">
-                        <i class="fas fa-${tipeData === 'catatan' ? 'camera' : 'check-circle'}"></i> 
-                        ${tipeData === 'catatan' ? 'Catatan' : 'Selesai'}
-                    </span>
-                    ${tombolLihat}
-                </div>
-            </td>
+            <td><div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
+                <span class="status-badge status-selesai"><i class="fas fa-${tipeData === 'catatan' ? 'camera' : 'check-circle'}"></i> ${tipeData === 'catatan' ? 'Catatan' : 'Selesai'}</span>
+                ${tombolLihat}
+            </div></td>
         </tr>`;
     }).join('');
 }
@@ -498,66 +384,58 @@ function updateStatistik() {
 
 window.lihatTugasSiswa = function(responseId, tipe) {
     if (!currentSession) { alert('Data sesi tidak ditemukan!'); return; }
-    const url = `elearning-jawaban.html?id=${responseId}&session=${currentSession.id}&tipe=${tipe || 'jawaban'}`;
-    window.open(url, '_blank');
+    window.open(`elearning-jawaban.html?id=${responseId}&session=${currentSession.id}&tipe=${tipe || 'jawaban'}`, '_blank');
 };
 
 window.exportExcel = function() {
     if (daftarJawaban.length === 0) { alert('Belum ada data untuk diexport!'); return; }
-    
-    const data = [
-        ['LAPORAN HASIL E-LEARNING'],
-        ['Judul', currentSession.judul],
-        ['Mata Pelajaran', currentSession.mataPelajaran],
-        ['Kelas', currentSession.kelasTarget],
-        ['Tanggal', parseDate(currentSession.createdAt).toLocaleDateString('id-ID')],
-        ['PIN', currentSession.pin],
-        [],
-        ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (menit)', 'Status']
-    ];
-    
+    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', currentSession.judul], ['Mata Pelajaran', currentSession.mataPelajaran], ['Kelas', currentSession.kelasTarget], ['Tanggal', parseDate(currentSession.createdAt).toLocaleDateString('id-ID')], ['PIN', currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (mnt)', 'Status']];
     daftarJawaban.forEach((d, idx) => {
         const durasi = d.sudahKirim && d.waktuSelesai && d.waktuMulai ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
-        data.push([
-            idx + 1, d.siswaNama, d.siswaKelas, 
-            d.sudahKirim ? (d.totalBenar || '-') : '-', 
-            d.sudahKirim ? (d.totalSalah || '-') : '-', 
-            d.sudahKirim ? (d.nilai || '-') : 'Belum', 
-            durasi, d.sudahKirim ? 'Selesai' : 'Belum Mengerjakan'
-        ]);
+        data.push([idx + 1, d.siswaNama, d.siswaKelas, d.sudahKirim ? (d.totalBenar || '-') : '-', d.sudahKirim ? (d.totalSalah || '-') : '-', d.sudahKirim ? (d.nilai || '-') : 'Belum', durasi, d.sudahKirim ? 'Selesai' : 'Belum']);
     });
-    
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Hasil');
     XLSX.writeFile(wb, `Hasil_${currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
+// ✅ 3. INLINE PDF EXPORT (Tidak lagi bergantung pada file eksternal elearning-pdf.js)
+window.exportPDFLaporan = function() {
+    if (!daftarJawaban || daftarJawaban.length === 0) { alert('Tidak ada data untuk diekspor!'); return; }
+    const printWindow = window.open('', '_blank');
+    const htmlContent = `<!DOCTYPE html><html><head><title>Laporan - ${currentSession.judul}</title>
+    <style>body{font-family:Arial,sans-serif;padding:40px} .header{text-align:center;border-bottom:2px solid #333;padding-bottom:20px;margin-bottom:20px} table{width:100%;border-collapse:collapse;margin-top:20px} th,td{border:1px solid #ddd;padding:8px;text-align:left} th{background:#f2f2f2} .stat-box{display:inline-block;margin:10px;padding:15px;border:1px solid #ccc;border-radius:5px;text-align:center}</style></head><body>
+    <div class="header"><h2>LAPORAN HASIL E-LEARNING</h2><p>${currentSession.judul} | ${currentSession.mataPelajaran} | ${currentSession.kelasTarget}</p></div>
+    <div style="text-align:center;margin-bottom:20px">
+        <div class="stat-box"><strong>Total Siswa:</strong> ${daftarJawaban.length}</div>
+        <div class="stat-box"><strong>Sudah Mengerjakan:</strong> ${daftarJawaban.filter(d => d.sudahKirim).length}</div>
+        <div class="stat-box"><strong>Rata-rata:</strong> ${document.getElementById('statRata').textContent}</div>
+    </div>
+    <table><thead><tr><th>No</th><th>Nama Siswa</th><th>Kelas</th><th>Benar</th><th>Salah</th><th>Nilai</th><th>Status</th></tr></thead><tbody>
+    ${daftarJawaban.map((d, idx) => `<tr><td>${idx + 1}</td><td>${d.siswaNama}</td><td>${d.siswaKelas || '-'}</td><td>${d.totalBenar || '-'}</td><td>${d.totalSalah || '-'}</td><td><strong>${d.nilai || '-'}</strong></td><td>${d.sudahKirim ? 'Selesai' : 'Belum'}</td></tr>`).join('')}
+    </tbody></table><script>window.onload=function(){window.print()}<\/script></body></html>`;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+};
+
 window.shareWA = function() {
     const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban').length;
     const total = daftarJawaban.length;
-    const rata = document.getElementById('statRata').textContent;
-    const lulus = document.getElementById('statLulus').textContent;
-    
-    const pesan = `📊 *Hasil E-Learning*\n\n📚 ${currentSession.judul}\n👥 Kelas: ${currentSession.kelasTarget}\n\n *Statistik:*\n• Siswa mengerjakan: ${yangSudah} / ${total}\n• Rata-rata nilai: ${rata}\n• Lulus (≥70): ${lulus}\n\n Link: ${window.location.origin}/pages/join.html?pin=${currentSession.pin}`;
+    const pesan = `📊 *Hasil E-Learning*\n\n📚 ${currentSession.judul}\n👥 Kelas: ${currentSession.kelasTarget}\n\n📈 *Statistik:*\n• Mengerjakan: ${yangSudah} / ${total}\n• Rata-rata: ${document.getElementById('statRata').textContent}\n• Lulus (≥70): ${document.getElementById('statLulus').textContent}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 
 window.recalculateStatistik = async function() {
     if (!currentSession) return;
-    
     const btn = event.target.closest('button');
     const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
-    
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
     try {
         const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban');
         const nilaiList = yangSudah.map(d => d.nilai).filter(n => n !== undefined && n !== null);
-        
         const total = yangSudah.length;
         let sumNilai = 0, maxNilai = 0, minNilai = 100, lulusCount = 0;
-        
         if (total > 0) {
             nilaiList.forEach(nilai => {
                 sumNilai += nilai;
@@ -565,10 +443,7 @@ window.recalculateStatistik = async function() {
                 if (nilai < minNilai) minNilai = nilai;
                 if (nilai >= 70) lulusCount++;
             });
-        } else {
-            minNilai = 0;
-        }
-        
+        } else { minNilai = 0; }
         const rataRata = total > 0 ? sumNilai / total : 0;
         
         document.getElementById('statTotal').textContent = `${total} / ${daftarJawaban.length}`;
@@ -578,22 +453,13 @@ window.recalculateStatistik = async function() {
         document.getElementById('statLulus').textContent = `${lulusCount} (${total > 0 ? Math.round(lulusCount/total*100) : 0}%)`;
         
         await db.collection('learning_sessions').doc(currentSession.id).update({
-            'statistik.totalSiswa': total,
-            'statistik.rataRata': Math.round(rataRata),
-            'statistik.tertinggi': maxNilai,
-            'statistik.terendah': minNilai,
-            'statistik.lulus': lulusCount,
-            updatedAt: new Date().toISOString()
+            'statistik.totalSiswa': total, 'statistik.rataRata': Math.round(rataRata), 'statistik.tertinggi': maxNilai, 'statistik.terendah': minNilai, 'statistik.lulus': lulusCount, updatedAt: new Date().toISOString()
         });
-        
-        alert(`✅ Statistik berhasil diperbarui!\n\nTotal: ${total} siswa\nRata-rata: ${Math.round(rataRata)}\nTertinggi: ${maxNilai}\nTerendah: ${minNilai}\nLulus: ${lulusCount}`);
-        
+        alert(`✅ Statistik berhasil diperbarui!`);
     } catch (error) {
-        console.error('Error recalculate:', error);
-        alert(' Gagal memperbarui statistik: ' + error.message);
+        alert('❌ Gagal: ' + error.message);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        btn.disabled = false; btn.innerHTML = originalText;
     }
 };
 </script>
