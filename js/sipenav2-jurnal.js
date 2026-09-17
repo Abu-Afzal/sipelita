@@ -101,7 +101,7 @@ function renderJurnal() {
 
   <!-- Riwayat Jurnal -->
   <div class="card" style="background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow);">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+    <div style="display:flex; justify-style:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
       <h3 style="font-family:'Plus Jakarta Sans',sans-serif; font-size:1.1rem; font-weight:700;">📜 Riwayat Jurnal Mengajar</h3>
       <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
         <select id="jurnalFilterBulan" style="padding:0.4rem; border:1.5px solid var(--border); border-radius:8px; font-size:0.85rem;"></select>
@@ -677,7 +677,7 @@ function cetakRekapJurnal() {
   const nipGuru = rawNipGuru ? (rawNipGuru.startsWith('NIP.') ? rawNipGuru : 'NIP. ' + rawNipGuru) : 'NIP. ............................................';
   const namaGuruCetak = formatKapital(currentUserData?.namaResmi || currentUserData?.nama || currentUser.email, FORMAT_NAMA.guru);
 
-  const b = 'border:1px solid #000; padding:5px; font-size:10pt;';
+  const b = 'border:1px solid #000; padding:4px; font-size:11pt;';
   const thStyle = `style="${b} background:#f0f0f0; font-weight:bold; text-align:center;"`;
   const tdStyle = `style="${b}"`;
   const tdCenter = `style="${b} text-align:center;"`;
@@ -721,19 +721,19 @@ function cetakRekapJurnal() {
     </div>`;
 
   const infoRows = c.monitor ? `
-    <tr><td style="width:160px; border:none; padding:1px 0; font-size:12pt;">Periode</td><td style="border:none; font-size:12pt;">: <b>${NAMA_BULAN[c.bln-1]} ${c.thn}</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">Jumlah Guru Aktif</td><td style="border:none; font-size:12pt;">: <b>${c.guruSet.size} guru</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">Total Pertemuan</td><td style="border:none; font-size:12pt;">: <b>${c.list.length} pertemuan</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">Total Jam Pelajaran</td><td style="border:none; font-size:12pt;">: <b>${c.totalJam} JP</b></td></tr>`
+    <tr><td style="width:160px; border:none; padding:1px 0;">Periode</td><td style="border:none;">: <b>${NAMA_BULAN[c.bln-1]} ${c.thn}</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">Jumlah Guru Aktif</td><td style="border:none;">: <b>${c.guruSet.size} guru</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">Total Pertemuan</td><td style="border:none;">: <b>${c.list.length} pertemuan</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">Total Jam Pelajaran</td><td style="border:none;">: <b>${c.totalJam} JP</b></td>`
   : `
-    <tr><td style="width:160px; border:none; padding:1px 0; font-size:12pt;">Guru Mata Pelajaran</td><td style="border:none; font-size:12pt;">: <b>${namaGuruCetak}</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">NIP</td><td style="border:none; font-size:12pt;">: <b>${currentUserData.nip || '-'}</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">Bulan</td><td style="border:none; font-size:12pt;">: <b>${NAMA_BULAN[c.bln-1]} ${c.thn}</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">Total Pertemuan</td><td style="border:none; font-size:12pt;">: <b>${c.list.length} pertemuan</b></td></tr>
-    <tr><td style="border:none; padding:1px 0; font-size:12pt;">Total Jam Pelajaran</td><td style="border:none; font-size:12pt;">: <b>${c.totalJam} JP</b></td></tr>`;
+    <tr><td style="width:160px; border:none; padding:1px 0;">Guru Mata Pelajaran</td><td style="border:none;">: <b>${namaGuruCetak}</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">NIP</td><td style="border:none;">: <b>${currentUserData?.nip || '-'}</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">Bulan</td><td style="border:none;">: <b>${NAMA_BULAN[c.bln-1]} ${c.thn}</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">Total Pertemuan</td><td style="border:none;">: <b>${c.list.length} pertemuan</b></td></tr>
+    <tr><td style="border:none; padding:1px 0;">Total Jam Pelajaran</td><td style="border:none;">: <b>${c.totalJam} JP</b></td>`;
 
   const summaryHtml = `
-    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:10pt;">
+    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:11pt;">
       <tr style="background:#f0fdf4;">
         ${c.monitor ? `<th ${thStyle}>Guru</th>` : ''}
         <th ${thStyle}>Pertemuan</th>
@@ -747,20 +747,20 @@ function cetakRekapJurnal() {
         <td ${tdCenter}>${c.list.length}</td>
         <td ${tdCenter}>${c.totalJam}</td>
         <td ${tdCenter}>${c.kelasSet.size}</td>
-        <td ${tdCenter} style="font-weight:700; color:#10b981;">${c.totalHadir}</td>
-        <td ${tdCenter} style="font-weight:700; color:#ef4444;">${c.totalTidak}</td>
+        <td ${tdCenter} style="font-weight:700;">${c.totalHadir}</td>
+        <td ${tdCenter} style="font-weight:700;">${c.totalTidak}</td>
       </tr>
     </table>`;
 
-  // TTD: monitoring → hanya Kamad; guru → Kamad + Guru
+  // TTD disesuaikan persis dengan file acuan
   const ttdHtml = c.monitor ? `
     <table style="width:100%; margin-top:28px; font-size:12pt;">
       <tr>
         <td style="width:50%; border:none;"></td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:40px;">
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
           ${CONFIG_MADRASAH.kota}, ${tglSurat}<br>Kepala Madrasah
           <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, FORMAT_NAMA.kepala)}</span></u></b><br><b style="font-size:11pt;">${CONFIG_MADRASAH.nipKepala}</b>
+          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, FORMAT_NAMA.kepala)}</span></u></b><br><b style="font-size:10pt;">${CONFIG_MADRASAH.nipKepala}</b>
         </td>
       </tr>
     </table>`
@@ -770,14 +770,14 @@ function cetakRekapJurnal() {
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
           Mengetahui,<br>Kepala Madrasah
           <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, FORMAT_NAMA.kepala)}</span></u></b><br><b style="font-size:11pt;">${CONFIG_MADRASAH.nipKepala}</b>
+          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, FORMAT_NAMA.kepala)}</span></u></b><br><b style="font-size:10pt;">${CONFIG_MADRASAH.nipKepala}</b>
         </td>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
           ${CONFIG_MADRASAH.kota}, ${tglSurat}
           <div style="height:22px;"></div>
           Guru Mata Pelajaran
           <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt;">${namaGuruCetak}</span></u></b><br><b style="font-size:11pt;">${nipGuru}</b>
+          <b><u><span style="font-size:10pt;">${namaGuruCetak}</span></u></b><br><b style="font-size:10pt;">${nipGuru}</b>
         </td>
       </tr>
     </table>`;
@@ -786,7 +786,7 @@ function cetakRekapJurnal() {
   printWindow.document.write(`
     <html>
     <head><title>Rekap Jurnal ${NAMA_BULAN[c.bln-1]} ${c.thn}</title></head>
-    <body style="font-family:'Times New Roman',serif; font-size:11pt; padding:24px; color:#000;">
+    <body style="font-family:'Times New Roman',serif; font-size:12pt; padding:24px; color:#000;">
       ${kopHtml}
       <div style="text-align:center; margin:0 0 12px;">
         <div style="font-size:12pt; font-weight:bold; text-decoration:underline;">REKAP JURNAL MENGAJAR${c.monitor ? ' — MONITORING PBM' : ''}</div>
@@ -794,7 +794,7 @@ function cetakRekapJurnal() {
       </div>
       <table style="width:100%; margin-bottom:12px; font-size:12pt;">${infoRows}</table>
       ${summaryHtml}
-      <table style="width:100%; border-collapse:collapse; font-size:10pt;">
+      <table style="width:100%; border-collapse:collapse; font-size:11pt;">
         <thead><tr>
           <th ${thStyle} style="width:30px;">No</th>
           ${c.monitor ? `<th ${thStyle}>Guru</th>` : ''}
