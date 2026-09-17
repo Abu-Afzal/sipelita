@@ -30,7 +30,7 @@ const CONFIG = {
             icon: '💻', 
             title: 'EMIS GTK', 
             desc: '', 
-            color: '#00fff2', 
+            color: '#0c9c95', 
             url: 'https://emisgtk.kemenag.go.id/',
             logo: 'assets/images/emis-app.png'
         },
