@@ -21,7 +21,7 @@ const CONFIG = {
             icon: '👤', 
             title: 'MyASN BKN', 
             desc: '', 
-            color: '#673ab7', 
+            color: '#3ab76a', 
             url: 'https://myasn.bkn.go.id/',
             logo: 'assets/images/logobkn-app.png'
         },
@@ -30,7 +30,7 @@ const CONFIG = {
             icon: '💻', 
             title: 'EMIS GTK', 
             desc: '', 
-            color: '#7e57c2', 
+            color: '#a57fe7', 
             url: 'https://emisgtk.kemenag.go.id/',
             logo: 'assets/images/emis-app.png'
         },
@@ -39,7 +39,7 @@ const CONFIG = {
             icon: '📘', 
             title: 'SIMPEG 5', 
             desc: '', 
-            color: '#546e7a', 
+            color: '#126f9b', 
             url: 'https://simpeg5.kemenag.go.id/',
             logo: 'assets/images/simpeg-app.png'
         },
