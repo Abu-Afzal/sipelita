@@ -13,7 +13,7 @@ const CONFIG = {
             icon: '📜',
             title: 'SSO KEMENAG', 
             desc: '', 
-            color: '#9c27b0', 
+            color: '#597ae6', 
             url: 'https://absensi.kemenag.go.id'
         },
         { 
