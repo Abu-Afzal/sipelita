@@ -321,7 +321,7 @@ function cetakAnalisis() {
       <table style="width:100%; border-collapse:collapse;">
         <tr>
           <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-            <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+            <img id="imgLogoKop" src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
           </td>
           <td style="text-align:center; border:none;">
             <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
@@ -379,7 +379,14 @@ function cetakAnalisis() {
         <tbody>${siswaRows}</tbody>
       </table>
       ${ttdHtml}
-      <script>window.print();<\/script>
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.focus();
+            window.print();
+          }, 300);
+        };
+      <\/script>
     </body>
     </html>
   `);
