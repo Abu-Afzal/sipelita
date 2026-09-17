@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Sesi - E-Learning SIPELITA</title>
+    <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: #f5f7fa; min-height: 100vh; }
+        
+        .header {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; padding: 24px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 1.6rem; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); color: white;
+            padding: 10px 20px; border-radius: 24px; text-decoration: none;
+            font-weight: 600; border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        
+        .card {
+            background: white; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07); margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #d97706; font-size: 1.2rem; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 8px;
+            padding-bottom: 12px; border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; margin-bottom: 6px;
+            font-weight: 600; color: #475569; font-size: 0.9rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 12px;
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 0.9rem; font-family: inherit;
+            outline: none; transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+        
+        .form-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+        
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 600; font-size: 0.9rem;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: #f59e0b; color: white; }
+        .btn-primary:hover { background: #d97706; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .alert {
+            padding: 12px 16px; border-radius: 8px;
+            margin-bottom: 16px; font-weight: 600;
+            display: none;
+        }
+        .alert.show { display: block; }
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 3px solid #f3f3f3; border-top: 3px solid #f59e0b;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .soal-item {
+            background: #f8fafc; border: 1.5px solid #e2e8f0;
+            border-radius: 10px; padding: 16px; margin-bottom: 12px;
+        }
+        .soal-item h4 {
+            color: #f59e0b; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .soal-remove {
+            background: #fee2e2; color: #ef4444; border: none;
+            width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; font-weight: 700;
+        }
+        
+        .editor-toolbar {
+            display: flex; gap: 4px; padding: 8px;
+            background: #f8fafc; border: 1.5px solid #e2e8f0;
+            border-radius: 8px 8px 0 0; border-bottom: none;
+        }
+        .editor-toolbar button {
+            padding: 6px 10px; background: white;
+            border: 1px solid #e2e8f0; border-radius: 4px;
+            cursor: pointer;
+        }
+        .editor-content {
+            border: 1.5px solid #e2e8f0; border-radius: 0 0 8px 8px;
+            padding: 12px; min-height: 200px; outline: none;
+        }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="flex: 1;">
+        <h1><i class="fas fa-edit"></i> Edit Sesi Belajar</h1>
+        <p>Ubah materi, soal, atau informasi sesi</p>
+    </div>
+    <a href="elearning.html" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali</a>
+</div>
+
+<div class="container">
+    
+    <div class="card">
+        <div id="alertInfo" class="alert"></div>
+        
+        <div class="form-group">
+            <label>Judul Sesi *</label>
+            <input type="text" id="judulSesi" required>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Mata Pelajaran *</label>
+                <input type="text" id="mataPelajaran" required>
+            </div>
+            <div class="form-group">
+                <label>Kelas Tujuan</label>
+                <input type="text" id="kelasTarget" disabled style="background: #f1f5f9;">
+                <small style="color: #64748b;">Untuk mengubah kelas, gunakan fitur Duplikasi</small>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Durasi (menit)</label>
+                <input type="number" id="durasiMenit" min="0">
+                <small>0 = tanpa batas</small>
+            </div>
+            <div class="form-group">
+                <label>Max Percobaan</label>
+                <input type="number" id="maxPercobaan" min="1">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2><i class="fas fa-book-open"></i> Materi Pembelajaran</h2>
+        
+        <div class="form-group">
+            <label>Konten Materi (HTML)</label>
+            <div class="editor-toolbar">
+                <button type="button" onclick="execCmd('bold')"><b>B</b></button>
+                <button type="button" onclick="execCmd('italic')"><i>I</i></button>
+                <button type="button" onclick="execCmd('underline')"><u>U</u></button>
+            </div>
+            <div id="materiTeks" class="editor-content" contenteditable="true"></div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2><i class="fas fa-question-circle"></i> Daftar Soal</h2>
+        <div id="soalContainer"></div>
+        <button type="button" class="btn btn-primary" onclick="tambahSoal()" style="margin-top: 12px;">
+            <i class="fas fa-plus"></i> Tambah Soal
+        </button>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #fef3c7, #fde68a);">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-success" id="btnUpdate" onclick="updateSesi()" style="flex: 1;">
+                <i class="fas fa-save"></i> Simpan Perubahan
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='elearning.html'">
+                <i class="fas fa-times"></i> Batal
+            </button>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+// Firebase Config
+const firebaseConfig = {
+    apiKey: "AIzaSyB24GCKSTPGlN9HG9E6uhCECVa4ibCpKEA",
+    authDomain: "sipelita-digital.firebaseapp.com",
+    projectId: "sipelita-digital",
+    storageBucket: "sipelita-digital.firebasestorage.app",
+    messagingSenderId: "787840817745",
+    appId: "1:787840817745:web:e6b5237cfbb5e51be93670"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let sessionId = '';
+let soalCounter = 0;
+
+// Get session ID from URL
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    sessionId = urlParams.get('id');
+    
+    if (!sessionId) {
+        alert('Session ID tidak ditemukan!');
+        window.location.href = 'elearning.html';
+        return;
+    }
+    
+    loadSessionData();
+});
+
+async function loadSessionData() {
+    try {
+        const doc = await db.collection('learning_sessions').doc(sessionId).get();
+        
+        if (!doc.exists) {
+            alert('Sesi tidak ditemukan!');
+            window.location.href = 'elearning.html';
+            return;
+        }
+        
+        const data = doc.data();
+        
+        // Fill form
+        document.getElementById('judulSesi').value = data.judul || '';
+        document.getElementById('mataPelajaran').value = data.mataPelajaran || '';
+        document.getElementById('kelasTarget').value = data.kelasTarget || '';
+        document.getElementById('durasiMenit').value = data.durasiMenit || 60;
+        document.getElementById('maxPercobaan').value = data.maxPercobaan || 1;
+        
+        // Fill materi
+        if (data.materi && data.materi.teks) {
+            document.getElementById('materiTeks').innerHTML = data.materi.teks;
+        }
+        
+        // Fill soal
+        if (data.soal && data.soal.length > 0) {
+            data.soal.forEach(soal => {
+                tambahSoal(soal);
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error load session:', error);
+        alert('Gagal memuat data sesi: ' + error.message);
+    }
+}
+
+window.execCmd = function(command) {
+    document.execCommand(command, false, null);
+};
+
+window.tambahSoal = function(data) {
+    data = data || null;
+    soalCounter++;
+    const container = document.getElementById('soalContainer');
+    const div = document.createElement('div');
+    div.className = 'soal-item';
+    div.id = 'soal-' + soalCounter;
+    
+    const type = data ? data.type : 'pilihan_ganda';
+    
+    let html = '<h4>Soal #' + soalCounter + ' <button type="button" class="soal-remove" onclick="hapusSoal(' + soalCounter + ')">X</button></h4>';
+    html += '<input type="hidden" class="soal-type" value="' + type + '">';
+    html += '<div class="form-group"><label>Pertanyaan</label><textarea class="soal-pertanyaan" required>' + (data ? data.pertanyaan : '') + '</textarea></div>';
+    
+    if (type === 'essay') {
+        html += '<div class="form-group"><label>Kunci Jawaban</label><textarea class="soal-kunci">' + (data ? data.kunciJawaban || '' : '') + '</textarea></div>';
+    } else {
+        const opsiLabels = ['A', 'B', 'C', 'D', 'E'];
+        const opsiValues = data ? data.opsi : { a: '', b: '', c: '', d: '', e: '' };
+        const jawabanBenar = data ? data.jawabanBenar : 'a';
+        
+        html += '<div><label>Pilihan Jawaban:</label>';
+        opsiLabels.forEach(label => {
+            const key = label.toLowerCase();
+            const checked = jawabanBenar === key ? 'checked' : '';
+            html += '<div style="margin: 8px 0; display: flex; gap: 8px; align-items: center;">';
+            html += '<input type="radio" name="benar-' + soalCounter + '" value="' + key + '" ' + checked + ' required>';
+            html += '<input type="text" class="soal-opsi" data-key="' + key + '" value="' + (opsiValues[key] || '') + '" placeholder="Opsi ' + label + '" style="flex: 1;">';
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+    
+    div.innerHTML = html;
+    container.appendChild(div);
+};
+
+window.hapusSoal = function(id) {
+    const el = document.getElementById('soal-' + id);
+    if (el) el.remove();
+};
+
+async function updateSesi() {
+    const btn = document.getElementById('btnUpdate');
+    const alertEl = document.getElementById('alertInfo');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+    alertEl.classList.remove('show');
+    
+    try {
+        const judul = document.getElementById('judulSesi').value.trim();
+        const mapel = document.getElementById('mataPelajaran').value.trim();
+        const durasi = parseInt(document.getElementById('durasiMenit').value);
+        const maxPercobaan = parseInt(document.getElementById('maxPercobaan').value);
+        const materiTeks = document.getElementById('materiTeks').innerHTML;
+        
+        // Collect soal
+        const soalList = [];
+        document.querySelectorAll('.soal-item').forEach(item => {
+            const type = item.querySelector('.soal-type').value;
+            const pertanyaan = item.querySelector('.soal-pertanyaan').value.trim();
+            
+            let soalData = { type: type, pertanyaan: pertanyaan };
+            
+            if (type === 'essay') {
+                soalData.kunciJawaban = item.querySelector('.soal-kunci').value.trim();
+            } else {
+                const opsi = {};
+                item.querySelectorAll('.soal-opsi').forEach(input => {
+                    opsi[input.dataset.key] = input.value.trim();
+                });
+                const jawabanBenar = item.querySelector('input[type="radio"]:checked');
+                soalData.opsi = opsi;
+                soalData.jawabanBenar = jawabanBenar ? jawabanBenar.value : '';
+            }
+            
+            if (pertanyaan) soalList.push(soalData);
+        });
+        
+        // Update Firestore
+        await db.collection('learning_sessions').doc(sessionId).update({
+            judul: judul,
+            mataPelajaran: mapel,
+            durasiMenit: durasi,
+            maxPercobaan: maxPercobaan,
+            materi: {
+                teks: materiTeks
+            },
+            soal: soalList,
+            updatedAt: new Date().toISOString()
+        });
+        
+        alertEl.textContent = '✅ Sesi berhasil diperbarui!';
+        alertEl.className = 'alert alert-success show';
+        
+        setTimeout(() => {
+            window.location.href = 'elearning-hasil.html?id=' + sessionId;
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Error update session:', error);
+        alertEl.textContent = ' Gagal menyimpan: ' + error.message;
+        alertEl.className = 'alert alert-error show';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+    }
+}
+</script>
+
+</body>
+</html>
