@@ -809,7 +809,14 @@ function cetakRekapJurnal() {
         <tbody>${rows}</tbody>
       </table>
       ${ttdHtml}
-      <script>window.print();<\/script>
+      <script>
+  window.onload = function() {
+    setTimeout(function() {
+      window.focus();
+      window.print();
+    }, 300);
+  };
+<\/script>
     </body>
     </html>
   `);
