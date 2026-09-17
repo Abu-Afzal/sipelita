@@ -3,719 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Sesi - E-Learning SIPELITA</title>
+    <title>Hasil Pembelajaran E-Learning - SIPELITA</title>
     <link rel="icon" type="image/png" href="../assets/images/icon-app.png">
-    
-    <!-- Anti Cache -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    
-    <!-- Excel Library -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --primary: #6366f1; --primary-dark: #4f46e5; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-        .brand h1 { font-size: 1.3rem; font-weight: 600; margin-bottom: 2px; }
-        .brand p { font-size: 0.8rem; opacity: 0.9; }
-        .back-btn { background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.3s; }
-        .back-btn:hover { background: rgba(255,255,255,0.3); }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
-        .info-box { background: var(--card-bg); padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-left: 3px solid var(--primary); }
-        .info-box .label { font-size: 0.75rem; color: var(--text-light); margin-bottom: 4px; }
-        .info-box .value { font-size: 1.2rem; font-weight: 700; color: var(--text); }
-        .pin-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 16px; border-radius: 10px; text-align: center; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
-        .pin-label { font-size: 0.75rem; opacity: 0.9; margin-bottom: 4px; text-transform: uppercase; }
-        .pin-code { font-size: 2rem; font-weight: 800; letter-spacing: 6px; }
-        .card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--border); flex-wrap: wrap; gap: 10px; }
-        .card-header h2 { font-size: 1.1rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
-        .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
-        .stat-box { text-align: center; padding: 12px; background: #f8fafc; border-radius: 8px; border-left: 3px solid var(--primary); }
-        .stat-box .num { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-        .stat-box .lbl { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #059669; transform: translateY(-1px); }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #d97706; }
-        .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
-        .btn-info { background: #3b82f6; color: white; }
-        .btn-info:hover { background: #2563eb; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-        .btn-secondary { background: #64748b; color: white; }
-        .btn-secondary:hover { background: #475569; }
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #f8fafc; color: var(--text); padding: 10px; text-align: left; border-bottom: 2px solid var(--border); font-weight: 600; }
-        td { padding: 10px; border-bottom: 1px solid var(--border); }
-        tr:hover td { background: #fafbff; }
-        .nilai-badge { padding: 4px 10px; border-radius: 10px; font-weight: 700; font-size: 0.8rem; display: inline-block; }
-        .nilai-tinggi { background: #dcfce7; color: #166534; }
-        .nilai-sedang { background: #fef3c7; color: #92400e; }
-        .nilai-rendah { background: #fee2e2; color: #991b1b; }
-        .status-badge { padding: 4px 10px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
-        .status-selesai { background: #dcfce7; color: #166534; }
-        .status-belum { background: #fee2e2; color: #991b1b; }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
-        .empty-state i { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
-        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid var(--border); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 768px) {
-            .header-content { flex-direction: column; gap: 12px; text-align: center; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-            .info-grid { grid-template-columns: 1fr; }
-            table { font-size: 0.75rem; }
-            th, td { padding: 8px; }
-        }
-    </style>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
 
-<div class="header">
-    <div class="header-content">
-        <div class="brand">
-            <h1><i class="fas fa-chart-bar"></i> Hasil Sesi E-Learning</h1>
-            <p id="headerJudul">Memuat...</p>
-        </div>
-        <a href="elearning.html" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali</a>
-    </div>
-</div>
-
-<div class="container">
-    <div class="card">
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
-            <div class="info-grid">
-                <div class="info-box"><div class="label"><i class="fas fa-book"></i> Mata Pelajaran</div><div class="value" id="infoMapel">-</div></div>
-                <div class="info-box"><div class="label"><i class="fas fa-users"></i> Kelas</div><div class="value" id="infoKelas">-</div></div>
-                <div class="info-box"><div class="label"><i class="fas fa-question-circle"></i> Total Soal</div><div class="value" id="infoSoal">-</div></div>
-                <div class="info-box"><div class="label"><i class="fas fa-clock"></i> Durasi</div><div class="value" id="infoDurasi">-</div></div>
-            </div>
-            <div class="pin-box">
-                <div class="pin-label">PIN SESI</div>
-                <div class="pin-code" id="infoPin">------</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-chart-line"></i> Statistik</h2>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn btn-success" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
-                <button class="btn btn-primary" onclick="exportPDFLaporan()" style="background: #dc2626; color: white;"><i class="fas fa-file-pdf"></i> Export PDF</button>
-                <button class="btn btn-warning" onclick="shareWA()"><i class="fab fa-whatsapp"></i> Share WA</button>
-                <button class="btn btn-secondary" onclick="forceRefreshData()"><i class="fas fa-sync-alt"></i> Refresh</button>
-            </div>
-        </div>
-        <div class="stats-row">
-            <div class="stat-box"><div class="num" id="statTotal">0 / 0</div><div class="lbl">Sudah / Total Siswa</div></div>
-            <div class="stat-box" style="border-left-color: var(--success);"><div class="num" id="statRata" style="color: var(--success);">0</div><div class="lbl">Rata-rata</div></div>
-            <div class="stat-box" style="border-left-color: var(--success);"><div class="num" id="statMax" style="color: var(--success);">0</div><div class="lbl">Tertinggi</div></div>
-            <div class="stat-box" style="border-left-color: var(--danger);"><div class="num" id="statMin" style="color: var(--danger);">0</div><div class="lbl">Terendah</div></div>
-            <div class="stat-box" style="border-left-color: var(--success);"><div class="num" id="statLulus" style="color: var(--success);">0</div><div class="lbl">Lulus (≥70)</div></div>
-        </div>
-    </div>
-    
-    <div class="card">
-        <div class="card-header"><h2><i class="fas fa-list"></i> Daftar Nilai Siswa</h2></div>
-        <div id="loading" style="text-align: center; padding: 40px;">
-            <div class="spinner"></div>
-            <p style="margin-top: 12px; color: var(--text-light);">Memverifikasi login & memuat data...</p>
-        </div>
-        <div id="tableContainer" class="table-container" style="display: none;">
-            <table>
-                <thead>
-                    <tr>
-                        <th width="40">No</th><th>Nama Siswa</th><th width="80">Kelas</th>
-                        <th width="60">Benar</th><th width="60">Salah</th><th width="80">Nilai</th>
-                        <th width="80">Waktu</th><th width="140">Status & Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelBody"></tbody>
-            </table>
-        </div>
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <i class="fas fa-inbox"></i>
-            <h3>Belum Ada Data Siswa</h3>
-            <p style="margin-top: 8px;">Pastikan kelas yang dipilih memiliki data siswa di SIPENA</p>
-        </div>
-    </div>
-</div>
-
-<script>
-// ✅ 1. FIREBASE CONFIG SIPELITA GURU
-const firebaseConfig = {
-    apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
-    authDomain: "sipelita-guru.firebaseapp.com",
-    projectId: "sipelita-guru",
-    storageBucket: "sipelita-guru.firebasestorage.app",
-    messagingSenderId: "595996765157",
-    appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
-    measurementId: "G-ZGT7K2N7L5"
-};
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-let currentSession = null;
-let daftarJawaban = [];
-let currentUser = null;
-
-// ✅ 2. CACHE MANAGER
-const CacheManager = {
-    memory: new Map(),
-    storage: {
-        get(key) {
-            try {
-                const item = localStorage.getItem(`sipelita_cache_${key}`);
-                if (!item) return null;
-                const parsed = JSON.parse(item);
-                if (parsed.expiry && Date.now() > parsed.expiry) {
-                    localStorage.removeItem(`sipelita_cache_${key}`);
-                    return null;
-                }
-                return parsed.data;
-            } catch (e) { return null; }
-        },
-        set(key, data, ttlMinutes = 10) {
-            try {
-                const item = { data: data, expiry: Date.now() + (ttlMinutes * 60 * 1000) };
-                localStorage.setItem(`sipelita_cache_${key}`, JSON.stringify(item));
-            } catch (e) { console.warn('Cache penuh:', e); }
-        }
-    },
-    get(key) {
-        if (this.memory.has(key)) return this.memory.get(key);
-        const fromStorage = this.storage.get(key);
-        if (fromStorage) this.memory.set(key, fromStorage);
-        return fromStorage;
-    },
-    set(key, data, ttlMinutes = 10) {
-        this.memory.set(key, data);
-        this.storage.set(key, data, ttlMinutes);
-    }
-};
-
-// ✅ 3. FUNGSI FORMAT NAMA & GELAR
-function rapikanGelar(token) {
-    if (!token) return '';
-    let t = token.trim();
-    const adaTitikAkhir = t.endsWith('.');
-    const clean = t.replace(/\.+$/, '');
-    const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.S','M.S','S.Sos','M.Sos',
-        'S.Kom','M.Kom','S.E','M.M','S.H','M.H','S.Psi','M.Psi','S.T','M.T','S.Farm','A.Md',
-        'Dra','Drs','Dr','Prof','H','Hj','Ir','KH'];
-    const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
-    if (found) return found + (adaTitikAkhir ? '.' : '');
-    if (clean.includes('.')) {
-        return clean.split('.').map(seg => seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()).join('.');
-    }
-    return clean.length <= 2 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
-}
-
-function formatNamaGelar(text) {
-    if (!text) return '';
-    const parts = text.split(',');
-    const GELAR_DEPAN = ['Drs','Dra','Dr','Prof','H','Hj','Ir','KH'];
-    let tokens = parts[0].trim().split(/\s+/);
-    const depan = [];
-    while (tokens.length) {
-        const t = tokens[0].replace(/\.+$/, '');
-        const m = GELAR_DEPAN.find(g => g.toLowerCase() === t.toLowerCase());
-        if (m) { depan.push(m + '.'); tokens.shift(); } else break;
-    }
-    const namaInti = tokens.join(' ').toUpperCase();
-    const belakang = parts.slice(1).map(rapikanGelar).filter(Boolean).join(',');
-    let hasil = (depan.length ? depan.join(' ') + ' ' : '') + namaInti;
-    if (belakang) hasil += ', ' + belakang;
-    return hasil;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            currentUser = user;
-            console.log('✅ User terautentikasi:', user.email);
-            loadHasilSesi();
-        } else {
-            console.warn('⚠️ User belum login');
-            window.location.href = '../index.html';
-        }
-    });
-});
-
-async function loadHasilSesi() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('id');
-    
-    if (!sessionId) {
-        alert('ID sesi tidak ditemukan!');
-        window.location.href = 'elearning.html';
-        return;
-    }
-    
-    try {
-        const cacheKeySesi = `sesi_${sessionId}`;
-        let sesiDoc = CacheManager.get(cacheKeySesi);
-        
-        if (!sesiDoc) {
-            const docSnap = await db.collection('learning_sessions').doc(sessionId).get();
-            if (!docSnap.exists) throw new Error('Sesi tidak ditemukan');
-            sesiDoc = { id: docSnap.id, ...docSnap.data() };
-            CacheManager.set(cacheKeySesi, sesiDoc, 900);
-        }
-        
-        currentSession = sesiDoc;
-        
-        document.getElementById('headerJudul').textContent = currentSession.judul;
-        document.getElementById('infoMapel').textContent = currentSession.mataPelajaran || '-';
-        document.getElementById('infoKelas').textContent = currentSession.kelasTarget || '-';
-        document.getElementById('infoSoal').textContent = currentSession.totalSoal || 0;
-        document.getElementById('infoDurasi').textContent = currentSession.durasiMenit > 0 ? `${currentSession.durasiMenit} menit` : 'Tanpa batas';
-        document.getElementById('infoPin').textContent = currentSession.pin;
-        
-        let semuaSiswa = [];
-        if (currentSession.kelasSipenaId) {
-            const cacheKeySiswa = `siswa_${currentSession.kelasSipenaId}`;
-            let cachedSiswa = CacheManager.get(cacheKeySiswa);
-            
-            if (cachedSiswa && cachedSiswa.length > 0) {
-                semuaSiswa = cachedSiswa;
-            } else {
-                const siswaSnap = await db.collection('siswa').where('kelas_id', '==', currentSession.kelasSipenaId).limit(500).get();
-                siswaSnap.forEach(doc => {
-                    const data = doc.data();
-                    semuaSiswa.push({ id: doc.id, nama: data.student_name || data.nama || data.name || 'Tanpa Nama', kelas: currentSession.kelasTarget });
-                });
-                semuaSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
-                CacheManager.set(cacheKeySiswa, semuaSiswa, 1800);
-            }
-        }
-        
-        const snap = await db.collection('student_responses').where('sessionId', '==', sessionId).get({ source: 'server' });
-        const responsesData = [];
-        snap.forEach(doc => responsesData.push({ id: doc.id, ...doc.data() }));
-        
-        const notesSnap = await db.collection('student_notes').where('sessionId', '==', sessionId).get({ source: 'server' });
-        const notesData = [];
-        notesSnap.forEach(doc => notesData.push({ id: doc.id, ...doc.data() }));
-        
-        const jawabanMap = new Map();
-        responsesData.forEach(item => jawabanMap.set(normalizeNama(item.siswaNama), { id: item.id, ...item, tipe: 'jawaban' }));
-        notesData.forEach(item => {
-            const namaLower = normalizeNama(item.siswaNama);
-            if (!jawabanMap.has(namaLower)) jawabanMap.set(namaLower, { id: item.id, ...item, tipe: 'catatan' });
-        });
-        
-        daftarJawaban = semuaSiswa.map(siswa => {
-            const data = jawabanMap.get(normalizeNama(siswa.nama));
-            return { siswaNama: siswa.nama, siswaKelas: siswa.kelas, ...(data || {}), sudahKirim: !!data };
-        });
-        
-        if (daftarJawaban.length === 0 && jawabanMap.size > 0) {
-            jawabanMap.forEach((data) => {
-                daftarJawaban.push({ siswaNama: data.siswaNama, siswaKelas: data.siswaKelas || currentSession.kelasTarget, ...data, sudahKirim: true });
-            });
-        }
-        
-        daftarJawaban.sort((a, b) => {
-            if (a.sudahKirim && !b.sudahKirim) return -1;
-            if (!a.sudahKirim && b.sudahKirim) return 1;
-            if (a.sudahKirim && b.sudahKirim) return (b.nilai || 0) - (a.nilai || 0);
-            return 0;
-        });
-        
-        document.getElementById('loading').style.display = 'none';
-        if (daftarJawaban.length === 0) {
-            document.getElementById('emptyState').style.display = 'block';
-        } else {
-            document.getElementById('tableContainer').style.display = 'block';
-            renderTabel();
-        }
-        updateStatistik();
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        document.getElementById('loading').innerHTML = `<div style="color: var(--danger); padding: 20px;"><i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 12px;"></i><p>${error.message}</p></div>`;
-    }
-}
-
-function normalizeNama(nama) {
-    if (!nama) return '';
-    return nama.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[^\w\s]/gi, '').trim();
-}
-
-window.forceRefreshData = async function() {
-    if (currentSession) {
-        CacheManager.remove(`sesi_${currentSession.id}`);
-        if (currentSession.kelasSipenaId) CacheManager.remove(`siswa_${currentSession.kelasSipenaId}`);
-    }
-    await loadHasilSesi();
-    alert('✅ Data berhasil di-refresh!');
-};
-
-function renderTabel() {
-    const tbody = document.getElementById('tabelBody');
-    tbody.innerHTML = daftarJawaban.map((d, idx) => {
-        if (!d.sudahKirim) {
-            return `<tr style="background: #f8fafc;">
-                <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
-                <td colspan="4" style="text-align: center; color: #94a3b8;"><i class="fas fa-hourglass-half"></i> Belum mengerjakan</td>
-                <td><span class="status-badge status-belum"><i class="fas fa-times-circle"></i> Belum</span></td>
-            </tr>`;
-        }
-        let kelasNilai = d.nilai >= 80 ? 'nilai-tinggi' : (d.nilai >= 60 ? 'nilai-sedang' : 'nilai-rendah');
-        const durasiMenit = d.waktuSelesai && d.waktuMulai ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
-        const tipeData = d.tipe || 'jawaban';
-        const tombolLihat = tipeData === 'catatan' 
-            ? `<button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'catatan')"><i class="fas fa-image"></i> Lihat</button>`
-            : `<button class="btn btn-sm btn-info" onclick="lihatTugasSiswa('${d.id}', 'jawaban')"><i class="fas fa-eye"></i> Lihat</button>`;
-        
-        return `<tr>
-            <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
-            <td style="color: var(--success); font-weight: 700;">${d.totalBenar || '-'}</td>
-            <td style="color: var(--danger); font-weight: 700;">${d.totalSalah || '-'}</td>
-            <td><span class="nilai-badge ${kelasNilai}">${d.nilai || '-'}</span></td>
-            <td>${durasiMenit} mnt</td>
-            <td><div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
-                <span class="status-badge status-selesai"><i class="fas fa-${tipeData === 'catatan' ? 'camera' : 'check-circle'}"></i> ${tipeData === 'catatan' ? 'Catatan' : 'Selesai'}</span>
-                ${tombolLihat}
-            </div></td>
-        </tr>`;
-    }).join('');
-}
-
-function updateStatistik() {
-    const totalSiswaKelas = daftarJawaban.length;
-    const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
-    const yangAdaNilai = yangSudah.filter(d => d.tipe === 'jawaban' && d.nilai !== undefined && d.nilai !== null);
-    const nilaiList = yangAdaNilai.map(d => d.nilai);
-    
-    const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
-    const max = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
-    const min = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
-    const lulus = nilaiList.filter(n => n >= 70).length;
-    
-    document.getElementById('statTotal').textContent = `${yangSudah.length} / ${totalSiswaKelas}`;
-    document.getElementById('statRata').textContent = rata;
-    document.getElementById('statMax').textContent = max;
-    document.getElementById('statMin').textContent = min;
-    document.getElementById('statLulus').textContent = `${lulus} (${yangAdaNilai.length > 0 ? Math.round(lulus/yangAdaNilai.length*100) : 0}%)`;
-}
-
-window.lihatTugasSiswa = function(responseId, tipe) {
-    if (!currentSession) { alert('Data sesi tidak ditemukan!'); return; }
-    window.open(`elearning-jawaban.html?id=${responseId}&session=${currentSession.id}&tipe=${tipe || 'jawaban'}`, '_blank');
-};
-
-window.exportExcel = function() {
-    if (daftarJawaban.length === 0) { alert('Belum ada data untuk diexport!'); return; }
-    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', currentSession.judul], ['Mata Pelajaran', currentSession.mataPelajaran], ['Kelas', currentSession.kelasTarget], ['Tanggal', new Date().toLocaleDateString('id-ID')], ['PIN', currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (mnt)', 'Status']];
-    daftarJawaban.forEach((d, idx) => {
-        const durasi = d.sudahKirim && d.waktuSelesai && d.waktuMulai ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
-        data.push([idx + 1, d.siswaNama, d.siswaKelas, d.sudahKirim ? (d.totalBenar || '-') : '-', d.sudahKirim ? (d.totalSalah || '-') : '-', d.sudahKirim ? (d.nilai || '-') : 'Belum', durasi, d.sudahKirim ? 'Selesai' : 'Belum']);
-    });
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Hasil');
-    XLSX.writeFile(wb, `Hasil_${currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
-};
-
-window.shareWA = function() {
-    const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban').length;
-    const total = daftarJawaban.length;
-    const pesan = `📊 *Hasil E-Learning*\n\n📚 ${currentSession.judul}\n👥 Kelas: ${currentSession.kelasTarget}\n\n📈 *Statistik:*\n• Mengerjakan: ${yangSudah} / ${total}\n• Rata-rata: ${document.getElementById('statRata').textContent}\n• Lulus (≥70): ${document.getElementById('statLulus').textContent}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
-};
-
-// ✅ 4. FUNGSI EXPORT PDF (MENGGUNAKAN HIDDEN IFRAME & ABSOLUTE PATH)
-window.exportPDFLaporan = async function() {
-    if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
-        alert('Tidak ada data untuk dicetak!');
-        return;
-    }
-
-    const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan Dokumen...';
-
-    try {
-        const sesi = typeof currentSession !== 'undefined' ? currentSession : {};
-        const today = new Date();
-        const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        const tglSurat = `${today.getDate()} ${NAMA_BULAN[today.getMonth()]} ${today.getFullYear()}`;
-        
-        // Data Statistik
-        const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
-        const nilaiList = yangSudah.filter(d => d.tipe === 'jawaban').map(d => d.nilai).filter(n => n !== undefined && n !== null);
-        
-        const tertinggi = nilaiList.length > 0 ? Math.max(...nilaiList) : 0;
-        const terendah = nilaiList.length > 0 ? Math.min(...nilaiList) : 0;
-        const rata = nilaiList.length > 0 ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
-        
-        const kkm = sesi.kkm || 70;
-        const tuntas = nilaiList.filter(n => n >= kkm).length;
-        const pctTuntas = nilaiList.length > 0 ? Math.round((tuntas / nilaiList.length) * 100) : 0;
-
-        // Pengaturan Madrasah
-        let CONFIG_MADRASAH = {
-            kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-            kop2: '',
-            namaMadrasah: '',
-            alamatMadrasah: '',
-            tempat: '',
-            kamadNama: '',
-            kamadNip: ''
-        };
-
-        if (currentUser && currentUser.email) {
-            try {
-                const pengaturanDoc = await db.collection('pengaturan_user').doc(currentUser.email).get();
-                if (pengaturanDoc.exists) {
-                    const data = pengaturanDoc.data();
-                    CONFIG_MADRASAH = {
-                        kop1: data.kop1 || CONFIG_MADRASAH.kop1,
-                        kop2: data.kop2 || CONFIG_MADRASAH.kop2,
-                        namaMadrasah: data.namaMadrasah || '',
-                        alamatMadrasah: data.alamatMadrasah || '',
-                        tempat: data.tempat || '',
-                        kamadNama: data.kamadNama || '',
-                        kamadNip: data.kamadNip || ''
-                    };
-                }
-            } catch (e) {
-                console.warn('Gagal load pengaturan_user:', e);
-            }
-        }
-
-        // 🔗 Konversi path logo ke URL absolut
-        const logoUrl = new URL('../assets/images/kemenag-app.png', window.location.href).href;
-
-        // KOP SURAT
-        const kopHtml = `
-            <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
-                <table style="width:100%; border-collapse:collapse;">
-                    <tr>
-                        <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-                            <img src="${logoUrl}" style="width:62px; height:auto;" onerror="console.warn('Logo Kemenag tidak ditemukan pada path:', this.src)">
-                        </td>
-                        <td style="text-align:center; border:none;">
-                            <div style="font-size:14pt; font-weight:bold;">KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
-                            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1 || 'KEMENTERIAN AGAMA KABUPATEN BULUKUMBA'}</div>
-                            <div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.namaMadrasah || 'MADRASATUL QUR\'AN HASYIM ASY\'ARI'}</div>
-                            <div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamatMadrasah || 'Jl. Datotiro Lapangan A. Mappinawang'}</div>
-                        </td>
-                        <td style="width:75px; border:none;"></td>
-                    </tr>
-                </table>
-            </div>`;
-
-        const cellStyle = "border:1px solid #000; padding:4px; font-size:11pt;";
-        const headerStyle = "border:1px solid #000; padding:4px; font-size:11pt; background:#f0f0f0; font-weight:bold; text-align:center;";
-
-        const sorted = [...daftarJawaban].sort((a, b) => {
-            if (a.sudahKirim && !b.sudahKirim) return -1;
-            if (!a.sudahKirim && b.sudahKirim) return 1;
-            if (a.sudahKirim && b.sudahKirim) return (b.nilai || 0) - (a.nilai || 0);
-            return 0;
-        });
-
-        const siswaRows = sorted.map((d, i) => {
-            const durasi = d.sudahKirim && d.waktuSelesai && d.waktuMulai 
-                ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) + ' mnt' 
-                : '-';
-            const status = d.sudahKirim ? (d.tipe === 'catatan' ? 'Catatan' : 'Selesai') : 'Belum';
-            const benar = d.sudahKirim && d.totalBenar !== undefined ? d.totalBenar : '-';
-            const salah = d.sudahKirim && d.totalSalah !== undefined ? d.totalSalah : '-';
-            const nilai = d.sudahKirim && d.nilai !== undefined ? d.nilai : '-';
-            
-            return `<tr>
-                <td style="${cellStyle} text-align:center;">${i + 1}</td>
-                <td style="${cellStyle}">${d.siswaNama}</td>
-                <td style="${cellStyle} text-align:center;">${d.siswaKelas || '-'}</td>
-                <td style="${cellStyle} text-align:center;">${benar}</td>
-                <td style="${cellStyle} text-align:center;">${salah}</td>
-                <td style="${cellStyle} text-align:center; font-weight:bold;">${nilai}</td>
-                <td style="${cellStyle} text-align:center;">${durasi}</td>
-                <td style="${cellStyle} text-align:center;">${status}</td>
-            </tr>`;
-        }).join('');
-
-        const kepalaNama = CONFIG_MADRASAH.kamadNama || '................................................';
-        const kepalaNip = CONFIG_MADRASAH.kamadNip ? `NIP. ${CONFIG_MADRASAH.kamadNip}` : 'NIP. ............................................';
-        let guruNama = sesi.guruNama || (currentUser?.displayName) || '................................................';
-        let guruNip = sesi.guruNIP || 'NIP. ............................................';
-
-        const namaGuruCetak = formatNamaGelar(guruNama);
-        const namaKamadCetak = formatNamaGelar(kepalaNama);
-        const kota = CONFIG_MADRASAH.tempat || 'Bulukumba';
-
-        const ttdHtml = `
-            <table style="width:100%; margin-top:28px; font-size:12pt;">
-                <tr>
-                    <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
-                        Mengetahui,<br>Kepala Madrasah
-                        <div style="height:60px;"></div>
-                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
-                        <b style="font-size:10pt;">${kepalaNip}</b>
-                    </td>
-                    <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
-                        ${kota}, ${tglSurat}
-                        <div style="height:22px;"></div>
-                        Guru Mata Pelajaran
-                        <div style="height:60px;"></div>
-                        <b><u><span style="font-size:10pt; white-space:nowrap;">${namaGuruCetak}</span></u></b><br>
-                        <b style="font-size:10pt;">${guruNip}</b>
-                    </td>
-                </tr>
-            </table>`;
-
-        // 🛠️ PEMBUATAN IFRAME CETAK TERSEMBUNYI
-        let iframe = document.getElementById('print-iframe');
-        if (iframe) iframe.remove();
-
-        iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe';
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = 'none';
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <base href="${window.location.origin}">
-                <title>Laporan E-Learning - ${sesi.kelasTarget || 'Kelas'}</title>
-                <style>
-                    @page { size: A4 portrait; margin: 15mm; }
-                    body { font-family: 'Times New Roman', serif; font-size: 11pt; color: #000; margin: 0; padding: 0; }
-                </style>
-            </head>
-            <body>
-                ${kopHtml}
-                
-                <div style="text-align:center; margin:12px 0;">
-                    <div style="font-size:12pt; font-weight:bold; text-decoration:underline;">LAPORAN HASIL PEMBELAJARAN DARING</div>
-                    <div style="font-size:11pt; font-weight:bold;">E-LEARNING SIPELITA</div>
+    <!-- Header / Navbar -->
+    <header class="bg-blue-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="elearning-guru.html" class="hover:bg-blue-800 p-2 rounded-lg transition">
+                    <i class="fas fa-arrow-left text-lg"></i>
+                </a>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight" id="sessionTitle">Laporan Hasil E-Learning</h1>
+                    <p class="text-xs text-blue-200" id="sessionSub">Sistem Informasi Pembelajaran - SIPELITA</p>
                 </div>
-                
-                <table style="width:100%; margin-bottom:12px; font-size:10pt; border:none;">
-                    <tr><td style="width:120px; border:none;">Judul Sesi</td><td style="border:none;">: <b>${sesi.judul || '-'}</b></td></tr>
-                    <tr><td style="border:none;">Mata Pelajaran</td><td style="border:none;">: <b>${sesi.mataPelajaran || '-'}</b></td></tr>
-                    <tr><td style="border:none;">Kelas</td><td style="border:none;">: <b>${sesi.kelasTarget || '-'}</b></td></tr>
-                    <tr><td style="border:none;">Tanggal Dibuat</td><td style="border:none;">: <b>${new Date(sesi.createdAt || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</b></td></tr>
-                </table>
+            </div>
+            <div>
+                <button onclick="exportPDFLaporan()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow flex items-center gap-2 transition">
+                    <i class="fas fa-print"></i> Cetak / Download PDF
+                </button>
+            </div>
+        </div>
+    </header>
 
-                <div style="font-size:11pt; font-weight:bold; margin:12px 0 8px 0;">STATISTIK HASIL</div>
-                <table style="width:100%; border-collapse:collapse; font-size:10pt; margin-bottom:14px;">
-                    <tr>
-                        <td style="${cellStyle} width:25%;">Total Siswa</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold; width:25%;">${daftarJawaban.length} siswa</td>
-                        <td style="${cellStyle} width:25%;">Sudah Mengerjakan</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold; width:25%;">${yangSudah.length} siswa</td>
-                    </tr>
-                    <tr>
-                        <td style="${cellStyle}">Rata-rata Nilai</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${rata}</td>
-                        <td style="${cellStyle}">Nilai Tertinggi</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${tertinggi}</td>
-                    </tr>
-                    <tr>
-                        <td style="${cellStyle}">Nilai Terendah</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${terendah}</td>
-                        <td style="${cellStyle}">Lulus (≥${kkm})</td>
-                        <td style="${cellStyle} text-align:center; font-weight:bold;">${tuntas} siswa (${pctTuntas}%)</td>
-                    </tr>
-                </table>
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-                <div style="font-size:11pt; font-weight:bold; margin:12px 0 8px 0;">DAFTAR NILAI SISWA</div>
-                <table style="width:100%; border-collapse:collapse; font-size:10pt;">
-                    <thead>
+        <!-- Informasi Sesi & Ringkasan Statistik -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-medium uppercase">Total Peserta</p>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1" id="statTotal">-</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-medium uppercase">Sudah Mengerjakan</p>
+                <h3 class="text-2xl font-bold text-blue-600 mt-1" id="statSudah">-</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-medium uppercase">Rata-Rata Nilai</p>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="statRata">-</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-medium uppercase">Tertinggi / Terendah</p>
+                <h3 class="text-2xl font-bold text-indigo-600 mt-1" id="statMinMax">- / -</h3>
+            </div>
+        </div>
+
+        <!-- Tabel Hasil Siswa -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h2 class="font-bold text-slate-700">Daftar Nilai Siswa</h2>
+                <input type="text" id="searchInput" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="px-3 py-1.5 border rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 uppercase text-xs">
                         <tr>
-                            <th style="${headerStyle}" width="30">No</th>
-                            <th style="${headerStyle}">Nama Siswa</th>
-                            <th style="${headerStyle}" width="50">Kelas</th>
-                            <th style="${headerStyle}" width="40">Benar</th>
-                            <th style="${headerStyle}" width="40">Salah</th>
-                            <th style="${headerStyle}" width="40">Nilai</th>
-                            <th style="${headerStyle}" width="60">Waktu</th>
-                            <th style="${headerStyle}" width="70">Status</th>
+                            <th class="px-4 py-3 text-center w-12">No</th>
+                            <th class="px-4 py-3">Nama Siswa</th>
+                            <th class="px-4 py-3 text-center">Kelas</th>
+                            <th class="px-4 py-3 text-center">Benar</th>
+                            <th class="px-4 py-3 text-center">Salah</th>
+                            <th class="px-4 py-3 text-center">Nilai</th>
+                            <th class="px-4 py-3 text-center">Status</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${siswaRows}
+                    <tbody id="tableBody" class="divide-y divide-slate-200">
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-slate-400">Memuat data hasil pembelajaran...</td>
+                        </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </main>
 
-                ${ttdHtml}
+    <!-- Inisialisasi Firebase & Penyiapan Variable Global -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+            authDomain: "sipelita-guru.firebaseapp.com",
+            projectId: "sipelita-guru",
+            storageBucket: "sipelita-guru.firebasestorage.app",
+            messagingSenderId: "595996765157",
+            appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
+        };
 
-                <div style="margin-top:20px; font-size:8pt; text-align:center; color:#666;">
-                    Laporan ini digenerate otomatis oleh Sistem E-Learning SIPELITA
-                </div>
-            </body>
-            </html>
-        `);
-        doc.close();
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        // ⏳ Memastikan seluruh gambar dalam iframe selesai dimuat sebelum perintah print
-        const images = Array.from(doc.images);
-        await Promise.all(images.map(img => {
-            if (img.complete) return Promise.resolve();
-            return new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve;
+        // 🌐 GLOBAL VARIABLES (Dibutuhkan oleh elearning-pdf.js)
+        var currentSession = {};
+        var daftarJawaban = [];
+        var currentUser = null;
+        var currentUserData = null;
+        var NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        var CONFIG_MADRASAH = {
+            kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+            kop2: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
+            kop3: 'MADRASAH ALIYAH NEGERI BANTAENG',
+            alamat: 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng',
+            kota: 'Bantaeng',
+            kepalaMadrasah: '................................................',
+            nipKepala: ''
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await loadUserProfile(user.email);
+                    await fetchConfigMadrasah();
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const sessionId = urlParams.get('id');
+                    if (sessionId) {
+                        loadHasilData(sessionId);
+                    } else {
+                        alert('ID Sesi tidak ditemukan pada URL!');
+                    }
+                } else {
+                    window.location.href = '../index.html';
+                }
             });
-        }));
+        });
 
-        setTimeout(() => {
-            iframe.contentWindow.focus();
-            const element = iframe.contentWindow.document.body;
-const opt = {
-  margin:       10,
-  filename:     `Laporan_${sesi.kelasTarget || 'Sesi'}.pdf`,
-  image:        { type: 'jpeg', quality: 0.98 },
-  html2canvas:  { scale: 2 },
-  jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-};
-html2pdf().set(opt).from(element).save();
-        }, 300);
+        async function loadUserProfile(email) {
+            try {
+                const userDoc = await db.collection('users').doc(email).get();
+                if (userDoc.exists) {
+                    currentUserData = userDoc.data();
+                }
+            } catch (e) {
+                console.warn('Gagal memuat profil user:', e);
+            }
+        }
 
-    } catch (error) {
-        console.error('Error mencetak laporan:', error);
-        alert('❌ Gagal menyiapkan dokumen: ' + error.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-};
-</script>
+        async function fetchConfigMadrasah() {
+            try {
+                const docSnap = await db.collection('pengaturan_user').doc('madrasah_config').get();
+                if (docSnap.exists) {
+                    Object.assign(CONFIG_MADRASAH, docSnap.data());
+                }
+            } catch (e) {
+                console.warn('Menggunakan konfigurasi madrasah bawaan');
+            }
+        }
+
+        async function loadHasilData(sessionId) {
+            try {
+                // 1. Ambil Data Sesi
+                const sesiSnap = await db.collection('learning_sessions').doc(sessionId).get();
+                if (!sesiSnap.exists) throw new Error('Sesi tidak ditemukan');
+                currentSession = { id: sesiSnap.id, ...sesiSnap.data() };
+
+                document.getElementById('sessionTitle').textContent = currentSession.judul || 'Laporan Hasil';
+                document.getElementById('sessionSub').textContent = `${currentSession.mataPelajaran || '-'} | Kelas: ${currentSession.kelasTarget || '-'}`;
+
+                // 2. Ambil Siswa
+                let semuaSiswa = [];
+                if (currentSession.kelasSipenaId) {
+                    const siswaSnap = await db.collection('siswa').where('kelas_id', '==', currentSession.kelasSipenaId).get();
+                    siswaSnap.forEach(doc => semuaSiswa.push({ 
+                        id: doc.id, 
+                        nama: doc.data().student_name || doc.data().nama, 
+                        kelas: currentSession.kelasTarget 
+                    }));
+                }
+
+                // 3. Ambil Jawaban Siswa
+                const respSnap = await db.collection('student_responses').where('sessionId', '==', sessionId).get();
+                const respMap = new Map();
+                respSnap.forEach(doc => respMap.set((doc.data().siswaNama || '').toLowerCase().trim(), doc.data()));
+
+                daftarJawaban = semuaSiswa.map(s => {
+                    const resp = respMap.get(s.nama.toLowerCase().trim());
+                    return {
+                        siswaNama: s.nama,
+                        siswaKelas: s.kelas,
+                        ...resp,
+                        sudahKirim: !!resp
+                    };
+                });
+
+                renderUI();
+
+            } catch (err) {
+                console.error(err);
+                alert('Gagal memuat data: ' + err.message);
+            }
+        }
+
+        function renderUI() {
+            const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
+            const nilaiList = yangSudah.map(d => d.nilai).filter(n => n !== undefined && n !== null);
+            const rata = nilaiList.length ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : 0;
+            const max = nilaiList.length ? Math.max(...nilaiList) : 0;
+            const min = nilaiList.length ? Math.min(...nilaiList) : 0;
+
+            document.getElementById('statTotal').textContent = `${daftarJawaban.length} Siswa`;
+            document.getElementById('statSudah').textContent = `${yangSudah.length} Siswa`;
+            document.getElementById('statRata').textContent = rata;
+            document.getElementById('statMinMax').textContent = `${max} / ${min}`;
+
+            const tbody = document.getElementById('tableBody');
+            if (daftarJawaban.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Tidak ada data siswa ditemukan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = daftarJawaban.map((d, i) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-center font-medium">${i + 1}</td>
+                    <td class="px-4 py-3 font-semibold text-slate-700">${d.siswaNama}</td>
+                    <td class="px-4 py-3 text-center">${d.siswaKelas || '-'}</td>
+                    <td class="px-4 py-3 text-center text-emerald-600 font-medium">${d.sudahKirim ? (d.totalBenar ?? '-') : '-'}</td>
+                    <td class="px-4 py-3 text-center text-rose-600 font-medium">${d.sudahKirim ? (d.totalSalah ?? '-') : '-'}</td>
+                    <td class="px-4 py-3 text-center font-bold text-slate-800">${d.sudahKirim ? (d.nilai ?? '-') : '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 text-xs rounded-full font-semibold ${d.sudahKirim ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                            ${d.sudahKirim ? 'Selesai' : 'Belum'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterSiswa() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+    </script>
+
+    <!-- Memuat Skrip PDF Generator yang telah disesuaikan -->
+    <script src="elearning-pdf.js"></script>
+
 </body>
 </html>
