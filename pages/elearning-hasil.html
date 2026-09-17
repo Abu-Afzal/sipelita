@@ -22,7 +22,8 @@
     
     <!-- Excel Library -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --primary: #6366f1; --primary-dark: #4f46e5; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; }
@@ -448,7 +449,7 @@ window.shareWA = function() {
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 
-// ✅ 4. FUNGSI EXPORT PDF (LENGKAP & DIPERBAIKI)
+// ✅ 4. FUNGSI EXPORT PDF (MENGGUNAKAN HIDDEN IFRAME & ABSOLUTE PATH)
 window.exportPDFLaporan = async function() {
     if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
         alert('Tidak ada data untuk dicetak!');
@@ -476,10 +477,9 @@ window.exportPDFLaporan = async function() {
         
         const kkm = sesi.kkm || 70;
         const tuntas = nilaiList.filter(n => n >= kkm).length;
-        const belum = nilaiList.filter(n => n < kkm).length;
         const pctTuntas = nilaiList.length > 0 ? Math.round((tuntas / nilaiList.length) * 100) : 0;
 
-        // ✅ PENGATURAN MADRASAH - Ambil dari collection pengaturan_user
+        // Pengaturan Madrasah
         let CONFIG_MADRASAH = {
             kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
             kop2: '',
@@ -510,13 +510,16 @@ window.exportPDFLaporan = async function() {
             }
         }
 
-        // ✅ 1. KOP SURAT - 4 Baris Lengkap
+        // 🔗 Konversi path logo ke URL absolut
+        const logoUrl = new URL('../assets/images/kemenag-app.png', window.location.href).href;
+
+        // KOP SURAT
         const kopHtml = `
             <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
                 <table style="width:100%; border-collapse:collapse;">
                     <tr>
                         <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-                            <img src="/assets/images/kemenag-app.png" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+                            <img src="${logoUrl}" style="width:62px; height:auto;" onerror="console.warn('Logo Kemenag tidak ditemukan pada path:', this.src)">
                         </td>
                         <td style="text-align:center; border:none;">
                             <div style="font-size:14pt; font-weight:bold;">KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
@@ -529,11 +532,9 @@ window.exportPDFLaporan = async function() {
                 </table>
             </div>`;
 
-        // ✅ 2. STYLE TABEL (Yang sebelumnya terhapus)
         const cellStyle = "border:1px solid #000; padding:4px; font-size:11pt;";
         const headerStyle = "border:1px solid #000; padding:4px; font-size:11pt; background:#f0f0f0; font-weight:bold; text-align:center;";
 
-        // ✅ 3. RENDER BARIS SISWA (Yang sebelumnya terhapus)
         const sorted = [...daftarJawaban].sort((a, b) => {
             if (a.sudahKirim && !b.sudahKirim) return -1;
             if (!a.sudahKirim && b.sudahKirim) return 1;
@@ -562,10 +563,8 @@ window.exportPDFLaporan = async function() {
             </tr>`;
         }).join('');
 
-        // ✅ 4. BLOK TANDA TANGAN - Lengkap dengan NIP
         const kepalaNama = CONFIG_MADRASAH.kamadNama || '................................................';
         const kepalaNip = CONFIG_MADRASAH.kamadNip ? `NIP. ${CONFIG_MADRASAH.kamadNip}` : 'NIP. ............................................';
-
         let guruNama = sesi.guruNama || (currentUser?.displayName) || '................................................';
         let guruNip = sesi.guruNIP || 'NIP. ............................................';
 
@@ -593,17 +592,34 @@ window.exportPDFLaporan = async function() {
                 </tr>
             </table>`;
 
-        // ✅ 5. GABUNGKAN KE HTML PRINT WINDOW
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
+        // 🛠️ PEMBUATAN IFRAME CETAK TERSEMBUNYI
+        let iframe = document.getElementById('print-iframe');
+        if (iframe) iframe.remove();
+
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+            <!DOCTYPE html>
             <html>
             <head>
+                <base href="${window.location.origin}">
                 <title>Laporan E-Learning - ${sesi.kelasTarget || 'Kelas'}</title>
                 <style>
-                    @media print { body { margin: 0; padding: 20px; } .no-print { display: none; } }
+                    @page { size: A4 portrait; margin: 15mm; }
+                    body { font-family: 'Times New Roman', serif; font-size: 11pt; color: #000; margin: 0; padding: 0; }
                 </style>
             </head>
-            <body style="font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000;">
+            <body>
                 ${kopHtml}
                 
                 <div style="text-align:center; margin:12px 0;">
@@ -664,25 +680,33 @@ window.exportPDFLaporan = async function() {
                 <div style="margin-top:20px; font-size:8pt; text-align:center; color:#666;">
                     Laporan ini digenerate otomatis oleh Sistem E-Learning SIPELITA
                 </div>
-
-                <script>
-                    window.onload = function() {
-                        let attempts = 0;
-                        const check = setInterval(() => {
-                            const imgs = document.querySelectorAll('img');
-                            const allLoaded = Array.from(imgs).every(img => img.complete && img.naturalHeight > 0);
-                            attempts++;
-                            if (allLoaded || attempts > 20) {
-                                clearInterval(check);
-                                setTimeout(() => window.print(), 300);
-                            }
-                        }, 100);
-                    };
-                <\/script>
             </body>
             </html>
         `);
-        printWindow.document.close();
+        doc.close();
+
+        // ⏳ Memastikan seluruh gambar dalam iframe selesai dimuat sebelum perintah print
+        const images = Array.from(doc.images);
+        await Promise.all(images.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        }));
+
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            const element = iframe.contentWindow.document.body;
+const opt = {
+  margin:       10,
+  filename:     `Laporan_${sesi.kelasTarget || 'Sesi'}.pdf`,
+  image:        { type: 'jpeg', quality: 0.98 },
+  html2canvas:  { scale: 2 },
+  jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+};
+html2pdf().set(opt).from(element).save();
+        }, 300);
 
     } catch (error) {
         console.error('Error mencetak laporan:', error);
