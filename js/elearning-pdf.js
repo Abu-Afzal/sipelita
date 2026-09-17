@@ -3,7 +3,7 @@
  * Format disesuaikan 100% dengan Rekap Presensi SIPENA v2
  */
 
-// Fungsi untuk merapikan gelar (S.Pd, M.Pd, S.Ag, dll)
+// Fungsi pembantu format nama dan gelar
 function rapikanGelar(token) {
     if (!token) return '';
     let t = token.trim();
@@ -44,7 +44,7 @@ function formatNamaGelar(text) {
 }
 
 /**
- * Cache Manager (inline jika file terpisah tidak tersedia)
+ * Cache Manager
  */
 const CacheManager = {
     memory: new Map(),
@@ -80,53 +80,18 @@ const CacheManager = {
     }
 };
 
-// Fungsi format nama dengan gelar
-function rapikanGelar(token) {
-    if (!token) return '';
-    let t = token.trim();
-    const adaTitikAkhir = t.endsWith('.');
-    const clean = t.replace(/\.+$/, '');
-    const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.S','M.S','S.Sos','M.Sos',
-        'S.Kom','M.Kom','S.E','M.M','S.H','M.H','S.Psi','M.Psi','S.T','M.T','S.Farm','A.Md',
-        'Dra','Drs','Dr','Prof','H','Hj','Ir','KH'];
-    const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
-    if (found) return found + (adaTitikAkhir ? '.' : '');
-    if (clean.includes('.')) {
-        return clean.split('.').map(seg =>
-            seg.length <= 1 ? seg.toUpperCase() : seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase()
-        ).join('.');
-    }
-    return clean.length <= 2 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
-}
-
-function formatNamaGelar(text) {
-    if (!text) return '';
-    const parts = text.split(',');
-    const GELAR_DEPAN = ['Drs','Dra','Dr','Prof','H','Hj','Ir','KH'];
-    let tokens = parts[0].trim().split(/\s+/);
-    const depan = [];
-    while (tokens.length) {
-        const t = tokens[0].replace(/\.+$/, '');
-        const m = GELAR_DEPAN.find(g => g.toLowerCase() === t.toLowerCase());
-        if (m) { depan.push(m + '.'); tokens.shift(); } else break;
-    }
-    const namaInti = tokens.join(' ').toUpperCase();
-    const belakang = parts.slice(1).map(rapikanGelar).filter(Boolean).join(',');
-    let hasil = (depan.length ? depan.join(' ') + ' ' : '') + namaInti;
-    if (belakang) hasil += ', ' + belakang;
-    return hasil;
-}
-
 window.exportPDFLaporan = async function() {
     if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
         alert('Tidak ada data untuk dicetak!');
         return;
     }
 
-    const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan Dokumen...';
+    const btn = event?.target?.closest('button');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan Dokumen...';
+    }
 
     try {
         const sesi = typeof currentSession !== 'undefined' ? currentSession : {};
@@ -146,7 +111,7 @@ window.exportPDFLaporan = async function() {
         // 1. KOP SURAT
         const logoKop = (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.logoData) 
             ? CONFIG_MADRASAH.logoData 
-            : (location.origin + '/assets/images/kemenag-app.png');
+            : ((typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.logo) ? CONFIG_MADRASAH.logo : location.origin + '/assets/images/kemenag-app.png');
             
         const logoKananUrl = (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.logoKananData) 
             ? CONFIG_MADRASAH.logoKananData 
@@ -201,21 +166,16 @@ window.exportPDFLaporan = async function() {
             </tr>`;
         }).join('');
 
-                // ==========================================
         // 3. BLOK TANDA TANGAN (Dengan Cache)
-        // ==========================================
-        
         let kepalaNama = '................................................';
         let kepalaNip = 'NIP. ............................................';
         let guruNama = '................................................';
         let guruNip = 'NIP. ............................................';
 
-        // ✅ OPTIMASI: Cache data users (hanya fetch 1x per 10 menit)
         const cacheKeyUsers = 'users_all';
         let allUsers = CacheManager.get(cacheKeyUsers);
         
         if (!allUsers) {
-            console.log('📚 Fetch semua users dari Firestore...');
             try {
                 if (typeof db !== 'undefined') {
                     const usersSnap = await db.collection('users').get();
@@ -223,17 +183,13 @@ window.exportPDFLaporan = async function() {
                     usersSnap.forEach(doc => {
                         allUsers.push({ id: doc.id, data: doc.data() });
                     });
-                    CacheManager.set(cacheKeyUsers, allUsers, 10); // Cache 10 menit
-                    console.log('✅ Cache users disimpan');
+                    CacheManager.set(cacheKeyUsers, allUsers, 10);
                 }
             } catch (e) {
                 console.warn('Gagal fetch users:', e);
             }
-        } else {
-            console.log('✅ Menggunakan cache users (hemat 41 reads!)');
         }
         
-        // Proses data dari cache
         if (allUsers) {
             const currentUserEmail = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.email : '';
             const currentUserId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : '';
@@ -243,7 +199,6 @@ window.exportPDFLaporan = async function() {
                 const data = item.data;
                 const role = (data.role || '').toString().toLowerCase();
                 
-                // Cari Kepala Madrasah
                 if (role.includes('kepala') || role.includes('head') || role.includes('kamad')) {
                     const namaKamad = data.namaResmi || data.nama || data.name || data.displayName || '';
                     if (namaKamad) kepalaNama = namaKamad;
@@ -254,7 +209,6 @@ window.exportPDFLaporan = async function() {
                     }
                 }
                 
-                // Cari Guru yang login
                 const isGuruLogin = 
                     (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
                     (item.id === currentUserId) ||
@@ -272,7 +226,6 @@ window.exportPDFLaporan = async function() {
             });
         }
 
-        // Fallback ke currentUserData
         if (guruNama === '................................................') {
             if (typeof currentUserData !== 'undefined' && currentUserData) {
                 guruNama = currentUserData.namaResmi || currentUserData.nama || currentUserData.name || guruNama;
@@ -283,7 +236,6 @@ window.exportPDFLaporan = async function() {
             }
         }
 
-        // Fallback ke data sesi
         if (guruNama === '................................................') {
             if (sesi.guruNama) guruNama = sesi.guruNama;
             if (sesi.guruNIP) {
@@ -291,7 +243,6 @@ window.exportPDFLaporan = async function() {
             }
         }
 
-        // Fallback ke CONFIG_MADRASAH untuk Kepala
         if (kepalaNama === '................................................' && typeof CONFIG_MADRASAH !== 'undefined') {
             kepalaNama = CONFIG_MADRASAH.kepalaMadrasah || kepalaNama;
             kepalaNip = CONFIG_MADRASAH.nipKepala || kepalaNip;
@@ -300,7 +251,6 @@ window.exportPDFLaporan = async function() {
             }
         }
 
-        // Format nama dengan gelar
         kepalaNama = formatNamaGelar(kepalaNama);
         guruNama = formatNamaGelar(guruNama);
         
@@ -397,16 +347,10 @@ window.exportPDFLaporan = async function() {
 
                 <script>
                     window.onload = function() {
-                        let attempts = 0;
-                        const check = setInterval(() => {
-                            const imgs = document.querySelectorAll('img');
-                            const allLoaded = Array.from(imgs).every(img => img.complete && img.naturalHeight > 0);
-                            attempts++;
-                            if (allLoaded || attempts > 20) {
-                                clearInterval(check);
-                                setTimeout(() => window.print(), 300);
-                            }
-                        }, 100);
+                        setTimeout(function() {
+                            window.focus();
+                            window.print();
+                        }, 300);
                     };
                 <\/script>
             </body>
@@ -418,7 +362,9 @@ window.exportPDFLaporan = async function() {
         console.error('Error mencetak laporan:', error);
         alert('❌ Gagal menyiapkan dokumen: ' + error.message);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 };
