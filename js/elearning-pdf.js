@@ -342,21 +342,27 @@ window.exportPDFLaporan = async function() {
                 ${ttdHtml}
 
                 <div style="margin-top:20px; font-size:8pt; text-align:center; color:#666;">
-                    Laporan ini digenerate otomatis oleh Sistem E-Learning SIPELITA - MAN Bantaeng
+                    Laporan ini digenerate otomatis oleh Sistem E-Learning SIPELITA
                 </div>
-
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() {
-                            window.focus();
-                            window.print();
-                        }, 300);
-                    };
-                <\/script>
             </body>
             </html>
         `);
         printWindow.document.close();
+
+        // Memastikan seluruh gambar dalam dokumen popup selesai dimuat sebelum dialog cetak dibuka
+        const images = Array.from(printWindow.document.images);
+        Promise.all(images.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; // Tetap lanjut jika gambar gagal dimuat
+            });
+        })).then(() => {
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 250);
+        });
 
     } catch (error) {
         console.error('Error mencetak laporan:', error);
