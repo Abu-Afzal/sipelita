@@ -1,14 +1,12 @@
 /**
  * E-Learning PDF Generator - SIPELITA GURU
  * Format disesuaikan dengan Rekap Presensi SIPENA v2
- * PENTING: File ini TIDAK mendeklarasikan ulang CacheManager atau Firebase.
- * Ia mengandalkan variabel global dari elearning-hasil.html
  */
 
 (function () {
     'use strict';
 
-    // ✅ 1. Fungsi pembantu format nama dan gelar
+    // 1. Fungsi pembantu format nama dan gelar
     function rapikanGelar(token) {
         if (!token) return '';
         let t = token.trim();
@@ -50,7 +48,7 @@
         return hasil;
     }
 
-    // ✅ 2. FUNGSI EXPORT PDF UTAMA
+    // 2. FUNGSI EXPORT PDF UTAMA
     window.exportPDFLaporan = async function(event) {
         const evt = event || window.event;
         
@@ -81,7 +79,7 @@
             const lulus = nilaiList.filter(n => n >= kkm).length;
             const pctLulus = yangSudah.length > 0 ? Math.round(lulus / yangSudah.length * 100) : 0;
 
-            // 1. KOP SURAT
+            // KOP SURAT
             const logoKop = (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.logoData) 
                 ? CONFIG_MADRASAH.logoData 
                 : ((typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.logo) ? CONFIG_MADRASAH.logo : location.origin + '/assets/images/kemenag-app.png');
@@ -110,7 +108,7 @@
                     </table>
                 </div>`;
 
-            // 2. TABEL SISWA
+            // TABEL SISWA
             const sorted = [...daftarJawaban].sort((a, b) => {
                 if (a.sudahKirim && !b.sudahKirim) return -1;
                 if (!a.sudahKirim && b.sudahKirim) return 1;
@@ -139,66 +137,13 @@
                 </tr>`;
             }).join('');
 
-            // 3. BLOK TANDA TANGAN (Sistem Pencarian Multi-Source)
+            // PENCARIAN DATA KEPALA MADRASAH & GURU
             let kepalaNama = '';
             let kepalaNip = '';
             let guruNama = '';
             let guruNip = '';
 
-            // A. Pencarian dari Cache / Firestore Users
-            const cacheKeyUsers = 'users_all';
-            let allUsers = typeof CacheManager !== 'undefined' ? CacheManager.get(cacheKeyUsers) : null;
-            
-            if (!allUsers && typeof db !== 'undefined') {
-                try {
-                    const usersSnap = await db.collection('users').get();
-                    allUsers = [];
-                    usersSnap.forEach(doc => {
-                        allUsers.push({ id: doc.id, data: doc.data() });
-                    });
-                    if (typeof CacheManager !== 'undefined') {
-                        CacheManager.set(cacheKeyUsers, allUsers, 10);
-                    }
-                } catch (e) {
-                    console.warn('Gagal fetch users:', e);
-                }
-            }
-            
-            if (allUsers && allUsers.length > 0) {
-                const currentUserEmail = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.email : '';
-                const currentUserId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : '';
-                const sesiEmail = sesi.guruEmail || '';
-                
-                allUsers.forEach(item => {
-                    const data = item.data || {};
-                    const roleStr = `${data.role || ''} ${data.jabatan || ''} ${data.tipe || ''} ${data.akses || ''}`.toLowerCase();
-                    
-                    // Cek Kepala Madrasah
-                    if (roleStr.includes('kepala') || roleStr.includes('kamad') || roleStr.includes('head') || data.isKepala || data.isKamad) {
-                        const namaKamad = data.namaResmi || data.nama || data.namaLengkap || data.name || data.displayName || '';
-                        if (namaKamad) kepalaNama = namaKamad;
-                        
-                        const rawNip = data.nip || data.NIP || data.nipKepala || '';
-                        if (rawNip) kepalaNip = rawNip;
-                    }
-                    
-                    // Cek Guru Login
-                    const isGuruLogin = 
-                        (data.email && data.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
-                        (item.id === currentUserId) ||
-                        (data.email && data.email.toLowerCase() === sesiEmail.toLowerCase());
-                    
-                    if (isGuruLogin) {
-                        const namaGuruDb = data.namaResmi || data.nama || data.namaLengkap || data.name || data.displayName || '';
-                        if (namaGuruDb) guruNama = namaGuruDb;
-                        
-                        const rawGuruNip = data.nip || data.NIP || '';
-                        if (rawGuruNip) guruNip = rawGuruNip;
-                    }
-                });
-            }
-
-            // B. Fallback CONFIG_MADRASAH & LocalStorage (Pencarian nama properti fleksibel)
+            // Prioritas 1: Ambil dari CONFIG_MADRASAH atau localStorage (Sama seperti Gambar 1)
             let cfg = typeof CONFIG_MADRASAH !== 'undefined' ? CONFIG_MADRASAH : null;
             if (!cfg) {
                 try {
@@ -208,21 +153,47 @@
             }
 
             if (cfg) {
-                if (!kepalaNama) kepalaNama = cfg.kepalaMadrasah || cfg.namaKepala || cfg.kamad || cfg.namaKamad || cfg.kepala || '';
-                if (!kepalaNip) kepalaNip = cfg.nipKepala || cfg.nipKamad || cfg.nipKepalaMadrasah || cfg.nip || '';
+                kepalaNama = cfg.kepalaMadrasah || cfg.namaKepala || cfg.kamad || cfg.namaKamad || cfg.kepala || '';
+                kepalaNip = cfg.nipKepala || cfg.nipKamad || cfg.nipKepalaMadrasah || cfg.nip || '';
             }
 
-            // C. Fallback Guru
-            if (!guruNama && typeof currentUserData !== 'undefined' && currentUserData) {
-                guruNama = currentUserData.namaResmi || currentUserData.nama || currentUserData.namaLengkap || currentUserData.name || '';
-                guruNip = currentUserData.nip || currentUserData.NIP || guruNip;
+            // Prioritas 2: Cari di Firestore / Cache Users jika di Config belum ketemu
+            if (!kepalaNama && typeof db !== 'undefined') {
+                try {
+                    const cacheKeyUsers = 'users_all';
+                    let allUsers = typeof CacheManager !== 'undefined' ? CacheManager.get(cacheKeyUsers) : null;
+                    if (!allUsers) {
+                        const usersSnap = await db.collection('users').get();
+                        allUsers = [];
+                        usersSnap.forEach(doc => allUsers.push({ id: doc.id, data: doc.data() }));
+                        if (typeof CacheManager !== 'undefined') CacheManager.set(cacheKeyUsers, allUsers, 10);
+                    }
+                    if (allUsers) {
+                        const kamadUser = allUsers.find(u => {
+                            const r = `${u.data.role || ''} ${u.data.jabatan || ''}`.toLowerCase();
+                            return r.includes('kepala') || r.includes('kamad') || r.includes('head');
+                        });
+                        if (kamadUser) {
+                            kepalaNama = kamadUser.data.namaResmi || kamadUser.data.nama || kamadUser.data.namaLengkap || kamadUser.data.displayName || '';
+                            kepalaNip = kamadUser.data.nip || kamadUser.data.NIP || '';
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Gagal fetch users:', e);
+                }
+            }
+
+            // Data Guru Pembimbing/Pengampu
+            if (typeof currentUserData !== 'undefined' && currentUserData) {
+                guruNama = currentUserData.namaResmi || currentUserData.nama || currentUserData.namaLengkap || currentUserData.displayName || '';
+                guruNip = currentUserData.nip || currentUserData.NIP || '';
             }
             if (!guruNama && sesi) {
                 guruNama = sesi.guruNama || '';
                 guruNip = sesi.guruNIP || guruNip;
             }
 
-            // D. Pengisian Default (Titik-titik) & Format NIP/Gelar
+            // Fallback default jika data benar-benar kosong
             if (!kepalaNama) kepalaNama = '................................................';
             if (!guruNama) guruNama = '................................................';
 
@@ -232,7 +203,7 @@
             kepalaNama = formatNamaGelar(kepalaNama);
             guruNama = formatNamaGelar(guruNama);
             
-            const kota = (typeof CONFIG_MADRASAH !== 'undefined' && CONFIG_MADRASAH.kota) ? CONFIG_MADRASAH.kota : 'Bantaeng';
+            const kota = (cfg && cfg.kota) ? cfg.kota : 'Bantaeng';
 
             const ttdHtml = `
                 <table style="width:100%; margin-top:28px; font-size:10pt;">
@@ -252,7 +223,7 @@
                     </tr>
                 </table>`;
 
-            // 4. GABUNGKAN KE HTML PRINT WINDOW
+            // CETAK KE WINDOW BARU
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
