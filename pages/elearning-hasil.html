@@ -266,30 +266,28 @@ async function loadUserProfile(email) {
 // ✅ FUNGSI PENTING: Mengambil CONFIG_MADRASAH secara dinamis
 async function fetchConfigMadrasah() {
     try {
-        // Prioritas 1: Cek konfigurasi spesifik berdasarkan email user (untuk sistem multi-madrasah)
-        let docSnap = await db.collection('pengaturan_user').doc(window.currentUser.email).get();
+        // ✅ Gunakan email user sebagai ID dokumen
+        const userEmail = window.currentUser.email;
+        const docSnap = await db.collection('pengaturan_user').doc(userEmail).get();
         
-        // Prioritas 2: Jika tidak ada, cek konfigurasi global 'madrasah_config'
-        if (!docSnap.exists) {
-            docSnap = await db.collection('pengaturan_user').doc('madrasah_config').get();
-        }
-
         if (docSnap.exists) {
             const data = docSnap.data();
             window.CONFIG_MADRASAH = {
                 kop1: data.kop1 || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-                kop2: data.kop2 || 'KEMENTERIAN AGAMA KABUPATEN ...',
-                kop3: data.kop3 || data.namaMadrasah || '',
-                alamat: data.alamatMadrasah || data.alamat || 'Alamat Madrasah',
-                kota: data.tempat || data.kota || 'Kota',
+                kop2: data.kop2 || '',
+                kop3: data.namaMadrasah || '',
+                alamat: data.alamatMadrasah || '',
+                kota: data.tempat || '',
                 logo: data.logoData || data.logo || '',
-                kepalaMadrasah: data.kamadNama || data.kepalaMadrasah || '',
-                nipKepala: data.kamadNip || data.nipKepala || ''
+                kepalaMadrasah: data.kamadNama || '',
+                nipKepala: data.kamadNip || ''
             };
-            console.log('✅ CONFIG_MADRASAH berhasil dimuat:', window.CONFIG_MADRASAH);
+            console.log('✅ CONFIG_MADRASAH berhasil dimuat dari Firestore:', window.CONFIG_MADRASAH);
+        } else {
+            console.warn('⚠️ Dokumen pengaturan_user tidak ditemukan untuk email:', userEmail);
         }
     } catch (e) {
-        console.warn('⚠️ Gagal memuat CONFIG_MADRASAH, menggunakan default:', e);
+        console.error('❌ Gagal load CONFIG_MADRASAH:', e);
     }
 }
 
