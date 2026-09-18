@@ -1,9 +1,11 @@
 /**
- * E-Learning PDF Generator - MAN Bantaeng
- * Format disesuaikan 100% dengan Rekap Presensi SIPENA v2
+ * E-Learning PDF Generator - SIPELITA GURU
+ * Format disesuaikan dengan Rekap Presensi SIPENA v2
+ * PENTING: File ini TIDAK mendeklarasikan ulang CacheManager atau Firebase.
+ * Ia mengandalkan variabel global dari elearning-hasil.html
  */
 
-// Fungsi pembantu format nama dan gelar
+// ✅ 1. Fungsi pembantu format nama dan gelar (Aman dideklarasikan di sini)
 function rapikanGelar(token) {
     if (!token) return '';
     let t = token.trim();
@@ -43,44 +45,9 @@ function formatNamaGelar(text) {
     return hasil;
 }
 
-/**
- * Cache Manager
- */
-const CacheManager = {
-    memory: new Map(),
-    storage: {
-        get(key) {
-            try {
-                const item = localStorage.getItem(`sipelita_cache_${key}`);
-                if (!item) return null;
-                const parsed = JSON.parse(item);
-                if (parsed.expiry && Date.now() > parsed.expiry) {
-                    localStorage.removeItem(`sipelita_cache_${key}`);
-                    return null;
-                }
-                return parsed.data;
-            } catch (e) { return null; }
-        },
-        set(key, data, ttlMinutes = 10) {
-            try {
-                const item = { data: data, expiry: Date.now() + (ttlMinutes * 60 * 1000) };
-                localStorage.setItem(`sipelita_cache_${key}`, JSON.stringify(item));
-            } catch (e) { console.warn('Cache penuh:', e); }
-        }
-    },
-    get(key) {
-        if (this.memory.has(key)) return this.memory.get(key);
-        const fromStorage = this.storage.get(key);
-        if (fromStorage) this.memory.set(key, fromStorage);
-        return fromStorage;
-    },
-    set(key, data, ttlMinutes = 10) {
-        this.memory.set(key, data);
-        this.storage.set(key, data, ttlMinutes);
-    }
-};
-
+// ✅ 2. FUNGSI EXPORT PDF UTAMA
 window.exportPDFLaporan = async function() {
+    // Cek variabel global dari elearning-hasil.html
     if (typeof daftarJawaban === 'undefined' || daftarJawaban.length === 0) {
         alert('Tidak ada data untuk dicetak!');
         return;
@@ -157,7 +124,7 @@ window.exportPDFLaporan = async function() {
             return `<tr>
                 <td style="${cellStyle} text-align:center;">${i + 1}</td>
                 <td style="${cellStyle}">${d.siswaNama}</td>
-                <td style="${cellStyle} text-align:center;">${d.siswaKelas}</td>
+                <td style="${cellStyle} text-align:center;">${d.siswaKelas || '-'}</td>
                 <td style="${cellStyle} text-align:center;">${d.sudahKirim ? d.totalBenar : '-'}</td>
                 <td style="${cellStyle} text-align:center;">${d.sudahKirim ? d.totalSalah : '-'}</td>
                 <td style="${cellStyle} text-align:center; font-weight:bold;">${d.sudahKirim ? d.nilai : '-'}</td>
@@ -166,14 +133,15 @@ window.exportPDFLaporan = async function() {
             </tr>`;
         }).join('');
 
-        // 3. BLOK TANDA TANGAN (Dengan Cache)
+        // 3. BLOK TANDA TANGAN
         let kepalaNama = '................................................';
         let kepalaNip = 'NIP. ............................................';
         let guruNama = '................................................';
         let guruNip = 'NIP. ............................................';
 
+        // ✅ PERBAIKAN: Gunakan CacheManager global, JANGAN deklarasikan ulang!
         const cacheKeyUsers = 'users_all';
-        let allUsers = CacheManager.get(cacheKeyUsers);
+        let allUsers = typeof CacheManager !== 'undefined' ? CacheManager.get(cacheKeyUsers) : null;
         
         if (!allUsers) {
             try {
@@ -183,7 +151,9 @@ window.exportPDFLaporan = async function() {
                     usersSnap.forEach(doc => {
                         allUsers.push({ id: doc.id, data: doc.data() });
                     });
-                    CacheManager.set(cacheKeyUsers, allUsers, 10);
+                    if (typeof CacheManager !== 'undefined') {
+                        CacheManager.set(cacheKeyUsers, allUsers, 10);
+                    }
                 }
             } catch (e) {
                 console.warn('Gagal fetch users:', e);
@@ -226,6 +196,7 @@ window.exportPDFLaporan = async function() {
             });
         }
 
+        // Fallback ke currentUserData (dari elearning-hasil.html)
         if (guruNama === '................................................') {
             if (typeof currentUserData !== 'undefined' && currentUserData) {
                 guruNama = currentUserData.namaResmi || currentUserData.nama || currentUserData.name || guruNama;
@@ -236,6 +207,7 @@ window.exportPDFLaporan = async function() {
             }
         }
 
+        // Fallback ke data sesi
         if (guruNama === '................................................') {
             if (sesi.guruNama) guruNama = sesi.guruNama;
             if (sesi.guruNIP) {
@@ -243,6 +215,7 @@ window.exportPDFLaporan = async function() {
             }
         }
 
+        // Fallback ke CONFIG_MADRASAH
         if (kepalaNama === '................................................' && typeof CONFIG_MADRASAH !== 'undefined') {
             kepalaNama = CONFIG_MADRASAH.kepalaMadrasah || kepalaNama;
             kepalaNip = CONFIG_MADRASAH.nipKepala || kepalaNip;
@@ -349,13 +322,13 @@ window.exportPDFLaporan = async function() {
         `);
         printWindow.document.close();
 
-        // Memastikan seluruh gambar dalam dokumen popup selesai dimuat sebelum dialog cetak dibuka
+        // Tunggu gambar selesai dimuat sebelum print
         const images = Array.from(printWindow.document.images);
         Promise.all(images.map(img => {
             if (img.complete) return Promise.resolve();
             return new Promise(resolve => {
                 img.onload = resolve;
-                img.onerror = resolve; // Tetap lanjut jika gambar gagal dimuat
+                img.onerror = resolve;
             });
         })).then(() => {
             setTimeout(() => {
