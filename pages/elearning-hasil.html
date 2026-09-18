@@ -177,19 +177,22 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// 🌐 VARIABLE GLOBAL (Digunakan oleh elearning-pdf.js)
-var currentSession = {};
-var daftarJawaban = [];
-var currentUser = null;
-var currentUserData = null;
-var NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-var CONFIG_MADRASAH = {
+// 🌐 VARIABLE GLOBAL (Dijadikan window. agar bisa dibaca elearning-pdf.js)
+window.currentSession = {};
+window.daftarJawaban = [];
+window.currentUser = null;
+window.currentUserData = null;
+window.NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+// Default CONFIG_MADRASAH (Akan ditimpa oleh data dari Firestore)
+window.CONFIG_MADRASAH = {
     kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-    kop2: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
-    kop3: 'MADRASAH ALIYAH NEGERI BANTAENG',
-    alamat: 'Jl. Poros Dampang Kel. Gantarangkeke Kab. Bantaeng',
-    kota: 'Bantaeng',
-    kepalaMadrasah: '................................................',
+    kop2: 'KEMENTERIAN AGAMA KABUPATEN ...',
+    kop3: 'NAMA MADRASAH',
+    alamat: 'Alamat Madrasah',
+    kota: 'Kota',
+    logo: '',
+    kepalaMadrasah: '',
     nipKepala: ''
 };
 
@@ -231,10 +234,16 @@ const CacheManager = {
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(async user => {
         if (user) {
-            currentUser = user;
+            window.currentUser = user;
             console.log('✅ User terautentikasi:', user.email);
+            
+            // 1. Load profil user (untuk data guru)
             await loadUserProfile(user.email);
+            
+            // 2. Load konfigurasi madrasah (untuk KOP & TTD Kamad)
             await fetchConfigMadrasah();
+            
+            // 3. Load data sesi
             loadHasilSesi();
         } else {
             console.warn('⚠️ User belum login');
@@ -247,21 +256,40 @@ async function loadUserProfile(email) {
     try {
         const userDoc = await db.collection('users').doc(email).get();
         if (userDoc.exists) {
-            currentUserData = userDoc.data();
+            window.currentUserData = userDoc.data();
         }
     } catch (e) {
         console.warn('Gagal memuat profil user:', e);
     }
 }
 
+// ✅ FUNGSI PENTING: Mengambil CONFIG_MADRASAH secara dinamis
 async function fetchConfigMadrasah() {
     try {
-        const docSnap = await db.collection('pengaturan_user').doc('madrasah_config').get();
+        // Prioritas 1: Cek konfigurasi spesifik berdasarkan email user (untuk sistem multi-madrasah)
+        let docSnap = await db.collection('pengaturan_user').doc(window.currentUser.email).get();
+        
+        // Prioritas 2: Jika tidak ada, cek konfigurasi global 'madrasah_config'
+        if (!docSnap.exists) {
+            docSnap = await db.collection('pengaturan_user').doc('madrasah_config').get();
+        }
+
         if (docSnap.exists) {
-            Object.assign(CONFIG_MADRASAH, docSnap.data());
+            const data = docSnap.data();
+            window.CONFIG_MADRASAH = {
+                kop1: data.kop1 || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+                kop2: data.kop2 || 'KEMENTERIAN AGAMA KABUPATEN ...',
+                kop3: data.kop3 || data.namaMadrasah || '',
+                alamat: data.alamatMadrasah || data.alamat || 'Alamat Madrasah',
+                kota: data.tempat || data.kota || 'Kota',
+                logo: data.logoData || data.logo || '',
+                kepalaMadrasah: data.kamadNama || data.kepalaMadrasah || '',
+                nipKepala: data.kamadNip || data.nipKepala || ''
+            };
+            console.log('✅ CONFIG_MADRASAH berhasil dimuat:', window.CONFIG_MADRASAH);
         }
     } catch (e) {
-        console.warn('Menggunakan konfigurasi madrasah bawaan');
+        console.warn('⚠️ Gagal memuat CONFIG_MADRASAH, menggunakan default:', e);
     }
 }
 
@@ -286,27 +314,27 @@ async function loadHasilSesi() {
             CacheManager.set(cacheKeySesi, sesiDoc, 900);
         }
         
-        currentSession = sesiDoc;
+        window.currentSession = sesiDoc;
         
-        document.getElementById('headerJudul').textContent = currentSession.judul;
-        document.getElementById('infoMapel').textContent = currentSession.mataPelajaran || '-';
-        document.getElementById('infoKelas').textContent = currentSession.kelasTarget || '-';
-        document.getElementById('infoSoal').textContent = currentSession.totalSoal || 0;
-        document.getElementById('infoDurasi').textContent = currentSession.durasiMenit > 0 ? `${currentSession.durasiMenit} menit` : 'Tanpa batas';
-        document.getElementById('infoPin').textContent = currentSession.pin;
+        document.getElementById('headerJudul').textContent = window.currentSession.judul;
+        document.getElementById('infoMapel').textContent = window.currentSession.mataPelajaran || '-';
+        document.getElementById('infoKelas').textContent = window.currentSession.kelasTarget || '-';
+        document.getElementById('infoSoal').textContent = window.currentSession.totalSoal || 0;
+        document.getElementById('infoDurasi').textContent = window.currentSession.durasiMenit > 0 ? `${window.currentSession.durasiMenit} menit` : 'Tanpa batas';
+        document.getElementById('infoPin').textContent = window.currentSession.pin;
         
         let semuaSiswa = [];
-        if (currentSession.kelasSipenaId) {
-            const cacheKeySiswa = `siswa_${currentSession.kelasSipenaId}`;
+        if (window.currentSession.kelasSipenaId) {
+            const cacheKeySiswa = `siswa_${window.currentSession.kelasSipenaId}`;
             let cachedSiswa = CacheManager.get(cacheKeySiswa);
             
             if (cachedSiswa && cachedSiswa.length > 0) {
                 semuaSiswa = cachedSiswa;
             } else {
-                const siswaSnap = await db.collection('siswa').where('kelas_id', '==', currentSession.kelasSipenaId).limit(500).get();
+                const siswaSnap = await db.collection('siswa').where('kelas_id', '==', window.currentSession.kelasSipenaId).limit(500).get();
                 siswaSnap.forEach(doc => {
                     const data = doc.data();
-                    semuaSiswa.push({ id: doc.id, nama: data.student_name || data.nama || data.name || 'Tanpa Nama', kelas: currentSession.kelasTarget });
+                    semuaSiswa.push({ id: doc.id, nama: data.student_name || data.nama || data.name || 'Tanpa Nama', kelas: window.currentSession.kelasTarget });
                 });
                 semuaSiswa.sort((a, b) => a.nama.localeCompare(b.nama));
                 CacheManager.set(cacheKeySiswa, semuaSiswa, 1800);
@@ -328,18 +356,18 @@ async function loadHasilSesi() {
             if (!jawabanMap.has(namaLower)) jawabanMap.set(namaLower, { id: item.id, ...item, tipe: 'catatan' });
         });
         
-        daftarJawaban = semuaSiswa.map(siswa => {
+        window.daftarJawaban = semuaSiswa.map(siswa => {
             const data = jawabanMap.get(normalizeNama(siswa.nama));
             return { siswaNama: siswa.nama, siswaKelas: siswa.kelas, ...(data || {}), sudahKirim: !!data };
         });
         
-        if (daftarJawaban.length === 0 && jawabanMap.size > 0) {
+        if (window.daftarJawaban.length === 0 && jawabanMap.size > 0) {
             jawabanMap.forEach((data) => {
-                daftarJawaban.push({ siswaNama: data.siswaNama, siswaKelas: data.siswaKelas || currentSession.kelasTarget, ...data, sudahKirim: true });
+                window.daftarJawaban.push({ siswaNama: data.siswaNama, siswaKelas: data.siswaKelas || window.currentSession.kelasTarget, ...data, sudahKirim: true });
             });
         }
         
-        daftarJawaban.sort((a, b) => {
+        window.daftarJawaban.sort((a, b) => {
             if (a.sudahKirim && !b.sudahKirim) return -1;
             if (!a.sudahKirim && b.sudahKirim) return 1;
             if (a.sudahKirim && b.sudahKirim) return (b.nilai || 0) - (a.nilai || 0);
@@ -347,7 +375,7 @@ async function loadHasilSesi() {
         });
         
         document.getElementById('loading').style.display = 'none';
-        if (daftarJawaban.length === 0) {
+        if (window.daftarJawaban.length === 0) {
             document.getElementById('emptyState').style.display = 'block';
         } else {
             document.getElementById('tableContainer').style.display = 'block';
@@ -367,9 +395,9 @@ function normalizeNama(nama) {
 }
 
 window.forceRefreshData = async function() {
-    if (currentSession && currentSession.id) {
-        CacheManager.remove(`sesi_${currentSession.id}`);
-        if (currentSession.kelasSipenaId) CacheManager.remove(`siswa_${currentSession.kelasSipenaId}`);
+    if (window.currentSession && window.currentSession.id) {
+        CacheManager.remove(`sesi_${window.currentSession.id}`);
+        if (window.currentSession.kelasSipenaId) CacheManager.remove(`siswa_${window.currentSession.kelasSipenaId}`);
     }
     await loadHasilSesi();
     alert('✅ Data berhasil di-refresh!');
@@ -377,7 +405,7 @@ window.forceRefreshData = async function() {
 
 function renderTabel() {
     const tbody = document.getElementById('tabelBody');
-    tbody.innerHTML = daftarJawaban.map((d, idx) => {
+    tbody.innerHTML = window.daftarJawaban.map((d, idx) => {
         if (!d.sudahKirim) {
             return `<tr style="background: #f8fafc;">
                 <td>${idx + 1}</td><td><strong>${d.siswaNama}</strong></td><td>${d.siswaKelas}</td>
@@ -407,8 +435,8 @@ function renderTabel() {
 }
 
 function updateStatistik() {
-    const totalSiswaKelas = daftarJawaban.length;
-    const yangSudah = daftarJawaban.filter(d => d.sudahKirim);
+    const totalSiswaKelas = window.daftarJawaban.length;
+    const yangSudah = window.daftarJawaban.filter(d => d.sudahKirim);
     const yangAdaNilai = yangSudah.filter(d => d.tipe === 'jawaban' && d.nilai !== undefined && d.nilai !== null);
     const nilaiList = yangAdaNilai.map(d => d.nilai);
     
@@ -425,27 +453,27 @@ function updateStatistik() {
 }
 
 window.lihatTugasSiswa = function(responseId, tipe) {
-    if (!currentSession) { alert('Data sesi tidak ditemukan!'); return; }
-    window.open(`elearning-jawaban.html?id=${responseId}&session=${currentSession.id}&tipe=${tipe || 'jawaban'}`, '_blank');
+    if (!window.currentSession) { alert('Data sesi tidak ditemukan!'); return; }
+    window.open(`elearning-jawaban.html?id=${responseId}&session=${window.currentSession.id}&tipe=${tipe || 'jawaban'}`, '_blank');
 };
 
 window.exportExcel = function() {
-    if (daftarJawaban.length === 0) { alert('Belum ada data untuk diexport!'); return; }
-    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', currentSession.judul], ['Mata Pelajaran', currentSession.mataPelajaran], ['Kelas', currentSession.kelasTarget], ['Tanggal', new Date().toLocaleDateString('id-ID')], ['PIN', currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (mnt)', 'Status']];
-    daftarJawaban.forEach((d, idx) => {
+    if (window.daftarJawaban.length === 0) { alert('Belum ada data untuk diexport!'); return; }
+    const data = [['LAPORAN HASIL E-LEARNING'], ['Judul', window.currentSession.judul], ['Mata Pelajaran', window.currentSession.mataPelajaran], ['Kelas', window.currentSession.kelasTarget], ['Tanggal', new Date().toLocaleDateString('id-ID')], ['PIN', window.currentSession.pin], [], ['No', 'Nama Siswa', 'Kelas', 'Benar', 'Salah', 'Nilai', 'Waktu (mnt)', 'Status']];
+    window.daftarJawaban.forEach((d, idx) => {
         const durasi = d.sudahKirim && d.waktuSelesai && d.waktuMulai ? Math.round((d.waktuSelesai - d.waktuMulai) / 60000) : '-';
         data.push([idx + 1, d.siswaNama, d.siswaKelas, d.sudahKirim ? (d.totalBenar || '-') : '-', d.sudahKirim ? (d.totalSalah || '-') : '-', d.sudahKirim ? (d.nilai || '-') : 'Belum', durasi, d.sudahKirim ? 'Selesai' : 'Belum']);
     });
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Hasil');
-    XLSX.writeFile(wb, `Hasil_${currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Hasil_${window.currentSession.judul.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
 window.shareWA = function() {
-    const yangSudah = daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban').length;
-    const total = daftarJawaban.length;
-    const pesan = `📊 *Hasil E-Learning*\n\n📚 ${currentSession.judul}\n👥 Kelas: ${currentSession.kelasTarget}\n\n📈 *Statistik:*\n• Mengerjakan: ${yangSudah} / ${total}\n• Rata-rata: ${document.getElementById('statRata').textContent}\n• Lulus (≥70): ${document.getElementById('statLulus').textContent}`;
+    const yangSudah = window.daftarJawaban.filter(d => d.sudahKirim && d.tipe === 'jawaban').length;
+    const total = window.daftarJawaban.length;
+    const pesan = `📊 *Hasil E-Learning*\n\n📚 ${window.currentSession.judul}\n👥 Kelas: ${window.currentSession.kelasTarget}\n\n📈 *Statistik:*\n• Mengerjakan: ${yangSudah} / ${total}\n• Rata-rata: ${document.getElementById('statRata').textContent}\n• Lulus (≥70): ${document.getElementById('statLulus').textContent}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`, '_blank');
 };
 </script>
