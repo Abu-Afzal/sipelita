@@ -615,6 +615,7 @@ function renderDashboard(){
 }
 
 // ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FINAL) ══════════
+// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FINAL) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -649,12 +650,26 @@ function exportPDF(){
     }
   });
 
-  // ✅ KOP SURAT DINAMIS (3 BARIS SESUAI DATA FIREBASE)
+  // ✅ KOP SURAT - Bangun secara dinamis
   const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
   let kopLinesHtml = '';
-  if (CONFIG_MADRASAH.kop1) kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>`;
-  if (CONFIG_MADRASAH.kop2) kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>`;
-  if (CONFIG_MADRASAH.alamat) kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>`;
+  
+  // Baris 1: kop1 (wajib ada)
+  if (CONFIG_MADRASAH.kop1) {
+    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>`;
+  } else {
+    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>`;
+  }
+  
+  // Baris 2: kop2 atau namaMadrasah
+  if (CONFIG_MADRASAH.kop2) {
+    kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>`;
+  }
+  
+  // Baris 3: alamat
+  if (CONFIG_MADRASAH.alamat) {
+    kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>`;
+  }
 
   const kopHtml = `
     <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
@@ -671,10 +686,24 @@ function exportPDF(){
       </table>
     </div>`;
 
-  // ✅ TANDA TANGAN DINAMIS
+  // ✅ TANDA TANGAN - Pastikan data ada
   const rawNipKamad = CONFIG_MADRASAH.nipKepala || '';
   const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
-  const namaKamadCetak = formatKapital(CONFIG_MADRASAH.kepalaMadrasah || '................................................', 'upper');
+  
+  // Format nama kepala madrasah
+  let namaKamadRaw = CONFIG_MADRASAH.kepalaMadrasah || '';
+  if (!namaKamadRaw || namaKamadRaw.includes('....')) {
+    // Coba cari dari collection users jika CONFIG_MADRASAH kosong
+    const kamadUser = daftarUsers.find(u => {
+      const r = (u.role || '').toLowerCase();
+      return r.includes('kepala') || r.includes('kamad') || r.includes('head');
+    });
+    if (kamadUser) {
+      namaKamadRaw = kamadUser.nama || kamadUser.namaResmi || '';
+    }
+  }
+  
+  const namaKamadCetak = formatKapital(namaKamadRaw, 'upper');
   const kota = CONFIG_MADRASAH.kota || 'Bantaeng';
 
   const ttdHtml = `
