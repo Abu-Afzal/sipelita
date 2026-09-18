@@ -266,8 +266,10 @@ async function loadUserProfile(email) {
 // ✅ FUNGSI PENTING: Mengambil CONFIG_MADRASAH secara dinamis
 async function fetchConfigMadrasah() {
     try {
-        // ✅ Gunakan email user sebagai ID dokumen
-        const userEmail = window.currentUser.email;
+        const userEmail = window.currentUser.email.toLowerCase().trim();
+        console.log('🔍 Mencari pengaturan_user untuk email:', userEmail);
+        
+        // Coba ambil berdasarkan email user
         const docSnap = await db.collection('pengaturan_user').doc(userEmail).get();
         
         if (docSnap.exists) {
@@ -282,12 +284,35 @@ async function fetchConfigMadrasah() {
                 kepalaMadrasah: data.kamadNama || '',
                 nipKepala: data.kamadNip || ''
             };
-            console.log('✅ CONFIG_MADRASAH berhasil dimuat dari Firestore:', window.CONFIG_MADRASAH);
+            console.log('✅ CONFIG_MADRASAH berhasil dimuat:', window.CONFIG_MADRASAH);
         } else {
-            console.warn('⚠️ Dokumen pengaturan_user tidak ditemukan untuk email:', userEmail);
+            console.warn('⚠️ Dokumen tidak ditemukan, mencoba query dengan field email...');
+            
+            // Fallback: Query berdasarkan field 'email' di dalam dokumen
+            const querySnap = await db.collection('pengaturan_user')
+                .where('email', '==', userEmail)
+                .limit(1)
+                .get();
+            
+            if (!querySnap.empty) {
+                const data = querySnap.docs[0].data();
+                window.CONFIG_MADRASAH = {
+                    kop1: data.kop1 || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+                    kop2: data.kop2 || '',
+                    kop3: data.namaMadrasah || '',
+                    alamat: data.alamatMadrasah || '',
+                    kota: data.tempat || '',
+                    logo: data.logoData || data.logo || '',
+                    kepalaMadrasah: data.kamadNama || '',
+                    nipKepala: data.kamadNip || ''
+                };
+                console.log('✅ CONFIG_MADRASAH berhasil dimuat via query:', window.CONFIG_MADRASAH);
+            } else {
+                console.error('❌ Pengaturan user tidak ditemukan sama sekali!');
+            }
         }
     } catch (e) {
-        console.error('❌ Gagal load CONFIG_MADRASAH:', e);
+        console.error(' Error load CONFIG_MADRASAH:', e);
     }
 }
 
