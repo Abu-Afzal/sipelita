@@ -1,21 +1,21 @@
 // ══════════════════════════════════════════════
-// SIAGA CORE - Ekstrakurikuler (SIG INTEGRATED - FINAL CLEAN)
+// SIAGA CORE - Ekstrakurikuler (SIG INTEGRATED - FINAL)
 // ══════════════════════════════════════════════
 import { auth, db } from "../js/firebase-config.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ══════════════════════════════════════════════
-// ✏️ KONFIGURASI MADRASAH (SIG) - EKSKUL
+// ✏️ KONFIGURASI MADRASAH (SIG) - Akan diisi dinamis
 // ══════════════════════════════════════════════
 const CONFIG_MADRASAH = {
   logo: '',
-  kop1: 'KEMENTERIAN AGAMA KABUPATEN BANTAENG',
-  kop2: 'MADRASAH ALIYAH NEGERI BANTAENG',
-  alamat: 'Jl. ... (isi alamat madrasah)',
-  kota: 'Bantaeng',
-  kepalaMadrasah: '................................................',
-  nipKepala: 'NIP. ............................................'
+  kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+  kop2: '',
+  alamat: '',
+  kota: '',
+  kepalaMadrasah: '',
+  nipKepala: ''
 };
 
 const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -131,7 +131,6 @@ async function fetchSekolahAktif() {
     const d = sdoc.data();
     console.log('🏫 Data sekolah aktif ditemukan:', d);
     
-    // ✅ Simpan nama sekolah untuk badge
     namaSekolah = d.kop2 || d.nama || 'Sekolah';
     
     if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
@@ -202,13 +201,10 @@ async function initApp(u) {
       currentUser.role = data.role || 'guru';
       userSekolahId = data.school_id || data.sekolah_id || '';
       currentUser.nip = data.nip || '';
-      
-      console.log('📊 Data user:', { nama: currentUser.nama, role: currentUser.role, school_id: userSekolahId, nip: currentUser.nip });
     } else {
       console.warn('⚠️ User tidak ditemukan di collection users!');
     }
     
-    // ✅ AUTO-SET SCHOOL_ID JIKA KOSONG (Fallback)
     if (!userSekolahId) {
       console.warn('⚠️ userSekolahId kosong! Mencoba auto-detect...');
       const sekolahSnap = await getDocs(collection(db, 'sekolah'));
@@ -218,12 +214,9 @@ async function initApp(u) {
         try {
           const userRef = doc(db, 'users', currentUser.email);
           await updateDoc(userRef, { school_id: userSekolahId });
-          console.log('✅ User document diupdate dengan school_id');
         } catch(e) {
           console.warn('⚠️ Gagal update user document:', e.message);
         }
-      } else {
-        console.error('❌ Tidak ada data sekolah di Firestore!');
       }
     }
   } catch(e) { 
@@ -236,7 +229,6 @@ async function initApp(u) {
     return;
   }
 
-  console.log('🏫 School ID:', userSekolahId);
   $('userBadge').textContent = (currentUser.role==='admin'?'👑 ':'') + currentUser.nama;
   $('schoolBadge').textContent = '🏫 ' + namaSekolah;
 
@@ -255,13 +247,10 @@ async function initApp(u) {
   await fetchIdentitasSekolah();
   await fetchSekolahAktif();
 
-  // ✅ Update badge sekolah dengan nama yang benar
   $('schoolBadge').textContent = '🏫 ' + namaSekolah;
 
   console.log('📡 Memuat data master...');
   await Promise.all([ loadMasterSiswa(), loadUsers(), loadEkskul() ]);
-
-  console.log('📊 Data dimuat:', { masterSiswa: masterSiswa.length, users: daftarUsers.length, ekskul: daftarEkskul.length });
 
   if (['admin','kepala','wakil'].includes(currentUser.role)) {
     console.log('👑 Admin/Kepala detected, memuat monitoring...');
@@ -298,7 +287,7 @@ function applyAccessEkskul() {
   });
 }
 
-// ══════════ LOAD DATA (DENGAN FILTER SEKOLAH) ══════════
+// ══════════ LOAD DATA ══════════
 async function loadMasterSiswa(){
   try {
     const snap = await getDocs(collection(db,'sican_siswa'));
@@ -309,7 +298,6 @@ async function loadMasterSiswa(){
 
 async function loadUsers(){
   try {
-    console.log('🔎 Memuat users...');
     const snap = await getDocs(collection(db,'users'));
     daftarUsers = [];
     snap.forEach(d => {
@@ -321,7 +309,6 @@ async function loadUsers(){
         });
       }
     });
-    console.log('✅ Users loaded:', daftarUsers.length);
     
     const pembinaSelect = $('ePembina');
     if (pembinaSelect) {
@@ -333,17 +320,10 @@ async function loadUsers(){
 
 async function loadEkskul(){
   try {
-    console.log('📦 Memuat ekskul untuk school_id:', userSekolahId);
     const q = query(collection(db,'ekskul_master'), where('sekolah_id', '==', userSekolahId));
     const snap = await getDocs(q);
-    console.log('📦 Ekskul ditemukan:', snap.size);
-    
     semuaEkskul = [];
-    snap.forEach(d => {
-      console.log('  - Ekskul:', d.data().nama);
-      semuaEkskul.push({ id:d.id, ...d.data() });
-    });
-    
+    snap.forEach(d => semuaEkskul.push({ id:d.id, ...d.data() }));
     daftarEkskul = semuaEkskul; 
     populateSelectEkskul();
   } catch(e){ console.error('❌ Error load ekskul:', e); }
@@ -384,7 +364,7 @@ function refreshAll(){
   renderMaster(); renderAnggota(); renderChecklist(); renderKegiatan(); renderRekap(); renderDashboard();
 }
 
-// ══════════ MASTER (Admin & Pengelola) ══════════
+// ══════════ MASTER ══════════
 function renderMaster(){
   const list = $('masterEkskulList');
   if (!semuaEkskul.length) { list.innerHTML = '<div class="empty">Belum ada ekskul. Klik ➕ Tambah.</div>'; return; }
@@ -477,20 +457,6 @@ window.hapusAnggota = async (id) => {
   await loadAnggota(); renderAnggota(); renderChecklist(); 
 };
 
-async function tambahAnggota(s){
-  if (!canEditEkskul) { toast('⚠️ Anda hanya punya akses LIHAT!', true); return; }
-  if (!selectedEkskul){ toast('⚠️ Pilih ekskul dulu!', true); return; }
-  if (daftarAnggota.some(a => a.nis === s.nis)){ toast('⚠️ Siswa sudah jadi anggota!', true); return; }
-  
-  await addDoc(collection(db,'ekskul_anggota'), {
-    sekolah_id: userSekolahId, guru_uid: currentUser.uid,
-    ekskul_id: selectedEkskul.id, nis: s.nis||'', nama: s.nama, kelas: s.kelas||'',
-    jabatan: 'Anggota', status: 'aktif', joinedAt: new Date().toISOString()
-  });
-  toast('✅ Anggota ditambahkan'); await loadAnggota(); renderAnggota(); renderChecklist();
-}
-
-// ══════════ TAMBAH ANGGOTA MANUAL ══════════
 async function tambahAnggotaManual(){
   if (!canEditEkskul) { toast('⚠️ Anda hanya punya akses LIHAT!', true); return; }
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul dulu!', true); return; }
@@ -523,8 +489,6 @@ async function tambahAnggotaManual(){
     await addDoc(collection(db,'ekskul_anggota'), dataAnggota);
     toast('✅ Anggota ditambahkan: ' + nama);
     resetFormAnggota();
-    
-    // ✅ PERBAIKAN: await loadAnggota() sebelum render
     await loadAnggota();
     renderAnggota(); 
     renderChecklist();
@@ -650,7 +614,7 @@ function renderDashboard(){
     : '<div class="empty">Belum ada kegiatan.</div>';
 }
 
-// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED) ══════════
+// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FINAL) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -685,7 +649,13 @@ function exportPDF(){
     }
   });
 
+  // ✅ KOP SURAT DINAMIS (3 BARIS SESUAI DATA FIREBASE)
   const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
+  let kopLinesHtml = '';
+  if (CONFIG_MADRASAH.kop1) kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>`;
+  if (CONFIG_MADRASAH.kop2) kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>`;
+  if (CONFIG_MADRASAH.alamat) kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>`;
+
   const kopHtml = `
     <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
       <table style="width:100%; border-collapse:collapse;">
@@ -694,33 +664,33 @@ function exportPDF(){
             <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
           </td>
           <td style="text-align:center; border:none;">
-            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>
-            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>
-            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>
+            ${kopLinesHtml}
           </td>
           <td style="width:75px; border:none;"></td>
         </tr>
       </table>
     </div>`;
 
-  const OFFSET_KOTA = 22;
-  const SPASI_TTD = 60;
-  const GESER_KANAN = 100;
-  
+  // ✅ TANDA TANGAN DINAMIS
+  const rawNipKamad = CONFIG_MADRASAH.nipKepala || '';
+  const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
+  const namaKamadCetak = formatKapital(CONFIG_MADRASAH.kepalaMadrasah || '................................................', 'upper');
+  const kota = CONFIG_MADRASAH.kota || 'Bantaeng';
+
   const ttdHtml = `
     <table style="width:100%; margin-top:28px; font-size:12pt;">
       <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:${OFFSET_KOTA}px;">
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
           Mengetahui,<br>Kepala Madrasah
-          <div style="height:${SPASI_TTD}px;"></div>
-          <b><u><span style="font-size:10pt;">${formatKapital(CONFIG_MADRASAH.kepalaMadrasah, 'upper')}</span></u></b><br><b style="font-size:11pt;">${CONFIG_MADRASAH.nipKepala}</b>
+          <div style="height:60px;"></div>
+          <b><u><span style="font-size:10pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
+          <b style="font-size:10pt;">${nipKamad}</b>
         </td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:${GESER_KANAN}px;">
-          ${CONFIG_MADRASAH.kota}, ${tglSurat}
-          <div style="height:${OFFSET_KOTA}px;"></div>
-          Pembina ${e.nama}
-          <div style="height:${SPASI_TTD}px;"></div>
-          <b><u><span style="font-size:10pt;">${namaPembinaCetak}</span></u></b><br><b style="font-size:11pt;">${nipPembina}</b>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+          ${kota}, ${tglSurat}<br>Pembina ${e.nama}
+          <div style="height:60px;"></div>
+          <b><u><span style="font-size:10pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
+          <b style="font-size:10pt;">${nipPembina}</b>
         </td>
       </tr>
     </table>`;
@@ -763,7 +733,7 @@ function exportPDF(){
   w.document.close();
 }
 
-// ══════════ MONITORING (Kamad/Waka/Admin) ══════════
+// ══════════ MONITORING ══════════
 async function loadAllData(){
   try {
     const qAnggota = query(collection(db,'ekskul_anggota'), where('sekolah_id', '==', userSekolahId));
@@ -818,7 +788,7 @@ function renderMonitoring(){
     </div>`;
 }
 
-// ══════════ PENGELOLA EKSKUL (Admin Only) ══════════
+// ══════════ PENGELOLA EKSKUL ══════════
 async function simpanPengelolaEkskul(){
   if (currentUser.role !== 'admin') { toast('⚠️ Hanya admin!', true); return; }
   const emailBaru = $('selPengelolaEkskul').value;
@@ -886,19 +856,6 @@ function compressImage(file, maxWidth, quality){
   });
 }
 
-function bindSearch(inputId, dropId, onPick){
-  const input=$(inputId), drop=$(dropId);
-  input.addEventListener('input', () => {
-    const q = input.value.toLowerCase().trim();
-    if (q.length<1){ drop.style.display='none'; return; }
-    const res = masterSiswa.filter(s => (s.nama||'').toLowerCase().includes(q)||(s.kelas||'').toLowerCase().includes(q)||(s.nis||'').toLowerCase().includes(q)).slice(0,10);
-    drop.innerHTML = res.length ? res.map(s=>`<div class="search-item" data-id="${s.id}"><b>${s.nama}</b> — ${s.kelas||'-'}</div>`).join('') : '<div class="search-item">Tidak ditemukan</div>';
-    drop.style.display='block';
-    drop.querySelectorAll('.search-item').forEach(el => el.onclick = () => { const s=masterSiswa.find(x=>x.id===el.dataset.id); onPick(s); drop.style.display='none'; input.value=''; });
-  });
-  document.addEventListener('click', e => { if(!e.target.closest('#'+inputId)) drop.style.display='none'; });
-}
-
 function bindEvents(){
   $('selectEkskul').onchange = e => selectEkskul(e.target.value);
   $('btnAddEkskul').onclick = () => { if (!canEditEkskul) return; $('ekskulEditKey').value=''; $('modalEkskulTitle').textContent='➕ Tambah Ekskul'; ['eNama','eRuang','eDesk'].forEach(id=>$(id).value=''); $('modalEkskul').classList.add('show'); };
@@ -910,11 +867,11 @@ function bindEvents(){
   $('btnExportPDF').onclick = exportPDF;
   $('btnSimpanPengelolaEkskul').onclick = simpanPengelolaEkskul;
   $('btnCabutAksesEkskul').onclick = cabutAksesPengelolaEkskul;
-  // Event listener untuk tambah anggota manual
-const btnTambahManual = $('btnTambahAnggotaManual');
-if(btnTambahManual) {
-  btnTambahManual.onclick = tambahAnggotaManual;
-}
+  
+  const btnTambahManual = $('btnTambahAnggotaManual');
+  if(btnTambahManual) {
+    btnTambahManual.onclick = tambahAnggotaManual;
+  }
 
   document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
