@@ -6,6 +6,125 @@
 <title>SIAGA - Ekstrakurikuler | SIPELITA</title>
 <link rel="icon" type="image/png" href="../assets/images/sipelita-app.png">
 <link rel="stylesheet" href="../css/ekskul.css">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ✅ FIREBASE CONFIG SIPELITA GURU
+const firebaseConfig = {
+    apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
+    authDomain: "sipelita-guru.firebaseapp.com",
+    projectId: "sipelita-guru",
+    storageBucket: "sipelita-guru.firebasestorage.app",
+    messagingSenderId: "595996765157",
+    appId: "1:595996765157:web:88f7f03489e1d1248e9d0c",
+    measurementId: "G-ZGT7K2N7L5"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+// ✅ VARIABLE GLOBAL UNTUK SIG
+window.CONFIG_MADRASAH = {
+    kop1: '',
+    kop2: '',
+    alamat: '',
+    kota: '',
+    kepalaMadrasah: '',
+    nipKepala: '',
+    logo: ''
+};
+
+window.currentUser = null;
+window.currentUserData = null;
+window.db = firebase.firestore();
+window.auth = firebase.auth();
+
+// ✅ FUNGSI LOAD CONFIG MADRASAH
+async function fetchConfigMadrasah() {
+    try {
+        const userEmail = window.currentUser.email.toLowerCase().trim();
+        console.log('🔍 Mencari pengaturan_user untuk email:', userEmail);
+        
+        // Coba ambil berdasarkan email user
+        const docSnap = await window.db.collection('pengaturan_user').doc(userEmail).get();
+        
+        if (docSnap.exists) {
+            const data = docSnap.data();
+            window.CONFIG_MADRASAH = {
+                kop1: data.kop1 || '',
+                kop2: data.kop2 || data.namaMadrasah || '',
+                alamat: data.alamatMadrasah || data.alamat || '',
+                kota: data.tempat || data.kota || '',
+                kepalaMadrasah: data.kamadNama || data.kepalaMadrasah || '',
+                nipKepala: data.kamadNip || data.nipKepala || '',
+                logo: data.logoData || data.logo || ''
+            };
+            console.log('✅ CONFIG_MADRASAH berhasil dimuat:', window.CONFIG_MADRASAH);
+        } else {
+            console.warn('️ Dokumen tidak ditemukan, mencoba query dengan field email...');
+            
+            // Fallback: Query berdasarkan field 'email'
+            const querySnap = await window.db.collection('pengaturan_user')
+                .where('email', '==', userEmail)
+                .limit(1)
+                .get();
+            
+            if (!querySnap.empty) {
+                const data = querySnap.docs[0].data();
+                window.CONFIG_MADRASAH = {
+                    kop1: data.kop1 || '',
+                    kop2: data.kop2 || data.namaMadrasah || '',
+                    alamat: data.alamatMadrasah || data.alamat || '',
+                    kota: data.tempat || data.kota || '',
+                    kepalaMadrasah: data.kamadNama || data.kepalaMadrasah || '',
+                    nipKepala: data.kamadNip || data.nipKepala || '',
+                    logo: data.logoData || data.logo || ''
+                };
+                console.log('✅ CONFIG_MADRASAH berhasil dimuat via query:', window.CONFIG_MADRASAH);
+            } else {
+                console.error('❌ Pengaturan user tidak ditemukan!');
+            }
+        }
+    } catch (e) {
+        console.error('❌ Gagal load CONFIG_MADRASAH:', e);
+    }
+}
+
+// ✅ LOAD USER PROFILE
+async function loadUserProfile(email) {
+    try {
+        const userDoc = await window.db.collection('users').doc(email).get();
+        if (userDoc.exists) {
+            window.currentUserData = userDoc.data();
+            console.log('✅ User profile loaded:', window.currentUserData);
+        }
+    } catch (e) {
+        console.warn('Gagal memuat profil user:', e);
+    }
+}
+
+// ✅ AUTH STATE CHANGE
+window.auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        window.currentUser = user;
+        console.log('✅ User terautentikasi:', user.email);
+        
+        // Load data user dan config madrasah
+        await loadUserProfile(user.email);
+        await fetchConfigMadrasah();
+        
+        console.log('✅ SIG Ready - CONFIG_MADRASAH:', window.CONFIG_MADRASAH);
+    } else {
+        console.warn('⚠️ User belum login');
+        window.location.href = '../index.html';
+    }
+});
+</script>
 </head>
 <body>
 
@@ -140,7 +259,7 @@
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="margin:0;color:#6d28d9;">📈 Rekap Kehadiran per Siswa</h3>
-        <button class="btn btn-primary btn-sm" id="btnExportPDF">📄 Export PDF</button>
+        <button class="btn btn-primary btn-sm" id="btnExportPDF"> Export PDF</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -173,7 +292,7 @@
       
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button class="btn btn-primary" id="btnSimpanPengelolaEkskul" style="flex:1;">💾 Tetapkan Pengelola</button>
-        <button class="btn btn-danger" id="btnCabutAksesEkskul" style="display:none;">🚫 Cabut Akses</button>
+        <button class="btn btn-danger" id="btnCabutAksesEkskul" style="display:none;"> Cabut Akses</button>
       </div>
     </div>
   </div>
@@ -215,7 +334,7 @@
 <!-- MODAL FOTO DOKUMENTASI -->
 <div class="modal" id="fotoModal">
   <div class="modal-box" style="max-width:560px;">
-    <div class="modal-title" id="fotoModalTitle">📷 Dokumentasi</div>
+    <div class="modal-title" id="fotoModalTitle"> Dokumentasi</div>
     <div id="fotoModalImgs"></div>
     <div class="modal-foot"><button class="btn btn-secondary" id="btnTutupFoto">Tutup</button></div>
   </div>
