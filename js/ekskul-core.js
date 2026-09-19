@@ -622,14 +622,14 @@ function exportPDF(){
                             <b><u><span style="font-size:9pt; white-space:nowrap;">${kepalaNama}</span></u></b><br>
                             <b style="font-size:9pt;">${kepalaNip}</b>
                         </td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-right:20px;">
-          ${kota}, ${tglSurat}<br>Pembina ${e.nama}
-          <div style="height:65px;"></div>
-          <b><u><span style="font-size:11pt;">${namaPembinaCetak}</span></u></b><br>
-          <b style="font-size:10pt;">${nipPembina}</b>
-        </td>
-      </tr>
-    </table>`;
+         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+                            ${kota}, ${tglSurat}<br>Guru Mata Pelajaran
+                            <div style="height:60px;"></div>
+                            <b><u><span style="font-size:9pt; white-space:nowrap;">${nipPembinaCetak}</span></u></b><br>
+                            <b style="font-size:9pt;">${nipPembina}</b>
+                        </td>
+                    </tr>
+                </table>`;
 
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html>
