@@ -392,6 +392,26 @@
                     };
                     userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
                 }
+                // ✅ TAMBAHKAN KODE INI: Sembunyikan Bank Soal jika bukan admin
+                if (user.role !== 'admin' && user.role !== 'superadmin') {
+                    // Tunggu 500ms agar grid dari main.js selesai di-render
+                    setTimeout(() => {
+                        // Cara 1: Cari berdasarkan ID (Paling Direkomendasikan)
+                        const menuBankSoal = document.getElementById('menu-bank-soal');
+                        if (menuBankSoal) {
+                            menuBankSoal.style.display = 'none';
+                        }
+                        
+                        // Cara 2: Fallback - Cari kartu yang berisi teks "Bank Soal"
+                        const allCards = document.querySelectorAll('.card, a.card-link, .grid-item');
+                        allCards.forEach(card => {
+                            if (card.textContent.includes('Bank Soal')) {
+                                card.style.display = 'none';
+                            }
+                        });
+                    }, 500);
+                }
+
                 if (userNipEl) {
                     userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
                 }
