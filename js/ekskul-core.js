@@ -126,25 +126,28 @@ async function fetchIdentitasSekolah() {
 async function fetchSekolahAktif() {
   if (!currentUserEmail || !userSekolahId) return;
   try {
-    const sdoc = await db.collection('sekolah').doc(userSekolahId).get();
-    if (!sdoc.exists) return;
-    const d = sdoc.data();
-    console.log('🏫 Data sekolah aktif ditemukan:', d);
+    const sekolahRef = collection(db, 'sekolah');
+    const sdoc = await getDocs(query(sekolahRef, where('__name__', '==', userSekolahId)));
     
-    namaSekolah = d.kop2 || d.nama || 'Sekolah';
-    
-    if (d.kop1) CONFIG_MADRASAH.kop1 = d.kop1;
-    if (d.kop2) CONFIG_MADRASAH.kop2 = d.kop2;
-    else if (d.nama) CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
-    if (d.alamat) CONFIG_MADRASAH.alamat = d.alamat;
-    if (d.kota) CONFIG_MADRASAH.kota = d.kota;
-    if (d.kepala_nama) CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
-    if (d.kepala_nip) {
-      CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') ? d.kepala_nip : 'NIP. ' + d.kepala_nip;
+    if (!sdoc.empty) {
+      const d = sdoc.docs[0].data();
+      console.log('🏫 Data sekolah aktif ditemukan:', d);
+      
+      namaSekolah = d.kop2 || d.nama || 'Sekolah';
+      
+      if (d.kop1) window.CONFIG_MADRASAH.kop1 = d.kop1;
+      if (d.kop2) window.CONFIG_MADRASAH.kop2 = d.kop2;
+      else if (d.nama) window.CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
+      if (d.alamat) window.CONFIG_MADRASAH.alamat = d.alamat;
+      if (d.kota) window.CONFIG_MADRASAH.kota = d.kota;
+      if (d.kepala_nama) window.CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
+      if (d.kepala_nip) {
+        window.CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') ? d.kepala_nip : 'NIP. ' + d.kepala_nip;
+      }
+      console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override');
     }
-    console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override');
   } catch (e) {
-    console.warn('⚠️ fetchSekolahAktif gagal:', e.message);
+    console.warn('️ fetchSekolahAktif gagal:', e.message);
   }
 }
 
