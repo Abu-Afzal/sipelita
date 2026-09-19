@@ -530,6 +530,7 @@ function renderDashboard(){
 }
 
 // ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - PERSIS POLA E-LEARNING) ══════════
+// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FONT SELARAS E-LEARNING) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -568,9 +569,9 @@ function exportPDF(){
     }
   });
 
-  // ✅ KOP SURAT DINAMIS (3 BARIS - PERSIS POLA E-LEARNING)
+  // ✅ KOP SURAT DINAMIS (3 BARIS - FONT SELARAS E-LEARNING)
   const cfg = window.CONFIG_MADRASAH || {};
-  console.log(' Export PDF - CONFIG_MADRASAH:', cfg);
+  console.log('📄 Export PDF - CONFIG_MADRASAH:', cfg);
   
   const logoKop = cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
   
@@ -600,7 +601,7 @@ function exportPDF(){
       </table>
     </div>`;
 
-  // ✅ TANDA TANGAN DINAMIS (PERSIS POLA E-LEARNING)
+  // ✅ TANDA TANGAN DINAMIS (FONT SELARAS E-LEARNING)
   const rawNipKamad = cfg.nipKepala || '';
   const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
   
@@ -621,24 +622,24 @@ function exportPDF(){
   const kota = cfg.kota || 'Bantaeng';
 
   const ttdHtml = `
-    <table style="width:100%; margin-top:28px; font-size:12pt;">
+    <table style="width:100%; margin-top:28px; font-size:10pt;">
       <tr>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
           Mengetahui,<br>Kepala Madrasah
           <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
-          <b style="font-size:10pt;">${nipKamad}</b>
+          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
+          <b style="font-size:9pt;">${nipKamad}</b>
         </td>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
           ${kota}, ${tglSurat}<br>Pembina ${e.nama}
           <div style="height:60px;"></div>
-          <b><u><span style="font-size:10pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
-          <b style="font-size:10pt;">${nipPembina}</b>
+          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
+          <b style="font-size:9pt;">${nipPembina}</b>
         </td>
       </tr>
     </table>`;
 
-  // ✅ CETAK KE WINDOW BARU
+  // ✅ CETAK KE WINDOW BARU (FONT SELARAS E-LEARNING)
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html>
 <html>
