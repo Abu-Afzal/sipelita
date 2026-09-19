@@ -613,15 +613,15 @@ function exportPDF(){
   const kota = cfg.kota || 'Bantaeng';
 
   // ✅ TTD dengan spacing yang lebih baik (seperti acuan)
-  const ttdHtml = `
-    <table style="width:100%; margin-top:30px; font-size:11pt;">
-      <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:20px;">
-          Mengetahui,<br>Kepala Madrasah
-          <div style="height:65px;"></div>
-          <b><u><span style="font-size:11pt;">${namaKamadCetak}</span></u></b><br>
-          <b style="font-size:10pt;">${nipKamad}</b>
-        </td>
+            const ttdHtml = `
+                <table style="width:100%; margin-top:28px; font-size:10pt;">
+                    <tr>
+                        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+                            Mengetahui,<br>Kepala Madrasah
+                            <div style="height:60px;"></div>
+                            <b><u><span style="font-size:9pt; white-space:nowrap;">${kepalaNama}</span></u></b><br>
+                            <b style="font-size:9pt;">${kepalaNip}</b>
+                        </td>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-right:20px;">
           ${kota}, ${tglSurat}<br>Pembina ${e.nama}
           <div style="height:65px;"></div>
