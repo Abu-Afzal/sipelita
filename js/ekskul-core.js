@@ -616,20 +616,20 @@ function exportPDF(){
             const ttdHtml = `
                 <table style="width:100%; margin-top:28px; font-size:10pt;">
                     <tr>
-                        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+<td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
                             Mengetahui,<br>Kepala Madrasah
                             <div style="height:60px;"></div>
-                            <b><u><span style="font-size:9pt; white-space:nowrap;">${kepalaNama}</span></u></b><br>
-                            <b style="font-size:9pt;">${kepalaNip}</b>
-                        </td>
-         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
-                            ${kota}, ${tglSurat}<br>Guru Mata Pelajaran
-                            <div style="height:60px;"></div>
-                            <b><u><span style="font-size:9pt; white-space:nowrap;">${nipPembinaCetak}</span></u></b><br>
-                            <b style="font-size:9pt;">${nipPembina}</b>
-                        </td>
-                    </tr>
-                </table>`;
+          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
+          <b style="font-size:9pt;">${nipKamad}</b>
+        </td>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+          ${kota}, ${tglSurat}<br>Pembina ${e.nama}
+          <div style="height:60px;"></div>
+          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
+          <b style="font-size:9pt;">${nipPembina}</b>
+        </td>
+      </tr>
+    </table>`;
 
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html>
