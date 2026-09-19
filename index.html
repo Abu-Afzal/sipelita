@@ -275,31 +275,7 @@
         &copy; 2026 SIPELITA - Portal Madrasah Modern Untuk Efisiensi Manajemen & Administrasi Kelas.
     </footer>
 
-        <script src="js/config.js"></script>
-    
-    <!-- ✅ INTERCEPT: Hapus BANK SOAL dari CONFIG sebelum main.js merender -->
-    <script>
-        (function() {
-            try {
-                const sessionData = localStorage.getItem('sipelita_user');
-                if (sessionData) {
-                    const user = JSON.parse(sessionData);
-                    // Jika BUKAN admin atau superadmin, hapus dari daftar menu
-                    if (user.role !== 'admin' && user.role !== 'superadmin') {
-                        if (window.CONFIG && window.CONFIG.layananMadrasah) {
-                            window.CONFIG.layananMadrasah = window.CONFIG.layananMadrasah.filter(
-                                item => item.title !== 'BANK SOAL'
-                            );
-                            console.log('✅ Menu BANK SOAL diblokir untuk non-admin.');
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('Gagal memfilter menu:', e);
-            }
-        })();
-    </script>
-    
+    <script src="js/config.js"></script>
     <script src="js/main.js"></script>
     
     <!-- ✅ FALLBACK RDM: bekerja apa pun versi main.js -->
