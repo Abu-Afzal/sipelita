@@ -581,7 +581,7 @@ function exportPDF(){
   }
 
   const kopHtml = `
-    <div style="border-bottom:2px solid #000; padding-bottom:0px; margin-bottom:2px;">
+    <div style="border-bottom:2px solid #000; padding-bottom:0px; margin-bottom:4px;">
       <table style="width:100%; border-collapse:collapse;">
         <tr>
           <td style="width:80px; text-align:center; vertical-align:middle; border:none;">
@@ -613,11 +613,11 @@ function exportPDF(){
   const namaKamadCetak = formatKapital(namaKamadRaw || '................................................', 'upper');
   const kota = cfg.kota || 'Bantaeng';
 
-  // ✅ TTD - PERSIS ACUAN (padding-left:24px kiri, padding-left:100px kanan, font 9pt, spacer 60px)
- const ttdHtml = `
+  // ✅ TTD - POSISI KOTA LEBIH TINGGI, NAMA SEJAJAR (Pola SIPENA v2)
+  const ttdHtml = `
     <table style="width:100%; margin-top:28px; font-size:10pt;">
       <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
           Mengetahui,<br>Kepala Madrasah
           <div style="height:60px;"></div>
           <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
