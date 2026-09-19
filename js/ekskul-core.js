@@ -1,22 +1,24 @@
 // ══════════════════════════════════════════════
 // SIAGA CORE - Ekstrakurikuler (SIG INTEGRATED - FINAL)
-// ══════════════════════════════════════════════
+// ═════════════════════════════════════════════
 import { auth, db } from "../js/firebase-config.js";
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ══════════════════════════════════════════════
-// ✏️ KONFIGURASI MADRASAH (SIG) - Akan diisi dinamis
+// ️ KONFIGURASI MADRASAH (SIG) - Gunakan window. agar sinkron dengan ekskul.html
 // ══════════════════════════════════════════════
-const CONFIG_MADRASAH = {
-  logo: '',
-  kop1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-  kop2: '',
-  alamat: '',
-  kota: '',
-  kepalaMadrasah: '',
-  nipKepala: ''
-};
+if (!window.CONFIG_MADRASAH) {
+  window.CONFIG_MADRASAH = {
+    logo: '',
+    kop1: '',
+    kop2: '',
+    alamat: '',
+    kota: '',
+    kepalaMadrasah: '',
+    nipKepala: ''
+  };
+}
 
 const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const JABATAN = ['Anggota','Ketua','Wakil','Sekretaris','Bendahara'];
@@ -26,8 +28,8 @@ const GELAR_BAKU = ['S.Pd','M.Pd','S.Ag','M.Ag','S.Pd.I','M.Pd.I','S.Sos','M.Sos
   'Dra','Drs','Dr','Prof','H','Hj'];
 
 function rapikanGelar(token) {
+  if (!token) return '';
   let t = token.trim();
-  if (!t) return '';
   const adaTitikAkhir = t.endsWith('.');
   const clean = t.replace(/\.+$/, '');
   const found = GELAR_BAKU.find(g => g.toLowerCase() === clean.toLowerCase());
@@ -41,7 +43,7 @@ function rapikanGelar(token) {
 }
 
 function formatNamaGelar(text) {
-  if (!text) return '';
+  if (!text || text.includes('....')) return text || '';
   const parts = text.split(',');
   const GELAR_DEPAN = ['Drs','Dra','Dr','Prof','H','Hj','Ir','KH'];
   let tokens = parts[0].trim().split(/\s+/);
@@ -64,91 +66,6 @@ function formatKapital(text, mode) {
   if (mode === 'lower') return text.toLowerCase();
   if (mode === 'title') return text.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
   return text;
-}
-
-function ekstrakSIG(d) {
-  const hasil = { kota:'', kepala:'', nip:'', kop1:'', kop2:'', alamat:'' };
-  for (const [k, v] of Object.entries(d || {})) {
-    if (typeof v !== 'string' || !v) continue;
-    const key = k.toLowerCase();
-    const isKepalaKey = key.includes('kamad') || key.includes('kepala') || key.includes('kepsek');
-
-    if (!hasil.kota && (key.includes('kota') || key.includes('tempat'))) hasil.kota = v;
-    if (!hasil.nip && isKepalaKey && key.includes('nip')) hasil.nip = v;
-    if (!hasil.kepala && isKepalaKey && !key.includes('nip') && !key.includes('link') && !v.includes('@')) hasil.kepala = v;
-    if (!hasil.kop1 && key === 'kop1') hasil.kop1 = v;
-    if (!hasil.kop2 && (key.includes('madrasah') || key.includes('sekolah')) && key.includes('nama')) hasil.kop2 = v;
-    if (!hasil.alamat && key.includes('alamat')) hasil.alamat = v;
-  }
-  return hasil;
-}
-
-async function fetchIdentitasSekolah() {
-  if (!currentUserEmail) return;
-  const sumber = [];
-
-  if (userSekolahId) {
-    try {
-      const s = await db.collection('sekolah').doc(userSekolahId).get();
-      if (s.exists) sumber.push(s.data());
-    } catch (e) {}
-  }
-
-  const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'ekskul_config', 'pengaturan', 'settings', 'config', 'sig'];
-  for (const c of cols) {
-    try { const a = await db.collection(c).doc(currentUserEmail).get(); if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
-    try { const q = await db.collection(c).where('email', '==', currentUserEmail).limit(1).get(); q.forEach(d => sumber.push(d.data())); } catch (e) {}
-  }
-
-  try {
-    const u1 = await db.collection('users').doc(currentUserEmail).get();
-    if (u1.exists) sumber.push(u1.data());
-  } catch (e) {}
-
-  let ketemu = false, kop1Explicit = false;
-  for (const d of sumber) {
-    const x = ekstrakSIG(d);
-    if (x.kota)   { CONFIG_MADRASAH.kota = x.kota; ketemu = true; }
-    if (x.kepala) { CONFIG_MADRASAH.kepalaMadrasah = x.kepala; ketemu = true; }
-    if (x.nip)    { CONFIG_MADRASAH.nipKepala = x.nip.startsWith('NIP.') ? x.nip : 'NIP. ' + x.nip; ketemu = true; }
-    if (x.kop1)   { CONFIG_MADRASAH.kop1 = x.kop1; kop1Explicit = true; ketemu = true; }
-    if (x.kop2)   { CONFIG_MADRASAH.kop2 = x.kop2; ketemu = true; }
-    if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
-  }
-
-  if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
-    CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
-  }
-
-  console.log(ketemu ? '✅ SIG dimuat → ' + CONFIG_MADRASAH.kop1 + ' / ' + CONFIG_MADRASAH.kop2 : '⚠️ SIG: data identitas tidak ditemukan');
-}
-
-async function fetchSekolahAktif() {
-  if (!currentUserEmail || !userSekolahId) return;
-  try {
-    const sekolahRef = collection(db, 'sekolah');
-    const sdoc = await getDocs(query(sekolahRef, where('__name__', '==', userSekolahId)));
-    
-    if (!sdoc.empty) {
-      const d = sdoc.docs[0].data();
-      console.log('🏫 Data sekolah aktif ditemukan:', d);
-      
-      namaSekolah = d.kop2 || d.nama || 'Sekolah';
-      
-      if (d.kop1) window.CONFIG_MADRASAH.kop1 = d.kop1;
-      if (d.kop2) window.CONFIG_MADRASAH.kop2 = d.kop2;
-      else if (d.nama) window.CONFIG_MADRASAH.kop2 = d.nama.toUpperCase();
-      if (d.alamat) window.CONFIG_MADRASAH.alamat = d.alamat;
-      if (d.kota) window.CONFIG_MADRASAH.kota = d.kota;
-      if (d.kepala_nama) window.CONFIG_MADRASAH.kepalaMadrasah = d.kepala_nama;
-      if (d.kepala_nip) {
-        window.CONFIG_MADRASAH.nipKepala = d.kepala_nip.startsWith('NIP.') ? d.kepala_nip : 'NIP. ' + d.kepala_nip;
-      }
-      console.log('✅ [Multi-Sekolah] CONFIG_MADRASAH di-override');
-    }
-  } catch (e) {
-    console.warn('️ fetchSekolahAktif gagal:', e.message);
-  }
 }
 
 // ══════════ INIT ══════════
@@ -209,7 +126,7 @@ async function initApp(u) {
     }
     
     if (!userSekolahId) {
-      console.warn('⚠️ userSekolahId kosong! Mencoba auto-detect...');
+      console.warn('️ userSekolahId kosong! Mencoba auto-detect...');
       const sekolahSnap = await getDocs(collection(db, 'sekolah'));
       if (!sekolahSnap.empty) {
         userSekolahId = sekolahSnap.docs[0].id;
@@ -246,17 +163,11 @@ async function initApp(u) {
   $('kTanggal').value = localDate();
   $('kJam').value = new Date().toTimeString().slice(0,5);
 
-  console.log('📡 Memuat data SIG...');
-  await fetchIdentitasSekolah();
-  await fetchSekolahAktif();
-
-  $('schoolBadge').textContent = '🏫 ' + namaSekolah;
-
   console.log('📡 Memuat data master...');
   await Promise.all([ loadMasterSiswa(), loadUsers(), loadEkskul() ]);
 
   if (['admin','kepala','wakil'].includes(currentUser.role)) {
-    console.log('👑 Admin/Kepala detected, memuat monitoring...');
+    console.log(' Admin/Kepala detected, memuat monitoring...');
     await loadAllData();
     renderMonitoring();
   }
@@ -266,6 +177,7 @@ async function initApp(u) {
   refreshAll();
   
   console.log('✅ SIAGA initialized successfully!');
+  console.log('✅ CONFIG_MADRASAH saat ini:', window.CONFIG_MADRASAH);
 }
 
 function computeAccessEkskul() {
@@ -335,7 +247,7 @@ async function loadEkskul(){
 function populateSelectEkskul(){
   const sel = $('selectEkskul');
   if (!daftarEkskul.length) { sel.innerHTML = '<option value="">-- Belum ada ekskul --</option>'; return; }
-  sel.innerHTML = daftarEkskul.map(e => `<option value="${e.id}">${e.ikon||'🏹'} ${e.nama}</option>`).join('');
+  sel.innerHTML = daftarEkskul.map(e => `<option value="${e.id}">${e.ikon||''} ${e.nama}</option>`).join('');
   selectEkskul(daftarEkskul[0].id);
 }
 
@@ -427,7 +339,7 @@ async function simpanEkskul(){
   toast('✅ Ekskul tersimpan'); await loadEkskul(); refreshAll();
 }
 
-// ══════════ ANGGOTA ══════════
+// ═════════ ANGGOTA ══════════
 function renderAnggota(){
   const tb = $('tbodyAnggota');
   if (!daftarAnggota.length) { 
@@ -461,7 +373,7 @@ window.hapusAnggota = async (id) => {
 };
 
 async function tambahAnggotaManual(){
-  if (!canEditEkskul) { toast('⚠️ Anda hanya punya akses LIHAT!', true); return; }
+  if (!canEditEkskul) { toast('️ Anda hanya punya akses LIHAT!', true); return; }
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul dulu!', true); return; }
   
   const nis = $('manualNIS').value.trim();
@@ -524,7 +436,7 @@ function renderChecklist(){
 async function simpanKegiatan(){
   if (!canEditEkskul) { toast('⚠️ Anda hanya punya akses LIHAT!', true); return; }
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
-  if (!$('kJudul').value.trim()){ toast('⚠️ Judul kegiatan wajib diisi!', true); return; }
+  if (!$('kJudul').value.trim()){ toast('️ Judul kegiatan wajib diisi!', true); return; }
   if (!daftarAnggota.length){ toast('⚠️ Belum ada anggota untuk diabsen!', true); return; }
 
   const absensi = [...document.querySelectorAll('#absensiList .abs-row')].map(r => ({
@@ -583,7 +495,7 @@ window.lihatFoto = (id) => {
   $('fotoModal').classList.add('show');
 };
 
-// ══════════ REKAP & DASHBOARD ══════════
+// ══════════ REKAP & DASHBOARD ═════════
 function renderRekap(){
   const tb = $('tbodyRekap');
   if (!daftarAnggota.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">Belum ada anggota.</td></tr>'; return; }
@@ -617,8 +529,7 @@ function renderDashboard(){
     : '<div class="empty">Belum ada kegiatan.</div>';
 }
 
-// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FINAL) ══════════
-// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FINAL) ══════════
+// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - PERSIS POLA E-LEARNING) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -627,16 +538,19 @@ function exportPDF(){
   const y = new Date().getFullYear();
   const tp = `${y}/${y+1}`;
   
+  // ✅ Ambil data pembina
   const pembinaUser = daftarUsers.find(u => u.email === e.pembina_email) || {};
   const rawNipPembina = pembinaUser.nip || '';
   const nipPembina = rawNipPembina ? (rawNipPembina.startsWith('NIP.') ? rawNipPembina : 'NIP. ' + rawNipPembina) : 'NIP. ............................................';
   const namaPembinaCetak = formatKapital(e.pembina_nama || '', 'upper');
 
+  // ✅ Baris kegiatan
   const kegRows = daftarKegiatan.map((k,i)=>{
     const h=(k.absensi||[]).filter(x=>x.status==='Hadir').length, t=(k.absensi||[]).length||0;
     return `<tr><td style="text-align:center">${i+1}</td><td>${k.tanggal}</td><td>${k.judul}</td><td>${k.materi||'-'}</td><td style="text-align:center">${h}/${t}</td></tr>`;
   }).join('') || '<tr><td colspan="5" style="text-align:center;font-style:italic">Tidak ada kegiatan</td></tr>';
 
+  // ✅ Baris rekap
   const rekapRows = daftarAnggota.map((a,i)=>{
     let H=0,S=0,I=0,A=0;
     daftarKegiatan.forEach(k=>{ const r=(k.absensi||[]).find(x=>x.nis===a.nis); if(r){ if(r.status==='Hadir')H++; else if(r.status==='Sakit')S++; else if(r.status==='Izin')I++; else A++; } });
@@ -645,6 +559,7 @@ function exportPDF(){
     return `<tr><td style="text-align:center">${i+1}</td><td>${a.nis||'-'}</td><td>${a.nama}</td><td style="text-align:center">${a.kelas||'-'}</td><td style="text-align:center">${H}</td><td style="text-align:center">${S}</td><td style="text-align:center">${I}</td><td style="text-align:center">${A}</td><td style="text-align:center">${pct}%</td><td style="text-align:center">${pred}</td></tr>`;
   }).join('') || '<tr><td colspan="10" style="text-align:center;font-style:italic">Belum ada anggota</td></tr>';
 
+  // ✅ Dokumentasi foto
   let dokHtml = '';
   daftarKegiatan.forEach(k => {
     if (k.fotoBase64 && k.fotoBase64.length) {
@@ -653,25 +568,21 @@ function exportPDF(){
     }
   });
 
-  // ✅ KOP SURAT - Bangun secara dinamis
-  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
+  // ✅ KOP SURAT DINAMIS (3 BARIS - PERSIS POLA E-LEARNING)
+  const cfg = window.CONFIG_MADRASAH || {};
+  console.log(' Export PDF - CONFIG_MADRASAH:', cfg);
+  
+  const logoKop = cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
+  
   let kopLinesHtml = '';
-  
-  // Baris 1: kop1 (wajib ada)
-  if (CONFIG_MADRASAH.kop1) {
-    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1}</div>`;
-  } else {
-    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>`;
+  if (cfg.kop1) {
+    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${cfg.kop1}</div>`;
   }
-  
-  // Baris 2: kop2 atau namaMadrasah
-  if (CONFIG_MADRASAH.kop2) {
-    kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${CONFIG_MADRASAH.kop2}</div>`;
+  if (cfg.kop2) {
+    kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${cfg.kop2}</div>`;
   }
-  
-  // Baris 3: alamat
-  if (CONFIG_MADRASAH.alamat) {
-    kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${CONFIG_MADRASAH.alamat}</div>`;
+  if (cfg.alamat) {
+    kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${cfg.alamat}</div>`;
   }
 
   const kopHtml = `
@@ -689,14 +600,14 @@ function exportPDF(){
       </table>
     </div>`;
 
-  // ✅ TANDA TANGAN - Pastikan data ada
-  const rawNipKamad = CONFIG_MADRASAH.nipKepala || '';
+  // ✅ TANDA TANGAN DINAMIS (PERSIS POLA E-LEARNING)
+  const rawNipKamad = cfg.nipKepala || '';
   const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
   
-  // Format nama kepala madrasah
-  let namaKamadRaw = CONFIG_MADRASAH.kepalaMadrasah || '';
+  let namaKamadRaw = cfg.kepalaMadrasah || '';
+  
+  // Fallback: cari user dengan role kepala jika CONFIG_MADRASAH kosong
   if (!namaKamadRaw || namaKamadRaw.includes('....')) {
-    // Coba cari dari collection users jika CONFIG_MADRASAH kosong
     const kamadUser = daftarUsers.find(u => {
       const r = (u.role || '').toLowerCase();
       return r.includes('kepala') || r.includes('kamad') || r.includes('head');
@@ -706,8 +617,8 @@ function exportPDF(){
     }
   }
   
-  const namaKamadCetak = formatKapital(namaKamadRaw, 'upper');
-  const kota = CONFIG_MADRASAH.kota || 'Bantaeng';
+  const namaKamadCetak = formatKapital(namaKamadRaw || '................................................', 'upper');
+  const kota = cfg.kota || 'Bantaeng';
 
   const ttdHtml = `
     <table style="width:100%; margin-top:28px; font-size:12pt;">
@@ -727,6 +638,7 @@ function exportPDF(){
       </tr>
     </table>`;
 
+  // ✅ CETAK KE WINDOW BARU
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html>
 <html>
@@ -765,7 +677,7 @@ function exportPDF(){
   w.document.close();
 }
 
-// ══════════ MONITORING ══════════
+// ══════════ MONITORING ═════════
 async function loadAllData(){
   try {
     const qAnggota = query(collection(db,'ekskul_anggota'), where('sekolah_id', '==', userSekolahId));
@@ -851,7 +763,7 @@ async function cabutAksesPengelolaEkskul(){
   if (configSnap.empty) { toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
   const oldConfig = configSnap.docs[0].data();
   if (!oldConfig.pengelola_email) { toast('⚠️ Tidak ada pengelola yang aktif!', true); return; }
-  if (!confirm(`❌ Cabut akses Ekskul dari "${oldConfig.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)) return;
+  if (!confirm(` Cabut akses Ekskul dari "${oldConfig.pengelola_nama}"?\n\nUser ini akan kembali menjadi "Hanya Lihat".`)) return;
   
   try {
     await updateDoc(doc(db, 'users', oldConfig.pengelola_email), { akses_ekskul: false });
