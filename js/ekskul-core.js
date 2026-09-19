@@ -616,30 +616,30 @@ function exportPDF(){
   // ✅ TTD - PERSIS ACUAN (padding-left:24px kiri, padding-left:100px kanan, font 9pt, spacer 60px)
   const ttdHtml = `
     <table style="width:100%; margin-top:28px; font-size:10pt;">
-      <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
-          Mengetahui,<br>Kepala Madrasah
-          <div style="height:60px;"></div>
-          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
-          <b style="font-size:9pt;">${nipKamad}</b>
+                    <tr>
+                        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+                            Mengetahui,<br>Kepala Madrasah
+                            <div style="height:60px;"></div>
+                            <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
+                            <b style="font-size:9pt;">${nipKamad}</b>
         </td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
-          ${kota}, ${tglSurat}<br>Pembina ${e.nama}
+                        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+                            ${kota}, ${tglSurat}<br>Pembina ${e.nama}
           <div style="height:60px;"></div>
-          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
+                            <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
           <b style="font-size:9pt;">${nipPembina}</b>
         </td>
       </tr>
     </table>`;
 
   const w = window.open('','_blank');
-w.document.write(`<!DOCTYPE html>
+  w.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <title>Laporan ${e.nama}</title>
   <style>
     @page { size: A4; margin: 15mm 15mm; }
-    body { font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000; line-height: 1.5; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.5; }
     h3 { font-size: 12pt; font-weight: bold; margin: 8px 0; text-transform: uppercase; text-align:center; }
     h4 { font-size: 11pt; font-weight: bold; margin: 12px 0 6px; }
     table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 12px; }
