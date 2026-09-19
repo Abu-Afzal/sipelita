@@ -529,8 +529,7 @@ function renderDashboard(){
     : '<div class="empty">Belum ada kegiatan.</div>';
 }
 
-// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - PERSIS POLA E-LEARNING) ══════════
-// ══════════ EXPORT PDF LAPORAN (SIG INTEGRATED - FONT SELARAS E-LEARNING) ══════════
+// ══════════ EXPORT PDF LAPORAN (DISUSUAIKAN DENGAN ACUAN) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -539,19 +538,16 @@ function exportPDF(){
   const y = new Date().getFullYear();
   const tp = `${y}/${y+1}`;
   
-  // ✅ Ambil data pembina
   const pembinaUser = daftarUsers.find(u => u.email === e.pembina_email) || {};
   const rawNipPembina = pembinaUser.nip || '';
   const nipPembina = rawNipPembina ? (rawNipPembina.startsWith('NIP.') ? rawNipPembina : 'NIP. ' + rawNipPembina) : 'NIP. ............................................';
   const namaPembinaCetak = formatKapital(e.pembina_nama || '', 'upper');
 
-  // ✅ Baris kegiatan
   const kegRows = daftarKegiatan.map((k,i)=>{
     const h=(k.absensi||[]).filter(x=>x.status==='Hadir').length, t=(k.absensi||[]).length||0;
     return `<tr><td style="text-align:center">${i+1}</td><td>${k.tanggal}</td><td>${k.judul}</td><td>${k.materi||'-'}</td><td style="text-align:center">${h}/${t}</td></tr>`;
   }).join('') || '<tr><td colspan="5" style="text-align:center;font-style:italic">Tidak ada kegiatan</td></tr>';
 
-  // ✅ Baris rekap
   const rekapRows = daftarAnggota.map((a,i)=>{
     let H=0,S=0,I=0,A=0;
     daftarKegiatan.forEach(k=>{ const r=(k.absensi||[]).find(x=>x.nis===a.nis); if(r){ if(r.status==='Hadir')H++; else if(r.status==='Sakit')S++; else if(r.status==='Izin')I++; else A++; } });
@@ -560,30 +556,27 @@ function exportPDF(){
     return `<tr><td style="text-align:center">${i+1}</td><td>${a.nis||'-'}</td><td>${a.nama}</td><td style="text-align:center">${a.kelas||'-'}</td><td style="text-align:center">${H}</td><td style="text-align:center">${S}</td><td style="text-align:center">${I}</td><td style="text-align:center">${A}</td><td style="text-align:center">${pct}%</td><td style="text-align:center">${pred}</td></tr>`;
   }).join('') || '<tr><td colspan="10" style="text-align:center;font-style:italic">Belum ada anggota</td></tr>';
 
-  // ✅ Dokumentasi foto
   let dokHtml = '';
   daftarKegiatan.forEach(k => {
     if (k.fotoBase64 && k.fotoBase64.length) {
-      dokHtml += `<div style="margin:15px 0;"><p style="font-weight:bold; margin:5px 0;">${k.tanggal} — ${k.judul}</p>
+      dokHtml += `<div style="margin:15px 0;"><p style="font-weight:bold; margin:5px 0; font-size:10pt;">${k.tanggal} — ${k.judul}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">${k.fotoBase64.map(f=>`<img src="${f}" style="width:48%;max-width:250px;height:auto;border:1px solid #999;border-radius:4px;">`).join('')}</div></div>`;
     }
   });
 
-  // ✅ KOP SURAT DINAMIS (3 BARIS - FONT SELARAS E-LEARNING)
+  // ✅ KOP SURAT - Disesuaikan dengan acuan
   const cfg = window.CONFIG_MADRASAH || {};
-  console.log('📄 Export PDF - CONFIG_MADRASAH:', cfg);
-  
   const logoKop = cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
   
   let kopLinesHtml = '';
   if (cfg.kop1) {
-    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${cfg.kop1}</div>`;
+    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold; text-transform:uppercase;">${cfg.kop1}</div>`;
   }
   if (cfg.kop2) {
-    kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${cfg.kop2}</div>`;
+    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold; text-transform:uppercase;">${cfg.kop2}</div>`;
   }
   if (cfg.alamat) {
-    kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${cfg.alamat}</div>`;
+    kopLinesHtml += `<div style="font-size:11pt; font-style:italic;">${cfg.alamat}</div>`;
   }
 
   const kopHtml = `
@@ -601,13 +594,11 @@ function exportPDF(){
       </table>
     </div>`;
 
-  // ✅ TANDA TANGAN DINAMIS (FONT SELARAS E-LEARNING)
+  // ✅ TTD BLOCK - Disesuaikan dengan acuan (lebih seimbang)
   const rawNipKamad = cfg.nipKepala || '';
   const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
   
   let namaKamadRaw = cfg.kepalaMadrasah || '';
-  
-  // Fallback: cari user dengan role kepala jika CONFIG_MADRASAH kosong
   if (!namaKamadRaw || namaKamadRaw.includes('....')) {
     const kamadUser = daftarUsers.find(u => {
       const r = (u.role || '').toLowerCase();
@@ -621,25 +612,25 @@ function exportPDF(){
   const namaKamadCetak = formatKapital(namaKamadRaw || '................................................', 'upper');
   const kota = cfg.kota || 'Bantaeng';
 
+  // ✅ TTD dengan spacing yang lebih baik (seperti acuan)
   const ttdHtml = `
-    <table style="width:100%; margin-top:28px; font-size:10pt;">
+    <table style="width:100%; margin-top:30px; font-size:11pt;">
       <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:22px;">
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:20px;">
           Mengetahui,<br>Kepala Madrasah
-          <div style="height:60px;"></div>
-          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
-          <b style="font-size:9pt;">${nipKamad}</b>
+          <div style="height:65px;"></div>
+          <b><u><span style="font-size:11pt;">${namaKamadCetak}</span></u></b><br>
+          <b style="font-size:10pt;">${nipKamad}</b>
         </td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-right:20px;">
           ${kota}, ${tglSurat}<br>Pembina ${e.nama}
-          <div style="height:60px;"></div>
-          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
-          <b style="font-size:9pt;">${nipPembina}</b>
+          <div style="height:65px;"></div>
+          <b><u><span style="font-size:11pt;">${namaPembinaCetak}</span></u></b><br>
+          <b style="font-size:10pt;">${nipPembina}</b>
         </td>
       </tr>
     </table>`;
 
-  // ✅ CETAK KE WINDOW BARU (FONT SELARAS E-LEARNING)
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html>
 <html>
@@ -647,31 +638,39 @@ function exportPDF(){
   <title>Laporan ${e.nama}</title>
   <style>
     @page { size: A4; margin: 15mm 15mm; }
-    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.4; }
-    h3 { font-size: 12pt; font-weight: bold; margin: 5px 0; text-transform: uppercase; }
-    h4 { font-size: 11pt; font-weight: bold; margin: 15px 0 8px; }
-    table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 15px; }
-    th, td { border: 1px solid #000; padding: 5px 8px; text-align: left; vertical-align: top; }
-    th { background: #f0f0f0; font-weight: bold; text-align: center; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.5; }
+    h3 { font-size: 12pt; font-weight: bold; margin: 8px 0; text-transform: uppercase; text-align:center; }
+    h4 { font-size: 11pt; font-weight: bold; margin: 12px 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 12px; }
+    th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; vertical-align: middle; }
+    th { background: #f5f5f5; font-weight: bold; text-align: center; }
+    .info-row { margin: 3px 0; font-size: 11pt; }
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   </style>
 </head>
 <body>
   ${kopHtml}
-  <div style="text-align:center; margin:0 0 12px;">
+  <div style="text-align:center; margin:8px 0 15px;">
     <h3>LAPORAN KEGIATAN & KEHADIRAN EKSTRAKURIKULER</h3>
-    <p style="font-size:11pt; margin:3px 0;">${e.ikon||''} ${e.nama} — Tahun Pelajaran ${tp}</p>
+    <p style="font-size:11pt; margin:4px 0; font-weight:bold;">${e.ikon||''} ${e.nama} — Tahun Pelajaran ${tp}</p>
   </div>
-  <div style="margin-bottom:12px; font-size:11pt;">
-    <p>Pembina: <b>${e.pembina_nama||'-'}</b><br>Jadwal: ${e.hari||'-'}, ${e.jam_mulai||''}–${e.jam_selesai||''} ${e.ruang?'• '+e.ruang:''}</p>
+  
+  <div style="margin-bottom:15px; font-size:11pt;">
+    <div class="info-row">Pembina: <b>${e.pembina_nama||'-'}</b></div>
+    <div class="info-row">Jadwal: ${e.hari||'-'}, ${e.jam_mulai||''}–${e.jam_selesai||''} ${e.ruang?'• '+e.ruang:''}</div>
   </div>
+  
   <h4>A. Daftar Kegiatan</h4>
-  <table><thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Kegiatan</th><th>Materi</th><th style="width:12%">Hadir/Total</th></tr></thead><tbody>${kegRows}</tbody></table>
+  <table><thead><tr><th style="width:5%">No</th><th style="width:12%">Tanggal</th><th>Kegiatan</th><th>Materi</th><th style="width:10%">Hadir/Total</th></tr></thead><tbody>${kegRows}</tbody></table>
+  
   <h4>B. Rekap Kehadiran per Siswa</h4>
-  <table><thead><tr><th style="width:5%">No</th><th style="width:12%">NIS</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:5%">H</th><th style="width:5%">S</th><th style="width:5%">I</th><th style="width:5%">A</th><th style="width:8%">%</th><th style="width:12%">Predikat</th></tr></thead><tbody>${rekapRows}</tbody></table>
+  <table><thead><tr><th style="width:5%">No</th><th style="width:12%">NIS</th><th>Nama</th><th style="width:10%">Kelas</th><th style="width:4%">H</th><th style="width:4%">S</th><th style="width:4%">I</th><th style="width:4%">A</th><th style="width:6%">%</th><th>Predikat</th></tr></thead><tbody>${rekapRows}</tbody></table>
+  
   <h4>C. Dokumentasi Kegiatan</h4>
-  ${dokHtml || '<p style="font-style:italic;color:#64748b;">Tidak ada dokumentasi foto.</p>'}
+  ${dokHtml || '<p style="font-style:italic;color:#64748b;font-size:10pt;">Tidak ada dokumentasi foto.</p>'}
+  
   ${ttdHtml}
+  
   <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }<\/script>
 </body>
 </html>`);
