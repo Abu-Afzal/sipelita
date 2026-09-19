@@ -613,21 +613,21 @@ function exportPDF(){
   const namaKamadCetak = formatKapital(namaKamadRaw || '................................................', 'upper');
   const kota = cfg.kota || 'Bantaeng';
 
-  // ✅ TTD - POSISI KOTA LEBIH TINGGI, NAMA SEJAJAR (Pola SIPENA v2)
-  const ttdHtml = `
-    <table style="width:100%; margin-top:40px; font-size:10pt; border-collapse:collapse;">
+  // ✅ TTD - PERSIS ACUAN (padding-left:24px kiri, padding-left:100px kanan, font 9pt, spacer 60px)
+ const ttdHtml = `
+    <table style="width:100%; margin-top:28px; font-size:10pt;">
       <tr>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none;">
-          <div style="margin-bottom:4px;">Mengetahui,</div>
-          <div style="margin-bottom:60px;">Kepala Madrasah</div>
-          <div style="font-weight:bold; text-decoration:underline; font-size:10pt; margin-bottom:2px;">${namaKamadCetak}</div>
-          <div style="font-weight:bold; font-size:9pt;">${nipKamad}</div>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+          Mengetahui,<br>Kepala Madrasah
+          <div style="height:60px;"></div>
+          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
+          <b style="font-size:9pt; display:block; margin-top:-3px; line-height:1.1;">${nipKamad}</b>
         </td>
-        <td style="width:50%; text-align:left; vertical-align:top; border:none;">
-          <div style="margin-bottom:4px;">${kota}, ${tglSurat}</div>
-          <div style="margin-bottom:60px;">Pembina ${e.nama}</div>
-          <div style="font-weight:bold; text-decoration:underline; font-size:10pt; margin-bottom:2px;">${namaPembinaCetak}</div>
-          <div style="font-weight:bold; font-size:9pt;">${nipPembina}</div>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
+          ${kota}, ${tglSurat}<br>Pembina ${e.nama}
+          <div style="height:60px;"></div>
+          <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
+          <b style="font-size:9pt; display:block; margin-top:-3px; line-height:1.1;">${nipPembina}</b>
         </td>
       </tr>
     </table>`;
