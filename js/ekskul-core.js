@@ -581,10 +581,10 @@ function exportPDF(){
   }
 
   const kopHtml = `
-    <div style="border-bottom:2px solid #000; padding-bottom:0px; margin-bottom:4px;">
+    <div style="border-bottom:2px solid #000; padding-bottom:0px; margin-bottom:2px;">
       <table style="width:100%; border-collapse:collapse;">
         <tr>
-          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+          <td style="width:80px; text-align:center; vertical-align:middle; border:none;">
             <img src="${logoKop}" style="width:60px; height:60px; object-fit:contain;" onerror="this.style.visibility='hidden'">
           </td>
           <td style="text-align:center; border:none; vertical-align:middle;">
