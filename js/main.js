@@ -51,7 +51,7 @@ function renderCards() {
     }
 
     // Daftar judul card yang HANYA boleh dilihat oleh Admin (BACKUP)
-    const fiturKhususAdmin = ['Master PKKM', 'Admin Users', 'Kelola Berita', 'Master Siswa', 'Bank Soal'];
+    const fiturKhususAdmin = ['Master PKKM', 'BANK SOAL', 'Admin Users', 'Kelola Berita', 'Master Siswa'];
 
     // ══════════════════════════════════════════════
     // 🔐 FUNGSI HELPER: CEK APAKAH MENU BOLEH DITAMPILKAN
