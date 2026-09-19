@@ -530,6 +530,7 @@ function renderDashboard(){
 }
 
 // ══════════ EXPORT PDF LAPORAN (DISUSUAIKAN DENGAN ACUAN) ══════════
+// ══════════ EXPORT PDF LAPORAN (100% SELARAS DENGAN E-LEARNING PDF) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -564,19 +565,19 @@ function exportPDF(){
     }
   });
 
-  // ✅ KOP SURAT - Disesuaikan dengan acuan
+  // ✅ KOP SURAT - PERSIS ACUAN E-LEARNING PDF
   const cfg = window.CONFIG_MADRASAH || {};
   const logoKop = cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
   
   let kopLinesHtml = '';
   if (cfg.kop1) {
-    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold; text-transform:uppercase;">${cfg.kop1}</div>`;
+    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${cfg.kop1}</div>`;
   }
   if (cfg.kop2) {
-    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold; text-transform:uppercase;">${cfg.kop2}</div>`;
+    kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${cfg.kop2}</div>`;
   }
   if (cfg.alamat) {
-    kopLinesHtml += `<div style="font-size:11pt; font-style:italic;">${cfg.alamat}</div>`;
+    kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${cfg.alamat}</div>`;
   }
 
   const kopHtml = `
@@ -594,7 +595,7 @@ function exportPDF(){
       </table>
     </div>`;
 
-  // ✅ TTD BLOCK - Disesuaikan dengan acuan (lebih seimbang)
+  // ✅ TTD BLOCK - PERSIS ACUAN E-LEARNING PDF
   const rawNipKamad = cfg.nipKepala || '';
   const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
   
@@ -612,13 +613,13 @@ function exportPDF(){
   const namaKamadCetak = formatKapital(namaKamadRaw || '................................................', 'upper');
   const kota = cfg.kota || 'Bantaeng';
 
-  // ✅ TTD dengan spacing yang lebih baik (seperti acuan)
-            const ttdHtml = `
-                <table style="width:100%; margin-top:28px; font-size:10pt;">
-                    <tr>
-<td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
-                            Mengetahui,<br>Kepala Madrasah
-                            <div style="height:60px;"></div>
+  // ✅ TTD - PERSIS ACUAN (padding-left:24px kiri, padding-left:100px kanan, font 9pt, spacer 60px)
+  const ttdHtml = `
+    <table style="width:100%; margin-top:28px; font-size:10pt;">
+      <tr>
+        <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
+          Mengetahui,<br>Kepala Madrasah
+          <div style="height:60px;"></div>
           <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
           <b style="font-size:9pt;">${nipKamad}</b>
         </td>
