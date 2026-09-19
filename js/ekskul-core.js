@@ -633,13 +633,13 @@ function exportPDF(){
     </table>`;
 
   const w = window.open('','_blank');
-  w.document.write(`<!DOCTYPE html>
+w.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <title>Laporan ${e.nama}</title>
   <style>
     @page { size: A4; margin: 15mm 15mm; }
-    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.5; }
+    body { font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000; line-height: 1.5; }
     h3 { font-size: 12pt; font-weight: bold; margin: 8px 0; text-transform: uppercase; text-align:center; }
     h4 { font-size: 11pt; font-weight: bold; margin: 12px 0 6px; }
     table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 12px; }
