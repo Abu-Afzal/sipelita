@@ -529,7 +529,8 @@ function renderDashboard(){
     : '<div class="empty">Belum ada kegiatan.</div>';
 }
 
-// ══════════ EXPORT PDF LAPORAN (FINAL REVISI) ══════════
+// ══════════ EXPORT PDF LAPORAN (DISUSUAIKAN DENGAN ACUAN) ══════════
+// ══════════ EXPORT PDF LAPORAN (100% SELARAS DENGAN E-LEARNING PDF) ══════════
 function exportPDF(){
   if (!selectedEkskul){ toast('⚠️ Pilih ekskul!', true); return; }
   const e = selectedEkskul;
@@ -564,7 +565,7 @@ function exportPDF(){
     }
   });
 
-  // ✅ KOP SURAT - Garis lebih rapat, logo seimbang
+  // ✅ KOP SURAT - PERSIS ACUAN E-LEARNING PDF
   const cfg = window.CONFIG_MADRASAH || {};
   const logoKop = cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
   
@@ -579,22 +580,22 @@ function exportPDF(){
     kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${cfg.alamat}</div>`;
   }
 
-  const kopHtml = `
-    <div style="border-bottom:2px solid #000; padding-bottom:4px; margin-bottom:8px;">
-      <table style="width:100%; border-collapse:collapse;">
-        <tr>
-          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-            <img src="${logoKop}" style="width:60px; height:60px; object-fit:contain;" onerror="this.style.visibility='hidden'">
-          </td>
-          <td style="text-align:center; border:none; vertical-align:middle;">
-            ${kopLinesHtml}
-          </td>
-          <td style="width:75px; border:none;"></td>
-        </tr>
-      </table>
-    </div>`;
+            const kopHtml = `
+                <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <tr>
+                            <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+                                <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+                            </td>
+                            <td style="text-align:center; border:none;">
+                                ${kopLinesHtml}
+                            </td>
+                            <td style="width:75px; border:none;"></td>
+                        </tr>
+                    </table>
+                </div>`;
 
-  // ✅ TTD BLOCK - NIP dirapatkan
+  // ✅ TTD BLOCK - PERSIS ACUAN E-LEARNING PDF
   const rawNipKamad = cfg.nipKepala || '';
   const nipKamad = rawNipKamad ? (rawNipKamad.startsWith('NIP.') ? rawNipKamad : 'NIP. ' + rawNipKamad) : 'NIP. ............................................';
   
@@ -612,20 +613,21 @@ function exportPDF(){
   const namaKamadCetak = formatKapital(namaKamadRaw || '................................................', 'upper');
   const kota = cfg.kota || 'Bantaeng';
 
-  const ttdHtml = `
+  // ✅ TTD - PERSIS ACUAN (padding-left:24px kiri, padding-left:100px kanan, font 9pt, spacer 60px)
+ const ttdHtml = `
     <table style="width:100%; margin-top:28px; font-size:10pt;">
       <tr>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px;">
           Mengetahui,<br>Kepala Madrasah
           <div style="height:60px;"></div>
           <b><u><span style="font-size:9pt; white-space:nowrap;">${namaKamadCetak}</span></u></b><br>
-          <b style="font-size:9pt; display:block; margin-top:-2px; line-height:1.2;">${nipKamad}</b>
+          <b style="font-size:9pt; display:block; margin-top:-3px; line-height:1.1;">${nipKamad}</b>
         </td>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
           ${kota}, ${tglSurat}<br>Pembina ${e.nama}
           <div style="height:60px;"></div>
           <b><u><span style="font-size:9pt; white-space:nowrap;">${namaPembinaCetak}</span></u></b><br>
-          <b style="font-size:9pt; display:block; margin-top:-2px; line-height:1.2;">${nipPembina}</b>
+          <b style="font-size:9pt; display:block; margin-top:-3px; line-height:1.1;">${nipPembina}</b>
         </td>
       </tr>
     </table>`;
@@ -637,7 +639,7 @@ function exportPDF(){
   <title>Laporan ${e.nama}</title>
   <style>
     @page { size: A4; margin: 15mm 15mm; }
-    body { font-family: 'Times New Roman', serif; font-size: 11pt; padding: 20px; color: #000; line-height: 1.5; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.5; }
     h3 { font-size: 12pt; font-weight: bold; margin: 8px 0; text-transform: uppercase; text-align:center; }
     h4 { font-size: 11pt; font-weight: bold; margin: 12px 0 6px; }
     table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 12px; }
