@@ -565,34 +565,35 @@ function exportPDF(){
   });
 
   // ✅ KOP SURAT - Garis lebih rapat, logo seimbang
-  const cfg = window.CONFIG_MADRASAH || {};
-  const logoKop = cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
-  
-  let kopLinesHtml = '';
-  if (cfg.kop1) {
-    kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${cfg.kop1}</div>`;
-  }
-  if (cfg.kop2) {
-    kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${cfg.kop2}</div>`;
-  }
-  if (cfg.alamat) {
-    kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${cfg.alamat}</div>`;
-  }
+  const cfg = typeof CONFIG_MADRASAH !== 'undefined' ? CONFIG_MADRASAH : {};
+            const logoKop = cfg.logoData || cfg.logo || (location.origin + '/assets/images/kemenag-app.png');
+            
+            // Bangun baris KOP secara dinamis (hanya tampilkan jika ada isinya)
+            let kopLinesHtml = '';
+            if (cfg.kop1) {
+                kopLinesHtml += `<div style="font-size:14pt; font-weight:bold;">${cfg.kop1}</div>`;
+            }
+            if (cfg.namaMadrasah || cfg.kop3) {
+                kopLinesHtml += `<div style="font-size:12pt; font-weight:bold;">${cfg.namaMadrasah || cfg.kop3}</div>`;
+            }
+            if (cfg.alamatMadrasah || cfg.alamat) {
+                kopLinesHtml += `<div style="font-size:10pt; font-style:italic;">${cfg.alamatMadrasah || cfg.alamat}</div>`;
+            }
 
-  const kopHtml = `
-    <div style="border-bottom:2px solid #000; padding-bottom:4px; margin-bottom:8px;">
-      <table style="width:100%; border-collapse:collapse;">
-        <tr>
-          <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
-            <img src="${logoKop}" style="width:60px; height:60px; object-fit:contain;" onerror="this.style.visibility='hidden'">
-          </td>
-          <td style="text-align:center; border:none; vertical-align:middle;">
-            ${kopLinesHtml}
-          </td>
-          <td style="width:75px; border:none;"></td>
-        </tr>
-      </table>
-    </div>`;
+            const kopHtml = `
+                <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <tr>
+                            <td style="width:75px; text-align:center; vertical-align:middle; border:none;">
+                                <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
+                            </td>
+                            <td style="text-align:center; border:none;">
+                                ${kopLinesHtml}
+                            </td>
+                            <td style="width:75px; border:none;"></td>
+                        </tr>
+                    </table>
+                </div>`;
 
   // ✅ TTD BLOCK - NIP dirapatkan
   const rawNipKamad = cfg.nipKepala || '';
