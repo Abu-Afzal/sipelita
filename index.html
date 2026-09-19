@@ -276,6 +276,30 @@
     </footer>
 
         <script src="js/config.js"></script>
+    
+    <!-- ✅ INTERCEPT: Hapus BANK SOAL dari CONFIG sebelum main.js merender -->
+    <script>
+        (function() {
+            try {
+                const sessionData = localStorage.getItem('sipelita_user');
+                if (sessionData) {
+                    const user = JSON.parse(sessionData);
+                    // Jika BUKAN admin atau superadmin, hapus dari daftar menu
+                    if (user.role !== 'admin' && user.role !== 'superadmin') {
+                        if (window.CONFIG && window.CONFIG.layananMadrasah) {
+                            window.CONFIG.layananMadrasah = window.CONFIG.layananMadrasah.filter(
+                                item => item.title !== 'BANK SOAL'
+                            );
+                            console.log('✅ Menu BANK SOAL diblokir untuk non-admin.');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Gagal memfilter menu:', e);
+            }
+        })();
+    </script>
+    
     <script src="js/main.js"></script>
     
     <!-- ✅ FALLBACK RDM: bekerja apa pun versi main.js -->
@@ -392,26 +416,6 @@
                     };
                     userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
                 }
-                // ✅ TAMBAHKAN KODE INI: Sembunyikan Bank Soal jika bukan admin
-                if (user.role !== 'admin' && user.role !== 'superadmin') {
-                    // Tunggu 500ms agar grid dari main.js selesai di-render
-                    setTimeout(() => {
-                        // Cara 1: Cari berdasarkan ID (Paling Direkomendasikan)
-                        const menuBankSoal = document.getElementById('menu-bank-soal');
-                        if (menuBankSoal) {
-                            menuBankSoal.style.display = 'none';
-                        }
-                        
-                        // Cara 2: Fallback - Cari kartu yang berisi teks "Bank Soal"
-                        const allCards = document.querySelectorAll('.card, a.card-link, .grid-item');
-                        allCards.forEach(card => {
-                            if (card.textContent.includes('Bank Soal')) {
-                                card.style.display = 'none';
-                            }
-                        });
-                    }, 500);
-                }
-
                 if (userNipEl) {
                     userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
                 }
