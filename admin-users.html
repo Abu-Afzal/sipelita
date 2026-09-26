@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola User - SIPELITA</title>
+    <title>Kelola User & Langganan - SIPELITA</title>
     <link rel="icon" type="image/png" href="assets/images/icon-app.png">
     
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS -->
     <script>
       (function() {
         const sessionData = localStorage.getItem('sipelita_user');
@@ -51,9 +50,14 @@
         .pw-toggle-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#64748b;padding:4px 6px;border-radius:5px;line-height:1;transition:color .18s,background .18s;}
         .pw-toggle-btn:hover{color:#667eea;background:#ede9fe;}
 
-        .btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.88rem;}
+        .btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.88rem;transition:all .2s;}
         .btn-primary{background:#667eea;color:white;}
+        .btn-primary:hover{background:#5a67d8;}
         .btn-danger{background:#ef4444;color:white;}
+        .btn-danger:hover{background:#dc2626;}
+        .btn-success{background:#10b981;color:white;}
+        .btn-success:hover{background:#059669;}
+        .btn-sm{padding:6px 12px;font-size:0.8rem;}
 
         .alert{padding:11px 14px;border-radius:8px;margin-bottom:14px;display:none;}
 
@@ -66,10 +70,12 @@
         .badge{padding:4px 11px;border-radius:20px;font-size:0.75rem;font-weight:700;display:inline-block;}
         .badge-admin{background:#fef3c7;color:#92400e;}
         .badge-guru{background:#dcfce7;color:#065f46;}
-        .badge-pending{background:#fef3c7;color:#92400e;}
         .badge-active{background:#dcfce7;color:#166534;}
-        .badge-rejected{background:#fee2e2;color:#991b1b;}
+        .badge-warning{background:#fef3c7;color:#92400e;}
+        .badge-expired{background:#fee2e2;color:#991b1b;}
+        .badge-pending{background:#dbeafe;color:#1e40af;}
 
+        /* Approval Section Styling */
         .approval-section{
             background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);
             border:2px solid #f59e0b;
@@ -78,99 +84,24 @@
             margin-bottom:24px;
             box-shadow:0 2px 10px rgba(245,158,11,.15);
         }
-        .approval-header{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-            gap:10px;
-            margin-bottom:16px;
-        }
-        .approval-header h2{
-            margin:0;
-            color:#92400e;
-            font-size:1.1rem;
-            display:flex;
-            align-items:center;
-            gap:8px;
-        }
-        .pending-count{
-            background:#f59e0b;
-            color:white;
-            padding:2px 12px;
-            border-radius:12px;
-            font-size:.78rem;
-            font-weight:700;
-            margin-left:8px;
-        }
-        .btn-refresh{
-            background:#f59e0b;
-            color:white;
-            border:none;
-            padding:8px 16px;
-            border-radius:8px;
-            cursor:pointer;
-            font-weight:600;
-            font-size:.85rem;
-            transition:background .2s;
-        }
+        .approval-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+        .approval-header h2{margin:0;color:#92400e;font-size:1.1rem;display:flex;align-items:center;gap:8px;}
+        .pending-count{background:#f59e0b;color:white;padding:2px 12px;border-radius:12px;font-size:.78rem;font-weight:700;margin-left:8px;}
+        .btn-refresh{background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem;}
         .btn-refresh:hover{background:#d97706;}
-        .approval-table{
-            width:100%;
-            border-collapse:collapse;
-            font-size:.88rem;
-            background:white;
-            border-radius:10px;
-            overflow:hidden;
-            box-shadow:0 1px 4px rgba(0,0,0,.05);
-        }
-        .approval-table th{
-            background:#fef3c7;
-            color:#92400e;
-            font-weight:700;
-            padding:11px 13px;
-            text-align:left;
-            border-bottom:2px solid #fde68a;
-        }
-        .approval-table td{
-            padding:11px 13px;
-            border-bottom:1px solid #fef3c7;
-            vertical-align:middle;
-        }
-        .approval-table tr:hover td{background:#fffbeb;}
-        .approval-table tr:last-child td{border-bottom:none;}
-        .btn-approve{
-            background:#10b981;
-            color:white;
-            padding:6px 14px;
-            border:none;
-            border-radius:6px;
-            font-weight:700;
-            cursor:pointer;
-            font-size:.82rem;
-            margin-right:6px;
-        }
-        .btn-approve:hover{background:#059669;}
-        .btn-reject-approval{
-            background:#ef4444;
-            color:white;
-            padding:6px 14px;
-            border:none;
-            border-radius:6px;
-            font-weight:700;
-            cursor:pointer;
-            font-size:.82rem;
-        }
-        .btn-reject-approval:hover{background:#dc2626;}
 
         .pw-cell{display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:0.82rem;}
         .pw-cell button{background:none;border:none;cursor:pointer;font-size:0.9rem;color:#64748b;padding:2px 4px;}
         .pw-cell button:hover{color:#667eea;}
 
         .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;padding:16px;}
-        .modal-content{background:white;padding:28px;border-radius:14px;max-width:480px;width:100%;}
+        .modal.active{display:flex;}
+        .modal-content{background:white;padding:28px;border-radius:14px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;}
         .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #f1f5f9;}
         .close-btn{background:none;border:none;font-size:1.5rem;cursor:pointer;}
+
+        .bukti-img{max-width:100px;max-height:100px;border-radius:6px;cursor:pointer;border:2px solid #e2e8f0;}
+        .bukti-img:hover{border-color:#667eea;}
 
         @media(max-width:600px){
             .form-row{grid-template-columns:1fr;}
@@ -183,16 +114,42 @@
 
     <div class="page-header">
         <div>
-            <h1>👥 Kelola User</h1>
-            <p>Manajemen akun Guru & Staff SIPELITA</p>
+            <h1>👥 Kelola User & Langganan</h1>
+            <p>Manajemen akun, persetujuan pendaftaran, dan perpanjangan masa aktif</p>
         </div>
-        <a href="index.html" class="back-btn">← Kembali</a>
+        <a href="index.html" class="back-btn">← Kembali ke Dashboard</a>
+    </div>
+
+    <!-- ═══ SECTION: PERMOHONAN PERPANJANGAN LANGGANAN ═══ -->
+    <div id="renewalApprovalSection" class="approval-section" style="display:none;">
+        <div class="approval-header">
+            <h2>
+                🔄 Permohonan Perpanjangan Langganan
+                <span id="renewalPendingCount" class="pending-count">0</span>
+            </h2>
+            <button class="btn-refresh" onclick="loadRenewalRequests()">🔄 Muat Ulang</button>
+        </div>
+        <div class="tbl-wrap">
+            <table class="approval-table" style="width:100%;border-collapse:collapse;background:white;border-radius:10px;overflow:hidden;">
+                <thead>
+                    <tr>
+                        <th>Nama Guru</th>
+                        <th>Email</th>
+                        <th>Bukti Transfer</th>
+                        <th>Tgl Permohonan</th>
+                        <th style="text-align:center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="renewalTbody">
+                    <tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#94a3b8;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="card">
         <h2>➕ Tambah User Baru</h2>
         <div id="alertTambah" class="alert"></div>
-
         <form id="formTambahUser">
             <div class="form-row">
                 <div class="form-group">
@@ -204,8 +161,6 @@
                     <input type="text" id="nama" placeholder="Nama lengkap user" required>
                 </div>
             </div>
-
-            <!-- ✅ BARU: NIP & Mata Pelajaran -->
             <div class="form-row">
                 <div class="form-group">
                     <label>NIP / NUPTK</label>
@@ -216,7 +171,6 @@
                     <input type="text" id="mapel" placeholder="Contoh: Matematika">
                 </div>
             </div>
-
             <div class="form-row">
                 <div class="form-group">
                     <label>Password *</label>
@@ -233,9 +187,6 @@
                     </select>
                 </div>
             </div>
-
-            <!-- ✅ AKSES FITUR DIHAPUS: semua user otomatis dapat semua fitur -->
-
             <div style="display:flex;gap:10px;margin-top:10px;">
                 <button type="submit" class="btn btn-primary" id="btnTambah" style="flex:1;">💾 Simpan User</button>
                 <button type="button" class="btn" id="btnExportExcel" style="background:#107c41;color:white;">📥 Ekspor ke Excel</button>
@@ -243,36 +194,8 @@
         </form>
     </div>
 
-        <!-- ═══ SECTION: APPROVAL PENDAFTAR BARU ═══ -->
-    <div id="approvalSection" class="approval-section" style="display:none;">
-        <div class="approval-header">
-            <h2>
-                ⏳ Pendaftaran Menunggu Persetujuan
-                <span id="pendingCountBadge" class="pending-count"></span>
-            </h2>
-            <button class="btn-refresh" onclick="window.loadPendingUsers && window.loadPendingUsers()">🔄 Muat Ulang</button>
-        </div>
-        <div class="tbl-wrap">
-            <table class="approval-table">
-                <thead>
-                    <tr>
-                        <th>Nama</th>
-                        <th>Email</th>
-                        <th>Mata Pelajaran</th>
-                        <th>NIP</th>
-                        <th>Tgl Daftar</th>
-                        <th style="text-align:center;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="pendingTbody">
-                    <tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#94a3b8;">Memuat...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
     <div class="card">
-        <h2>📋 Daftar User Terdaftar</h2>
+        <h2>📋 Daftar User Terdaftar & Status Langganan</h2>
         <div id="loadingUsers" style="text-align:center;padding:24px;color:#64748b;">Memuat data...</div>
         <div class="tbl-wrap" id="tableUsers" style="display:none;">
             <table>
@@ -280,11 +203,9 @@
                     <tr>
                         <th>Nama</th>
                         <th>Email</th>
-                        <th>Password</th>
                         <th>Role</th>
-                        <th>NIP</th>
-                        <th>Mata Pelajaran</th>
-                        <th>Status</th>
+                        <th>Status Langganan</th>
+                        <th>Berlaku Hingga</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -300,7 +221,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3>✏️ Edit User</h3>
-            <button class="close-btn" onclick="document.getElementById('modalEdit').style.display='none'">&times;</button>
+            <button class="close-btn" onclick="document.getElementById('modalEdit').classList.remove('active')">&times;</button>
         </div>
         <div id="alertEdit" class="alert"></div>
         <form id="formEditUser">
@@ -309,15 +230,14 @@
                 <label>Nama Lengkap</label>
                 <input type="text" id="editNama" required>
             </div>
-            <!-- ✅ BARU: NIP & Mapel di modal edit -->
             <div class="form-row">
                 <div class="form-group">
                     <label>NIP / NUPTK</label>
-                    <input type="text" id="editNip" placeholder="Contoh: 198501012010011001">
+                    <input type="text" id="editNip">
                 </div>
                 <div class="form-group">
                     <label>Mata Pelajaran</label>
-                    <input type="text" id="editMapel" placeholder="Contoh: Matematika">
+                    <input type="text" id="editMapel">
                 </div>
             </div>
             <div class="form-group">
@@ -329,14 +249,26 @@
             </div>
             <div style="display:flex;gap:10px;margin-top:20px;">
                 <button type="submit" class="btn btn-primary" style="flex:1;" id="btnSimpanEdit">💾 Simpan Perubahan</button>
-                <button type="button" class="btn btn-danger" id="btnBatalEdit" style="flex:1;background:#64748b;">❌ Batal</button>
+                <button type="button" class="btn" style="flex:1;background:#64748b;color:white;" onclick="document.getElementById('modalEdit').classList.remove('active')">❌ Batal</button>
             </div>
         </form>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- MODAL PREVIEW BUKTI TRANSFER -->
+<div id="modalBukti" class="modal">
+    <div class="modal-content" style="max-width: 600px; text-align: center;">
+        <div class="modal-header">
+            <h3>📄 Bukti Transfer</h3>
+            <button class="close-btn" onclick="document.getElementById('modalBukti').classList.remove('active')">&times;</button>
+        </div>
+        <div id="buktiPreviewContainer" style="padding: 20px; background: #f8fafc; border-radius: 8px;">
+            <!-- Gambar atau teks akan di-render di sini -->
+        </div>
+    </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 function togglePwForm(inputId, btn) {
     const inp = document.getElementById(inputId);
@@ -344,10 +276,8 @@ function togglePwForm(inputId, btn) {
     const isHidden = inp.type === 'password';
     inp.type = isHidden ? 'text' : 'password';
     btn.textContent = isHidden ? '🙈' : '👁️';
-    btn.title = isHidden ? 'Sembunyikan Password' : 'Tampilkan Password';
 }
 </script>
-
 <script type="module" src="users/users.js"></script>
 </body>
 </html>
