@@ -6,22 +6,21 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/images/sipelita-app.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Efisien Untuk Manajaemen & Administrasi- SIPELITA</title>
+    <title>Efisien Untuk Manajemen & Administrasi - SIPELITA</title>
     <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK (Compat Version) - HANYA yang dibutuhkan -->
+    <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <!-- ❌ RTDB SDK dihapus (tidak dipakai, hanya memunculkan warning) -->
     
     <script src="js/fs-adapter.js"></script>
     <script src="js/alarm-engine.js"></script>
     <script src="js/settings-global.js"></script>
     
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS (Mencegah Flash Halaman Dashboard) -->
+    <!-- 🔒 CEK KEAMANAN SINCRONOUS -->
     <script>
       (function() {
         const sessionData = localStorage.getItem('sipelita_user');
@@ -113,7 +112,7 @@
             margin-top: 4px;
         }
 
-        /* Container utama - sembunyikan sampai auth siap */
+        /* Container utama */
         .container.hidden-until-auth {
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -121,7 +120,8 @@
         .container.hidden-until-auth.ready {
             opacity: 1;
         }
-                /* ══════════════════════════════════════════════
+
+        /* ══════════════════════════════════════════════
            CARD STATUS LANGGANAN (SUBSCRIPTION)
            ══════════════════════════════════════════════ */
         .subscription-card {
@@ -131,7 +131,7 @@
             margin-bottom: 24px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0;
-            display: none; /* Disembunyikan dulu, dimunculkan via JS */
+            display: none;
             animation: fadeIn 0.5s ease;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -243,26 +243,48 @@
             </div>
             
             <div id="userPanel" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-left: auto;">
-                <!-- Baris 1: Role, Settings & Logout -->
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span id="userRole" style="background: #ffd700; color: #1a237e; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;"></span>
-                    
                     <button id="btnPengaturanAkun" class="btn-settings-akun" title="Pengaturan Akun">
                         <i class="fas fa-cog"></i>
                     </button>
-                    
                     <button id="btnLogout" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </div>
-                
-                <!-- Baris 2: Sapaan Nama User -->
                 <span id="userName" style="color: #0f172a; font-weight: bold; font-size: 0.95rem;">Hi, ...</span>
-                
-                <!-- Baris 3: NIP User -->
                 <span id="userNip" style="color: #64748b; font-size: 0.8rem; font-family: 'Courier New', monospace;"></span>
             </div>
         </header>
+
+        <!-- ✅ CARD STATUS LANGGANAN -->
+        <div class="subscription-card" id="subscriptionCard">
+            <div class="sub-header">
+                <h3 class="sub-title">
+                    <i class="fas fa-crown"></i> Status Langganan Sipelita Guru
+                </h3>
+                <span id="subBadge" class="sub-badge badge-active">AKTIF</span>
+            </div>
+            
+            <div class="sub-info">
+                <div class="sub-info-item">
+                    <span class="sub-info-label">Berlaku Hingga:</span>
+                    <span class="sub-info-value" id="subEndDate">-</span>
+                </div>
+                <div class="sub-info-item">
+                    <span class="sub-info-label">Sisa Waktu:</span>
+                    <span class="sub-info-value highlight" id="subDaysLeft">-</span>
+                </div>
+            </div>
+
+            <div class="sub-progress">
+                <div class="sub-progress-fill" id="subProgressBar" style="width: 0%"></div>
+            </div>
+
+            <div class="sub-action" id="subActionArea">
+                <!-- Tombol akan di-render otomatis oleh JavaScript -->
+            </div>
+        </div>
 
         <h2 class="section-title">Layanan Umum</h2>
         <div class="grid" id="layanan-umum"></div>
@@ -286,7 +308,7 @@
         </div>
     </div>
 
-        <!-- MODAL PENGATURAN AKUN -->
+    <!-- MODAL PENGATURAN AKUN -->
     <div class="modal" id="modalPengaturanAkun">
         <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
@@ -294,81 +316,101 @@
                 <button class="close-btn" data-close="modalPengaturanAkun">&times;</button>
             </div>
             
-            <!-- SECTION 1: Info Email -->
             <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:20px;">
                 <div style="font-size:0.85rem; color:#0369a1;">
                     <strong>📧 Email:</strong> <span id="settingUserEmail">-</span>
                 </div>
             </div>
 
-            <!-- SECTION 2: Ubah Password -->
             <h4 style="margin: 0 0 12px; color: #1e293b; font-size: 1rem;">🔒 Ubah Password</h4>
             <div class="form-group-modal">
                 <label>Password Saat Ini *</label>
                 <input type="password" id="settingPasswordLama" placeholder="Masukkan password lama Anda" autocomplete="current-password">
             </div>
-            
             <div class="form-group-modal">
                 <label>Password Baru *</label>
                 <input type="password" id="settingPasswordBaru" placeholder="Minimal 6 karakter" autocomplete="new-password">
                 <div class="password-hint">Password harus berbeda dengan password lama.</div>
             </div>
-            
             <div class="form-group-modal">
                 <label>Konfirmasi Password Baru *</label>
                 <input type="password" id="settingPasswordKonfirmasi" placeholder="Ulangi password baru" autocomplete="new-password">
             </div>
-
             <button class="btn" id="btnSimpanPengaturan" style="width:100%; background:#10b981; color:white; margin-bottom:20px;">💾 Ubah Password</button>
 
-            <!-- SECTION 3: Identitas Madrasah (BARU) -->
             <div style="border-top:2px solid #e2e8f0; padding-top:20px;">
                 <h4 style="margin: 0 0 8px; color: #059669; font-size: 1rem;">🏫 Identitas Madrasah</h4>
                 <div class="password-hint" style="margin-bottom: 14px;">
                     Diisi sekali oleh masing-masing guru. Otomatis dipakai di <b>LCKH, Jurnal, Rekap & Laporan Ekskul</b>.
                 </div>
-
                 <div class="form-group-modal">
                     <label>🏙️ Kota / Tempat (tanggal tanda tangan)</label>
                     <input type="text" id="sigTempat" placeholder="Contoh: Bantaeng">
                 </div>
-
                 <div class="form-group-modal">
                     <label>👑 Nama Kepala Madrasah</label>
                     <input type="text" id="sigKamadNama" placeholder="Nama lengkap dengan gelar">
                 </div>
-
                 <div class="form-group-modal">
                     <label>🔢 NIP Kepala Madrasah</label>
                     <input type="text" id="sigKamadNip" placeholder="Kosongkan bila tidak ada">
                 </div>
-
-                        <div style="margin-bottom:1rem;">
-          <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏛️ KOP Baris 1 (opsional — kosongkan untuk otomatis)</label>
-          <input type="text" id="sigKop1" placeholder="KEMENTERIAN AGAMA KABUPATEN / KOTA ..." style="width:100%; padding:0.5rem; border:1.5px solid var(--border); border-radius:8px;">
-        </div>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏫 Nama Madrasah / Sekolah (KOP Baris 2)</label>
-          <input type="text" id="sigNamaMadrasah" placeholder="Contoh: MTs NEGERI 1 MAKASSAR" style="width:100%; padding:0.5rem; border:1.5px solid var(--border); border-radius:8px;">
-        </div>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">📍 Alamat Madrasah (KOP Baris 3)</label>
-          <input type="text" id="sigAlamat" placeholder="Jl. ..." style="width:100%; padding:0.5rem; border:1.5px solid var(--border); border-radius:8px;">
-        </div>
-                                <div class="form-group-modal">
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏛️ KOP Baris 1 (opsional)</label>
+                    <input type="text" id="sigKop1" placeholder="KEMENTERIAN AGAMA KABUPATEN / KOTA ..." style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;">
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏫 Nama Madrasah / Sekolah (KOP Baris 2)</label>
+                    <input type="text" id="sigNamaMadrasah" placeholder="Contoh: MTs NEGERI 1 MAKASSAR" style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;">
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">📍 Alamat Madrasah (KOP Baris 3)</label>
+                    <input type="text" id="sigAlamat" placeholder="Jl. ..." style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;">
+                </div>
+                <div class="form-group-modal">
                     <label>🔗 Link RDM Madrasah</label>
                     <input type="url" id="sigRdmLink" placeholder="https://... link RDM madrasah Anda">
                     <div class="password-hint">Khusus Admin: link ini otomatis menjadi default seluruh guru.</div>
                 </div>
-
                 <button class="btn" id="btnSimpanIdentitas" style="width: 100%; background: #059669; color: white;">
                     💾 Simpan Identitas Madrasah
                 </button>
             </div>
-
-            <!-- Tombol Tutup -->
             <div style="margin-top: 16px;">
                 <button class="btn" style="width: 100%; background: #e2e8f0; color: #475569;" data-close="modalPengaturanAkun">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ MODAL PERPANJANG LANGGANAN -->
+    <div class="modal" id="modalRenewal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>🔄 Perpanjang Langganan (1 Tahun)</h3>
+                <button class="close-btn" onclick="window.closeModal('modalRenewal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0891b2;">
+                    <h4 style="margin: 0 0 8px 0; color: #0e7490; font-size: 1rem;">Biaya Mahar: Rp 100.000 / Tahun</h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5;">
+                        Silakan transfer ke rekening berikut:<br>
+                        <strong>Bank BRI: 1234-5678-9012</strong><br>
+                        a.n. Yayasan / MAN Bantaeng
+                    </p>
+                </div>
+                
+                <div class="form-group-modal">
+                    <label>Upload Bukti Transfer *</label>
+                    <input type="file" id="buktiTransfer" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
+                    <div class="password-hint">Format: JPG, PNG, atau PDF (Maksimal 2MB)</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 24px;">
+                    <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569; border:none; padding:10px; border-radius:8px; cursor:pointer;" onclick="window.closeModal('modalRenewal')">Batal</button>
+                    <button class="btn" id="btnSubmitRenewal" style="flex: 1; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="submitRenewal()">
+                        <i class="fas fa-paper-plane"></i> Kirim Permohonan
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -380,9 +422,8 @@
     <script src="js/config.js"></script>
     <script src="js/main.js"></script>
     
-    <!-- ✅ FALLBACK RDM: bekerja apa pun versi main.js -->
+    <!-- ✅ FALLBACK RDM -->
     <script>
-        // Pastikan openRDM ada (bila main.js versi lama belum punya)
         if (!window.openRDM) {
             window.openRDM = function () {
                 var SET = window.SIG ? window.SIG.get() : {};
@@ -390,7 +431,6 @@
                 else alert('🔗 Link RDM madrasah Anda belum diatur.\nSilakan buka ⚙️ Pengaturan Akun → isi "Link RDM Madrasah".');
             };
         }
-        // Tangkap klik pada kartu RDM → panggil openRDM()
         document.addEventListener('click', function (e) {
             var link = e.target.closest ? e.target.closest('a.card-link') : null;
             if (!link) return;
@@ -402,7 +442,6 @@
         });
     </script>
 
-    
     <script type="module">
         import { AuthService } from './js/auth-service.js';
 
@@ -422,21 +461,11 @@
         const auth = firebase.auth();
 
         // ══════════════════════════════════════════════
-        // HELPER: TOAST (non-blocking, UX friendly)
+        // HELPER: TOAST & MODAL
         // ══════════════════════════════════════════════
         function showToast(message, type = 'success') {
-            const colors = {
-                success: '#10b981',
-                error: '#ef4444',
-                warning: '#f59e0b',
-                info: '#3b82f6'
-            };
-            const icons = {
-                success: '✅',
-                error: '❌',
-                warning: '⚠️',
-                info: 'ℹ️'
-            };
+            const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
             const t = document.createElement('div');
             t.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;border-radius:10px;font-weight:600;font-size:0.9rem;color:#fff;background:${colors[type]||colors.info};box-shadow:0 6px 20px rgba(0,0,0,.2);transition:opacity .3s;max-width:360px;`;
             t.textContent = (icons[type] || '') + ' ' + message;
@@ -450,12 +479,132 @@
             if (m) m.style.display = 'none';
         };
 
-        // Event listener universal untuk tombol close modal
+        window.openModal = (modalId) => {
+            const m = document.getElementById(modalId);
+            if (m) m.style.display = 'flex';
+        };
+
         document.querySelectorAll('[data-close]').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (btn.dataset.close) window.closeModal(btn.dataset.close);
             });
         });
+
+        // ══════════════════════════════════════════════
+        // FITUR MANAJEMEN LANGGANAN (SUBSCRIPTION)
+        // ══════════════════════════════════════════════
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        function initSubscriptionFeature(userEmail) {
+            db.collection('users').where('email', '==', userEmail).limit(1).onSnapshot((snapshot) => {
+                if (snapshot.empty) return;
+                const userData = snapshot.docs[0].data();
+                renderSubscriptionCard(userData);
+            });
+        }
+
+        function renderSubscriptionCard(data) {
+            const card = document.getElementById('subscriptionCard');
+            if (!data.subscription_end) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            card.style.display = 'block';
+            const endDate = data.subscription_end.toDate();
+            const now = new Date();
+            const diffTime = endDate - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('subEndDate').textContent = endDate.toLocaleDateString('id-ID', options);
+            
+            const daysLeftEl = document.getElementById('subDaysLeft');
+            const badgeEl = document.getElementById('subBadge');
+            const progressEl = document.getElementById('subProgressBar');
+            const actionEl = document.getElementById('subActionArea');
+            
+            card.classList.remove('state-warning', 'state-expired');
+            
+            const totalDays = 365;
+            const daysPassed = Math.max(0, totalDays - diffDays);
+            const percentage = Math.min(100, (daysPassed / totalDays) * 100);
+            progressEl.style.width = `${percentage}%`;
+
+            if (data.subscription_status === 'pending_renewal') {
+                badgeEl.className = 'sub-badge badge-pending';
+                badgeEl.textContent = 'MENUNGGU VERIFIKASI';
+                daysLeftEl.textContent = 'Sedang diproses Admin';
+                progressEl.style.background = '#3b82f6';
+                actionEl.innerHTML = `<button class="btn-renew" disabled><i class="fas fa-clock"></i> Menunggu Persetujuan Admin</button>`;
+            } else if (diffDays <= 0) {
+                card.classList.add('state-expired');
+                badgeEl.className = 'sub-badge badge-expired';
+                badgeEl.textContent = 'TIDAK AKTIF';
+                daysLeftEl.textContent = '0 Hari (Kadaluarsa)';
+                actionEl.innerHTML = `<button class="btn-renew expired" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Sekarang</button>`;
+            } else if (diffDays <= 30) {
+                card.classList.add('state-warning');
+                badgeEl.className = 'sub-badge badge-warning';
+                badgeEl.textContent = 'SEGERA BERAKHIR';
+                daysLeftEl.textContent = `${diffDays} Hari Lagi`;
+                actionEl.innerHTML = `<button class="btn-renew warning" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Periode</button>`;
+            } else {
+                badgeEl.className = 'sub-badge badge-active';
+                badgeEl.textContent = 'AKTIF';
+                daysLeftEl.textContent = `${diffDays} Hari Lagi`;
+                actionEl.innerHTML = `<button class="btn-renew" onclick="window.openModal('modalRenewal')" style="background: #f1f5f9; color: #475569;"><i class="fas fa-sync-alt"></i> Perpanjang Dini</button>`;
+            }
+        }
+
+        window.submitRenewal = async function() {
+            const fileInput = document.getElementById('buktiTransfer');
+            const file = fileInput.files[0];
+            
+            if (!file) return showToast('⚠️ Harap upload bukti transfer terlebih dahulu!', 'warning');
+            if (file.size > 2 * 1024 * 1024) return showToast('⚠️ Ukuran file maksimal 2MB!', 'warning');
+            
+            const btn = document.getElementById('btnSubmitRenewal');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+            
+            try {
+                const user = AuthService.checkAuth();
+                const base64Data = await fileToBase64(file);
+                
+                await db.collection('renewal_requests').add({
+                    user_uid: user.uid,
+                    user_name: user.nama,
+                    user_email: user.email,
+                    amount: 100000,
+                    bukti_base64: base64Data,
+                    file_name: file.name,
+                    status: 'pending',
+                    request_date: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                const userSnapshot = await db.collection('users').where('email', '==', user.email).limit(1).get();
+                if (!userSnapshot.empty) {
+                    await userSnapshot.docs[0].ref.update({ subscription_status: 'pending_renewal' });
+                }
+                
+                showToast('✅ Permohonan berhasil dikirim! Admin akan segera memverifikasi.', 'success');
+                window.closeModal('modalRenewal');
+                document.getElementById('buktiTransfer').value = '';
+                
+            } catch (error) {
+                console.error('Error submitting renewal:', error);
+                showToast('❌ Gagal mengirim: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Permohonan';
+            }
+        };
 
         // ══════════════════════════════════════════════
         // REFRESH DATA USER DARI FIRESTORE
@@ -484,23 +633,22 @@
                 const containerEl = document.querySelector('.container');
                 const loadingEl = document.getElementById('authLoading');
 
-                // Render awal
                 if (userNameEl) userNameEl.textContent = `Hi, ${user.nama || 'User'}`;
                 if (userRoleEl) {
-                    const roleMap = {
-                        'admin': '👑 Admin',
-                        'kepala': '👑 Kepala Madrasah',
-                        'wakil': '⭐ Wakil Kepala'
-                    };
+                    const roleMap = { 'admin': '👑 Admin', 'kepala': '👑 Kepala Madrasah', 'wakil': '⭐ Wakil Kepala' };
                     userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
                 }
                 if (userNipEl) {
                     userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
                 }
 
-                // Tampilkan container
                 if (containerEl) containerEl.classList.add('ready');
                 if (loadingEl) loadingEl.style.display = 'none';
+
+                // ✅ AKTIFKAN FITUR LANGGANAN
+                if (user.email) {
+                    initSubscriptionFeature(user.email);
+                }
 
                 // Refresh data dari Firestore
                 if (user.email) {
@@ -508,8 +656,7 @@
                         if (freshData) {
                             const updatedUser = { ...user, ...freshData, email: user.email };
                             localStorage.setItem('sipelita_user', JSON.stringify(updatedUser));
-                // ✅ Tarik default madrasah dari cloud saat dashboard dibuka
-                if (window.SIG) window.SIG.pull();
+                            if (window.SIG) window.SIG.pull();
                             if (userNameEl) userNameEl.textContent = `Hi, ${updatedUser.nama || 'User'}`;
                             if (userNipEl) {
                                 userNipEl.textContent = updatedUser.nip ? 'NIP: ' + updatedUser.nip : 'NIP: Belum diisi';
@@ -524,9 +671,7 @@
                     });
                 }
 
-                // ══════════════════════════════════════════════
-                // LOGIKA PENGATURAN AKUN (UBAH PASSWORD)
-                // ══════════════════════════════════════════════
+                // LOGIKA PENGATURAN AKUN
                 const btnPengaturan = document.getElementById('btnPengaturanAkun');
                 const btnSimpanPengaturan = document.getElementById('btnSimpanPengaturan');
 
@@ -536,7 +681,6 @@
                         document.getElementById('settingPasswordLama').value = '';
                         document.getElementById('settingPasswordBaru').value = '';
                         document.getElementById('settingPasswordKonfirmasi').value = '';
-                                                // ✅ Isi form identitas dari setelan tersimpan
                         const s = window.SIG ? window.SIG.get() : {};
                         document.getElementById('sigTempat').value = s.tempat || '';
                         document.getElementById('sigKamadNama').value = s.kamadNama || '';
@@ -545,7 +689,7 @@
                         document.getElementById('sigNamaMadrasah').value = s.namaMadrasah || '';
                         document.getElementById('sigAlamat').value = s.alamatMadrasah || '';
                         document.getElementById('sigRdmLink').value = s.rdmLink || '';
-                        document.getElementById('modalPengaturanAkun').style.display = 'flex';
+                        window.openModal('modalPengaturanAkun');
                     });
                 }
 
@@ -589,15 +733,13 @@
                             
                             showToast(msg, 'error');
                             btnSimpanPengaturan.disabled = false;
-                            btnSimpanPengaturan.innerHTML = '💾 Simpan Perubahan';
+                            btnSimpanPengaturan.innerHTML = '💾 Ubah Password';
                         }
                     });
                 }
 
-                                // ══════════════════════════════════════════════
-                // LOGIKA SIMPAN IDENTITAS MADRASAH (SIG)
-                // ══════════════════════════════════════════════
-                                const btnSimpanIdentitas = document.getElementById('btnSimpanIdentitas');
+                // LOGIKA SIMPAN IDENTITAS MADRASAH
+                const btnSimpanIdentitas = document.getElementById('btnSimpanIdentitas');
                 if (btnSimpanIdentitas) {
                     btnSimpanIdentitas.addEventListener('click', () => {
                         if (!window.SIG) {
@@ -615,7 +757,6 @@
                             rdmLink: document.getElementById('sigRdmLink').value.trim()
                         };
                         
-                        // ✅ Validasi DULU — minimal satu field terisi (termasuk kop)
                         if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip 
                             && !identitas.rdmLink && !identitas.kop1 
                             && !identitas.namaMadrasah && !identitas.alamatMadrasah) {
@@ -623,40 +764,28 @@
                             return;
                         }
                         
-                        // ✅ Simpan SEKALI — Admin otomatis jadi default semua guru
                         const isAdmin = user.role === 'admin';
                         window.SIG.save(identitas, isAdmin);
                         
-                        showToast(isAdmin
-                            ? '✅ Tersimpan & dijadikan default semua guru!'
-                            : '✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
+                        showToast(isAdmin ? '✅ Tersimpan & dijadikan default semua guru!' : '✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
                     });
                 }
                 
-                // ══════════════════════════════════════════════
                 // LOGIKA LOGOUT
-                // ══════════════════════════════════════════════
                 const btnLogout = document.getElementById('btnLogout');
                 if (btnLogout) {
                     btnLogout.addEventListener('click', async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        
                         btnLogout.disabled = true;
                         btnLogout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Keluar...';
                         
                         try {
                             localStorage.clear();
                             sessionStorage.clear();
-                            
                             if (typeof AuthService !== 'undefined' && AuthService.logout) {
-                                try {
-                                    await AuthService.logout();
-                                } catch (err) {
-                                    console.warn('Firebase logout warning:', err);
-                                }
+                                try { await AuthService.logout(); } catch (err) { console.warn('Firebase logout warning:', err); }
                             }
-                            
                             window.location.replace('home.html');
                         } catch (error) {
                             console.error('Logout error:', error);
