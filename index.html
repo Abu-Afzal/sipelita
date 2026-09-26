@@ -121,6 +121,108 @@
         .container.hidden-until-auth.ready {
             opacity: 1;
         }
+                /* ══════════════════════════════════════════════
+           CARD STATUS LANGGANAN (SUBSCRIPTION)
+           ══════════════════════════════════════════════ */
+        .subscription-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            display: none; /* Disembunyikan dulu, dimunculkan via JS */
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .sub-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .sub-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .sub-title i { color: #f59e0b; }
+        
+        .sub-badge {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-active { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-expired { background: #fee2e2; color: #991b1b; }
+        .badge-pending { background: #dbeafe; color: #1e40af; }
+
+        .sub-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .sub-info-item { display: flex; flex-direction: column; }
+        .sub-info-label { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
+        .sub-info-value { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+        .sub-info-value.highlight { color: #10b981; }
+
+        .sub-progress {
+            background: #e2e8f0;
+            border-radius: 99px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .sub-progress-fill {
+            height: 100%;
+            background: #10b981;
+            border-radius: 99px;
+            transition: width 0.5s ease, background-color 0.3s ease;
+        }
+
+        .sub-action { text-align: right; }
+        .btn-renew {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-renew:hover { background: #059669; transform: translateY(-1px); }
+        .btn-renew.warning { background: #f59e0b; }
+        .btn-renew.warning:hover { background: #d97706; }
+        .btn-renew.expired { background: #ef4444; }
+        .btn-renew.expired:hover { background: #dc2626; }
+        .btn-renew:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; transform: none; }
+
+        /* State Colors */
+        .state-warning .sub-info-value.highlight { color: #d97706 !important; }
+        .state-warning .sub-progress-fill { background: #f59e0b !important; }
+        .state-warning { border-color: #fcd34d; background: #fffbeb; }
+        
+        .state-expired .sub-info-value.highlight { color: #dc2626 !important; }
+        .state-expired .sub-progress-fill { background: #ef4444 !important; }
+        .state-expired { border-color: #fca5a5; background: #fef2f2; }
     </style>
 </head>
 <body>
