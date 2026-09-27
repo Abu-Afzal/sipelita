@@ -1,713 +1,820 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="theme-color" content="#10b981">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="assets/images/sipelita-app.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Efisien Untuk Manajemen & Administrasi - SIPELITA</title>
-    <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDK (Compat Version) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    
-    <script src="js/fs-adapter.js"></script>
-    <script src="js/alarm-engine.js"></script>
-    <script src="js/settings-global.js"></script>
-    
-    <!-- 🔒 CEK KEAMANAN SINCRONOUS -->
-    <script>
-      (function() {
-        const sessionData = localStorage.getItem('sipelita_user');
-        if (!sessionData) {
-          window.location.replace('home.html');
-        }
-      })();
-    </script>
-    
-    <style>
-        /* Loading Screen */
-        #authLoading {
-            position: fixed; inset: 0; background: #f8fafc; z-index: 99998;
-            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        #authLoading .spinner {
-            width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top: 4px solid #10b981;
-            border-radius: 50%; animation: spin 1s linear infinite;
-        }
-        #authLoading .loading-text { color: #64748b; font-weight: 600; font-size: 0.95rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        .btn-settings-akun {
-            background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569;
-            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s ease;
-        }
-        .btn-settings-akun:hover { background: #e2e8f0; color: #0f172a; transform: rotate(45deg); }
-        
-        .form-group-modal { margin-bottom: 16px; }
-        .form-group-modal label { display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px; }
-        .form-group-modal input {
-            width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-            font-size: 0.9rem; outline: none; transition: border-color 0.2s; box-sizing: border-box; font-family: inherit;
-        }
-        .form-group-modal input:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
-        .password-hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+<!-- ══ PWA META TAGS ══ -->
+<meta name="theme-color" content="#0891b2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SIPELITA">
+<meta name="application-name" content="SIPELITA">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./assets/images/sipelita-app.png">
+<link rel="icon" type="image/png" href="./assets/images/sipelita-app.png">
 
-        .container.hidden-until-auth { opacity: 0; transition: opacity 0.3s ease; }
-        .container.hidden-until-auth.ready { opacity: 1; }
+<title>SIPELITA – Portal Guru</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-        /* ══════════════════════════════════════════════
-           CARD STATUS LANGGANAN (MODE COLLAPSIBLE)
-           ══════════════════════════════════════════════ */
-        .subscription-card { background: transparent; box-shadow: none; border: none; margin-bottom: 24px; animation: fadeIn 0.5s ease; }
-        .sub-header-collapsible {
-            display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;
-            background: white; border-radius: 10px; border: 1px solid #e2e8f0; cursor: pointer;
-            transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .sub-header-collapsible:hover { background: #f8fafc; border-color: #cbd5e1; }
-        .sub-title { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0; }
-        .sub-title i { color: #f59e0b; }
-        .sub-badge-mini { padding: 2px 8px; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-        .sub-body-collapsible {
-            display: none; padding: 16px; background: white; border: 1px solid #e2e8f0;
-            border-top: none; border-radius: 0 0 10px 10px; margin-top: -1px; animation: slideDown 0.3s ease;
-        }
-        .sub-body-collapsible.show { display: block; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+<!-- ══ SERVICE WORKER + PWA INSTALL PROMPT ══ -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('✅ Service Worker registered:', reg.scope))
+      .catch(err => console.log('❌ SW failed:', err));
+  });
+}
 
-        .badge-active, .sub-badge-mini.badge-active { background: #dcfce7; color: #166534; }
-        .badge-warning, .sub-badge-mini.badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-expired, .sub-badge-mini.badge-expired { background: #fee2e2; color: #991b1b; }
-        .badge-pending, .sub-badge-mini.badge-pending { background: #dbeafe; color: #1e40af; }
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+window.addEventListener('appinstalled', () => {
+  console.log('🎉 SIPELITA di-install!');
+  hideInstallBanner();
+  deferredPrompt = null;
+});
 
-        .sub-info { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
-        .sub-info-item { display: flex; flex-direction: column; }
-        .sub-info-label { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
-        .sub-info-value { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
-        .sub-info-value.highlight { color: #10b981; }
-        .sub-progress { background: #e2e8f0; border-radius: 99px; height: 8px; overflow: hidden; margin-bottom: 16px; }
-        .sub-progress-fill { height: 100%; background: #10b981; border-radius: 99px; transition: width 0.5s ease, background-color 0.3s ease; }
-        .sub-action { text-align: right; }
-        .btn-renew { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
-        .btn-renew:hover { background: #059669; transform: translateY(-1px); }
-        .btn-renew.warning { background: #f59e0b; } .btn-renew.warning:hover { background: #d97706; }
-        .btn-renew.expired { background: #ef4444; } .btn-renew.expired:hover { background: #dc2626; }
-        .btn-renew:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; transform: none; }
+function showInstallBanner() {
+  if (localStorage.getItem('sipelita_install_dismissed')) return;
+  if (document.getElementById('pwaInstallBanner')) return;
 
-        /* ═══════════════════════════════════════════════════════════
-           OVERLAY BLOKIR AKUN EXPIRED (SOFT BLOCK)
-           ═══════════════════════════════════════════════════════════ */
-        #subscriptionExpiredOverlay {
-            display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9);
-            z-index: 99999; flex-direction: column; align-items: center; justify-content: center;
-            color: white; text-align: center; padding: 20px; backdrop-filter: blur(8px);
-        }
-        .overlay-box {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            padding: 40px; border-radius: 16px; max-width: 500px; width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid #ef4444;
-        }
-        .overlay-icon {
-            width: 80px; height: 80px; background: #ef4444; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
-            animation: pulse 2s infinite;
-        }
-        .overlay-icon i { font-size: 2.5rem; color: white; }
-        .overlay-title { margin-bottom: 16px; font-size: 1.8rem; color: #ef4444; }
-        .overlay-text { margin-bottom: 24px; color: #cbd5e1; font-size: 1rem; line-height: 1.6; }
-        .overlay-price-box {
-            background: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #f59e0b;
-        }
-        .overlay-price-label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; }
-        .overlay-price-value { font-size: 1.3rem; font-weight: 700; color: #fbbf24; }
-        .overlay-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-        .btn-overlay {
-            color: white; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 700;
-            cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem;
-            transition: all 0.2s; text-decoration: none;
-        }
-        .btn-overlay-renew {
-            background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3);
-        }
-        .btn-overlay-renew:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16,185,129,0.4); }
-        .btn-overlay-wa {
-            background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 4px 12px rgba(37,211,102,0.3);
-        }
-        .btn-overlay-wa:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37,211,102,0.4); }
+  const banner = document.createElement('div');
+  banner.id = 'pwaInstallBanner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#fff;padding:16px 20px;box-shadow:0 -4px 20px rgba(0,0,0,.15);display:flex;align-items:center;gap:14px;z-index:9999;border-radius:16px 16px 0 0;animation:slideUp .3s ease;';
+  banner.innerHTML = `
+    <div style="width:48px;height:48px;background:linear-gradient(135deg,#0891b2,#0e7490);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <img src="./assets/images/sipelita-app.png" style="width:36px;height:36px;border-radius:8px;" onerror="this.outerHTML='📱'">
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:700;color:#1e293b;font-size:.95rem;">Aplikasi Tersedia</div>
+      <div style="font-size:.82rem;color:#64748b;">Pasang SIPELITA di layar utama agar lebih cepat dibuka (Android & PC).</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button id="btnInstallNow" style="padding:10px 18px;background:#0891b2;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.88rem;">Install</button>
+      <button id="btnInstallLater" style="padding:10px 18px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.88rem;">Nanti</button>
+    </div>`;
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
-        }
-    </style>
+  const style = document.createElement('style');
+  style.textContent = '@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}';
+  document.head.appendChild(style);
+  document.body.appendChild(banner);
+
+  document.getElementById('btnInstallNow').onclick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => { deferredPrompt = null; hideInstallBanner(); });
+    }
+  };
+  document.getElementById('btnInstallLater').onclick = () => {
+    localStorage.setItem('sipelita_install_dismissed', 'true');
+    hideInstallBanner();
+  };
+}
+function hideInstallBanner() {
+  const b = document.getElementById('pwaInstallBanner');
+  if (b) { b.style.animation = 'slideUp .3s ease reverse'; setTimeout(() => b.remove(), 300); }
+}
+</script>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f6f8fa;
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .topbar img { width: 42px; height: 42px; object-fit: contain; }
+  .topbar .brand { font-weight: 800; font-size: 1.15rem; color: #0e7490; letter-spacing: .5px; }
+  .topbar .tagline { font-size: .74rem; color: #64748b; }
+
+  /* ── AREA TENGAH ── */
+  .main {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 16px;
+  }
+  .login-wrap { width: 100%; max-width: 430px; }
+
+  .welcome { text-align: center; margin-bottom: 26px; }
+  .welcome h1 { font-size: 1.55rem; color: #0f172a; margin-bottom: 6px; }
+  .welcome p  { color: #64748b; font-size: .92rem; }
+
+  /* ── KARTU LOGIN ADEM ── */
+  .login-card {
+    background: linear-gradient(160deg, #e8f6f8 0%, #e9f5f0 100%);
+    border: 1px solid #d3e8e6;
+    border-radius: 18px;
+    padding: 32px 28px;
+    box-shadow: 0 10px 30px rgba(14, 116, 144, .10);
+  }
+  .login-card h2 { text-align: center; color: #0e7490; font-size: 1.3rem; margin-bottom: 4px; }
+  .login-card .subtitle { text-align: center; color: #64748b; font-size: .85rem; margin-bottom: 24px; }
+
+  /* ── INPUT ─ */
+  .form-group { margin-bottom: 16px; }
+  .input-icon-wrapper { position: relative; }
+  .input-icon-wrapper .icon-main {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: #0891b2; font-size: 1rem; z-index: 2;
+  }
+  .input-icon-wrapper input {
+    width: 100%;
+    padding: 13px 44px 13px 42px;
+    border: 1.5px solid #d7e3e8;
+    border-radius: 10px;
+    background: #ffffff;
+    font-size: .95rem;
+    color: #0f172a;
+    outline: none;
+    transition: all .25s ease;
+  }
+  .input-icon-wrapper input:focus {
+    border-color: #0891b2;
+    box-shadow: 0 0 0 4px rgba(8, 145, 178, .14);
+  }
+  .input-icon-wrapper input::placeholder { color: #94a3b8; }
+  .input-icon-wrapper .toggle-password {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    color: #64748b; cursor: pointer; z-index: 2;
+  }
+  .input-icon-wrapper .toggle-password:hover { color: #0891b2; }
+
+  /* ── INGAT SAYA + LUPA PASSWORD ── */
+  .remember-me-container {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 4px 0 18px; gap: 10px; flex-wrap: wrap;
+  }
+  .remember-me-label {
+    display: flex; align-items: center; gap: 8px;
+    color: #475569; font-size: .88rem; cursor: pointer; user-select: none;
+  }
+  .remember-me-label input[type="checkbox"] { width: 17px; height: 17px; accent-color: #0891b2; cursor: pointer; }
+  .lupa-password-link { color: #0891b2; text-decoration: none; font-size: .86rem; font-weight: 600; }
+  .lupa-password-link:hover { text-decoration: underline; }
+
+  /* ── TOMBOL LOGIN ── */
+  .btn-inline-login {
+    width: 100%;
+    padding: 14px;
+    border: none; border-radius: 10px;
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    color: #fff; font-weight: 700; font-size: .98rem;
+    cursor: pointer; letter-spacing: .3px;
+    box-shadow: 0 4px 14px rgba(8, 145, 178, .30);
+    transition: all .25s ease;
+  }
+  .btn-inline-login:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(8, 145, 178, .40); }
+  .btn-inline-login:active { transform: translateY(0); }
+
+  /* ── PESAN ERROR ── */
+  .error-msg {
+    display: none;
+    background: #fee2e2; color: #991b1b;
+    border: 1px solid #fca5a5; border-radius: 10px;
+    padding: 11px 14px; margin-bottom: 16px;
+    font-size: .88rem; font-weight: 600;
+  }
+
+  /* ── BANTUAN ── */
+  .help-link {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    margin-top: 18px; color: #64748b; font-size: .85rem; text-decoration: none;
+  }
+  .help-link:hover { color: #0891b2; }
+
+  /* ── MODAL LUPA PASSWORD ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,.45); backdrop-filter: blur(3px);
+    z-index: 10000; justify-content: center; align-items: center; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 16px; padding: 28px;
+    max-width: 400px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    animation: modalPop .25s ease;
+  }
+  @keyframes modalPop { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
+  .modal-box h3 { color: #0e7490; margin-bottom: 8px; font-size: 1.15rem; }
+  .modal-box p { color: #64748b; font-size: .87rem; margin-bottom: 18px; line-height: 1.5; }
+  .modal-box input[type="email"] {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid #d7e3e8; border-radius: 10px;
+    font-size: .95rem; outline: none; margin-bottom: 14px;
+  }
+  .modal-box input[type="email"]:focus { border-color: #0891b2; box-shadow: 0 0 0 4px rgba(8,145,178,.14); }
+  .modal-buttons { display: flex; gap: 10px; }
+  .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: .92rem; }
+  .modal-btn-cancel { background: #f1f5f9; color: #475569; }
+  .modal-btn-submit { background: linear-gradient(135deg,#0891b2,#0e7490); color: #fff; }
+  .modal-btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+  .reset-message { display: none; padding: 11px 14px; border-radius: 10px; font-size: .86rem; margin-bottom: 14px; line-height: 1.4; }
+  .reset-message.success { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+  .reset-message.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; padding: 18px; color: #94a3b8; font-size: .8rem; }
+
+  @media (max-width: 480px) {
+    .login-card { padding: 26px 20px; }
+    .welcome h1 { font-size: 1.3rem; }
+  }
+
+    /* ─ QUICK PROMO SECTION ── */
+  .quick-promo {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+    border: 1.5px solid #99f6e4;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-top: 18px;
+    text-align: center;
+  }
+  .quick-promo h4 {
+    color: #0e7490;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .promo-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 14px 0;
+    text-align: left;
+  }
+  .promo-benefits li {
+    color: #475569;
+    font-size: 0.85rem;
+    padding: 4px 0;
+    line-height: 1.5;
+  }
+  .promo-benefits li b {
+    color: #0e7490;
+  }
+  .btn-pelajari {
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all .25s ease;
+    box-shadow: 0 4px 12px rgba(8, 145, 178, .25);
+  }
+  .btn-pelajari:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(8, 145, 178, .35);
+  }
+
+  /* ── MODAL POPUP PROMO ── */
+  .modal-overlay-promo {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.6);
+    backdrop-filter: blur(4px);
+    z-index: 10001;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .modal-overlay-promo.active {
+    display: flex;
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-promo-content {
+    background: #fff;
+    border-radius: 18px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 60px rgba(0,0,0,.3);
+    animation: slideUp .3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-promo-header {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: #fff;
+    padding: 24px;
+    text-align: center;
+    border-radius: 18px 18px 0 0;
+    position: relative;
+  }
+  .modal-promo-header h2 {
+    font-size: 1.5rem;
+    margin: 0 0 6px 0;
+  }
+  .modal-promo-header p {
+    margin: 0;
+    opacity: 0.95;
+    font-size: 0.95rem;
+  }
+  .modal-promo-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255,255,255,.2);
+    border: none;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background .2s;
+  }
+  .modal-promo-close:hover {
+    background: rgba(255,255,255,.35);
+  }
+  .modal-promo-body {
+    padding: 24px;
+  }
+  .promo-section {
+    margin-bottom: 22px;
+  }
+  .promo-section h3 {
+    color: #0e7490;
+    font-size: 1.1rem;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0f2fe;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .feature-card {
+    background: #f0fdfa;
+    border: 1px solid #ccfbf1;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: transform .2s;
+  }
+  .feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(8,145,178,.15);
+  }
+  .feature-icon {
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+  }
+  .feature-title {
+    font-weight: 700;
+    color: #0e7490;
+    font-size: 0.88rem;
+    margin-bottom: 3px;
+  }
+  .feature-desc {
+    font-size: 0.78rem;
+    color: #64748b;
+  }
+  .benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .benefits-list li {
+    padding: 7px 0;
+    color: #334155;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .benefits-list li i {
+    color: #10b981;
+    margin-top: 3px;
+  }
+  .pricing-box {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2px solid #f59e0b;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+  .pricing-box .harga {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #92400e;
+    margin: 4px 0;
+  }
+  .pricing-box .periode {
+    font-size: 0.85rem;
+    color: #78350f;
+    margin-bottom: 12px;
+  }
+  .pricing-box .hemat {
+    background: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #166534;
+    font-weight: 600;
+  }
+  .steps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: step;
+  }
+  .steps-list li {
+    counter-increment: step;
+    padding: 10px 10px 10px 50px;
+    position: relative;
+    margin-bottom: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+    color: #334155;
+    font-size: 0.9rem;
+  }
+  .steps-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #0891b2;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .testimoni-card {
+    background: #f8fafc;
+    border-left: 4px solid #0891b2;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    font-style: italic;
+    color: #475569;
+    font-size: 0.88rem;
+  }
+  .testimoni-card .author {
+    font-style: normal;
+    font-weight: 700;
+    color: #0e7490;
+    margin-top: 6px;
+    font-size: 0.82rem;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    color: #fff;
+  }
+  .cta-box h3 {
+    margin: 0 0 10px 0;
+    color: #fff;
+    border: none;
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    background: #fff;
+    color: #0e7490;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 700;
+    margin: 6px;
+    transition: transform .2s;
+  }
+  .cta-btn:hover {
+    transform: scale(1.05);
+  }
+  .cta-btn.wa {
+    background: #25D366;
+    color: #fff;
+  }
+  @media (max-width: 480px) {
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .modal-promo-header h2 {
+      font-size: 1.2rem;
+    }
+  }
+</style>
 </head>
 <body>
-    <!-- LOADING SCREEN -->
-    <div id="authLoading">
-        <div class="spinner"></div>
-        <div class="loading-text">Memuat dashboard...</div>
+
+  <!-- ══ TOPBAR NETRAL ══ -->
+  <div class="topbar">
+    <img src="assets/images/sipelita-app.png" alt="SIPELITA">
+    <div>
+      <div class="brand">SIPELITA</div>
+      <div class="tagline">Sistem Pengelolaan Edukasi &amp; Layanan Terpadu</div>
     </div>
+  </div>
 
-    <div class="container hidden-until-auth">
-        <header>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="assets/images/sipelita-app.png" alt="Logo SIPELITA" class="header-logo">
-                <div>
-                    <h1 style="margin: 0; font-size: 1.4rem;">SIPELITA</h1>
-                    <p style="margin: 0; font-size: 0.85rem;">Sistem Pengelolaan Edukasi & Layanan Terpadu</p>
-                </div>
-            </div>
-            <div id="userPanel" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-left: auto;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span id="userRole" style="background: #ffd700; color: #1a237e; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;"></span>
-                    <button id="btnPengaturanAkun" class="btn-settings-akun" title="Pengaturan Akun"><i class="fas fa-cog"></i></button>
-                    <button id="btnLogout" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;"><i class="fas fa-sign-out-alt"></i> Logout</button>
-                </div>
-                <span id="userName" style="color: #0f172a; font-weight: bold; font-size: 0.95rem;">Hi, ...</span>
-                <span id="userNip" style="color: #64748b; font-size: 0.8rem; font-family: 'Courier New', monospace;"></span>
-            </div>
-        </header>
+  <!-- ══ KONTEN UTAMA ══ -->
+  <div class="main">
+    <div class="login-wrap">
 
-        <!-- ✅ CARD STATUS LANGGANAN (MODE COLLAPSIBLE/DROPDOWN) -->
-        <div class="subscription-card" id="subscriptionCard" style="display: none;">
-            <div class="sub-header-collapsible" onclick="toggleSubscriptionDetails()">
-                <div class="sub-title">
-                    <i class="fas fa-crown"></i>
-                    <span>Langganan Sipelita Guru</span>
-                    <span id="subBadgeMini" class="sub-badge-mini badge-active">AKTIF</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span id="subMiniText" style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Sisa 320 Hari</span>
-                    <i id="subToggleIcon" class="fas fa-chevron-down" style="transition: transform 0.3s ease; color: #94a3b8;"></i>
-                </div>
+      <div class="welcome">
+        <h1>Selamat Datang, Bapak/Ibu Guru</h1>
+        <p>Portal personal untuk manajemen kelas &amp; administrasi pembelajaran</p>
+      </div>
+
+      <div class="login-card">
+        <h2>🔐 LOGIN PORTAL</h2>
+        <p class="subtitle">Masuk untuk melanjutkan ke dashboard Anda</p>
+
+        <div id="errorMsg" class="error-msg"></div>
+
+        <form id="landingLoginForm" autocomplete="on">
+          <div class="form-group">
+            <div class="input-icon-wrapper">
+              <i class="fas fa-envelope icon-main"></i>
+              <input type="email" id="email" placeholder="Masukkan email Anda" required autocomplete="email">
             </div>
-            <div class="sub-body-collapsible" id="subBody">
-                <div class="sub-info">
-                    <div class="sub-info-item">
-                        <span class="sub-info-label">Berlaku Hingga:</span>
-                        <span class="sub-info-value" id="subEndDate">-</span>
-                    </div>
-                    <div class="sub-info-item">
-                        <span class="sub-info-label">Sisa Waktu:</span>
-                        <span class="sub-info-value highlight" id="subDaysLeft">-</span>
-                    </div>
-                </div>
-                <div class="sub-progress">
-                    <div class="sub-progress-fill" id="subProgressBar" style="width: 0%"></div>
-                </div>
-                <div class="sub-action" id="subActionArea"></div>
+          </div>
+
+          <div class="form-group">
+            <div class="input-icon-wrapper">
+              <i class="fas fa-lock icon-main"></i>
+              <input type="password" id="password" placeholder="Masukkan password" required autocomplete="current-password">
+              <i class="fas fa-eye-slash toggle-password" id="togglePassword"></i>
             </div>
+          </div>
+
+          <div class="remember-me-container">
+            <label class="remember-me-label" for="rememberMe">
+              <input type="checkbox" id="rememberMe">
+              Ingat Saya
+            </label>
+            <a class="lupa-password-link" id="btnLupaPassword" href="javascript:void(0)" role="button">
+              <i class="fas fa-key"></i> Lupa Password?
+            </a>
+          </div>
+
+          <button type="submit" id="btnLogin" class="btn-inline-login">MASUK PORTAL</button>
+        </form>
+      </div>
+
+      <div style="text-align: center; margin-top: 16px; margin-bottom: 24px;">
+  <a href="register.html" style="display: inline-block; padding: 10px 32px; background: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.95rem; transition: all 0.3s;">
+     DAFTAR DI SINI
+  </a>
+</div>
+
+      <!-- ═══ SECTION PROMO DI BAWAH FORM ═══ -->
+      <div class="quick-promo">
+        <h4>✨ Kenapa SIPELITA GURU?</h4>
+        <ul class="promo-benefits">
+          <li>✅ <b>Banyak guru</b> sudah bergabung</li>
+          <li>✅ Hemat <b>10 jam/minggu</b> untuk administrasi</li>
+          <li>✅ Hanya <b>Rp 100.000/tahun</b> (Rp 8.333/bulan)</li>
+        </ul>
+        <button class="btn-pelajari" onclick="openModalPromo()">
+          <i class="fas fa-info-circle"></i> Pelajari Lebih Lanjut
+        </button>
+      </div>
+
+      <a class="help-link" href="https://wa.me/6281347027844" target="_blank">
+        <i class="fab fa-whatsapp"></i> Butuh bantuan? Hubungi Admin
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ══ MODAL LUPA PASSWORD ══ -->
+  <div class="modal-overlay" id="modalLupaPassword">
+    <div class="modal-box">
+      <h3><i class="fas fa-key"></i> Reset Password</h3>
+      <p>Masukkan email terdaftar Anda. Link untuk mengganti password akan dikirim ke inbox email tersebut.</p>
+      <div class="reset-message" id="resetMessage"></div>
+      <input type="email" id="resetEmail" placeholder="nama@sekolah.sch.id" autocomplete="email">
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" id="btnBatalReset">Batal</button>
+        <button class="modal-btn modal-btn-submit" id="btnKirimReset">
+          <i class="fas fa-paper-plane"></i> Kirim Link
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FOOTER NETRAL ══ -->
+  <footer class="footer">
+    &copy; 2026 SIPELITA · Portal Personal Guru
+  </footer>
+
+  <!-- Script login (WAJIB dipertahankan) -->
+  <script type="module" src="js/home-auth.js"></script>
+
+  <!-- Script Lupa Password -->
+  <script type="module">
+    import { AuthService } from './js/auth-service.js';
+
+    const btnLupa   = document.getElementById('btnLupaPassword');
+    const modal     = document.getElementById('modalLupaPassword');
+    const btnBatal  = document.getElementById('btnBatalReset');
+    const btnKirim  = document.getElementById('btnKirimReset');
+    const inputReset= document.getElementById('resetEmail');
+    const msg       = document.getElementById('resetMessage');
+
+    const showMsg = (text, type) => {
+      msg.textContent = text;
+      msg.className = 'reset-message ' + type;
+      msg.style.display = 'block';
+    };
+
+    btnLupa.addEventListener('click', (e) => {
+      e.preventDefault();
+      const loginEmail = document.getElementById('email').value.trim();
+      if (loginEmail) inputReset.value = loginEmail;
+      msg.style.display = 'none';
+      modal.classList.add('active');
+      setTimeout(() => inputReset.focus(), 150);
+    });
+
+    btnBatal.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+
+    const kirim = async () => {
+      const email = inputReset.value.trim();
+      if (!email) { showMsg('❌ Masukkan email terlebih dahulu.', 'error'); return; }
+
+      btnKirim.disabled = true;
+      btnKirim.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+
+      const result = await AuthService.resetPassword(email);
+
+      btnKirim.disabled = false;
+      btnKirim.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Link';
+
+      if (result.success) {
+        showMsg(`✅ Link reset password dikirim ke ${email}. Silakan cek inbox / folder Spam.`, 'success');
+        setTimeout(() => modal.classList.remove('active'), 5000);
+      } else {
+        showMsg(result.message, 'error');
+      }
+    };
+
+    btnKirim.addEventListener('click', kirim);
+    inputReset.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); kirim(); } });
+  </script>
+    <!-- ═══ MODAL POPUP PELAJARI LEBIH LANJUT ═══ -->
+  <div class="modal-overlay-promo" id="modalPromo">
+    <div class="modal-promo-content">
+      <div class="modal-promo-header">
+        <button class="modal-promo-close" onclick="closeModalPromo()">✕</button>
+        <h2>🎓 SIPELITA GURU</h2>
+        <p>Solusi Administrasi Mengajar Modern</p>
+      </div>
+      <div class="modal-promo-body">
+
+        <!-- FITUR UNGGULAN -->
+        <div class="promo-section">
+          <h3><i class="fas fa-star"></i> Fitur Unggulan</h3>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">📋</div>
+              <div class="feature-title">Absensi Digital</div>
+              <div class="feature-desc">Dengan foto siswa</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">⭐</div>
+              <div class="feature-title">Penilaian Otomatis</div>
+              <div class="feature-desc">Formatif & Sumatif</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon"></div>
+              <div class="feature-title">Jadwal + Alarm</div>
+              <div class="feature-desc">Pengingat suara</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon"></div>
+              <div class="feature-title">Analisis Nilai</div>
+              <div class="feature-desc">Grafik otomatis</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">📝</div>
+              <div class="feature-title">Jurnal Mengajar</div>
+              <div class="feature-desc">Online & terintegrasi</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">📄</div>
+              <div class="feature-title">Cetak PDF</div>
+              <div class="feature-desc">Berkop sekolah</div>
+            </div>
+          </div>
         </div>
 
-        <h2 class="section-title">Layanan Umum</h2>
-        <div class="grid" id="layanan-umum"></div>
-        <h2 class="section-title">Layanan Madrasah</h2>
-        <div class="grid" id="layanan-madrasah"></div>
-    </div>
-    
-    <!-- Modal Konfigurasi Internal -->
-    <div class="modal" id="integrationModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Konfigurasi Internal</h3>
-                <button class="close-btn" data-close="integrationModal">&times;</button>
-            </div>
-            <div class="form-group">
-                <label>Catatan Administrator</label>
-                <input type="text" placeholder="Fitur ini untuk pengembangan internal...">
-            </div>
-            <button class="btn" data-close="integrationModal">Tutup</button>
+        <!-- KEUNTUNGAN -->
+        <div class="promo-section">
+          <h3><i class="fas fa-check-circle"></i> Keuntungan untuk Anda</h3>
+          <ul class="benefits-list">
+            <li><i class="fas fa-check"></i> <span><b>Hemat 10 jam/minggu</b> — tidak perlu lagi lembur untuk administrasi</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Akses di mana saja</b> — dari HP, tablet, atau laptop</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Laporan profesional</b> — PDF berkop sekolah siap cetak</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Data aman</b> — tersimpan di cloud dengan enkripsi</span></li>
+            <li><i class="fas fa-check"></i> <span><b>Update berkala</b> — gratis pengembangan fitur</span></li>
+          </ul>
         </div>
-    </div>
 
-    <!-- MODAL PENGATURAN AKUN -->
-    <div class="modal" id="modalPengaturanAkun">
-        <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-header">
-                <h3>⚙️ Pengaturan Akun</h3>
-                <button class="close-btn" data-close="modalPengaturanAkun">&times;</button>
-            </div>
-            <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:20px;">
-                <div style="font-size:0.85rem; color:#0369a1;"><strong>📧 Email:</strong> <span id="settingUserEmail">-</span></div>
-            </div>
-            <h4 style="margin: 0 0 12px; color: #1e293b; font-size: 1rem;">🔒 Ubah Password</h4>
-            <div class="form-group-modal">
-                <label>Password Saat Ini *</label>
-                <input type="password" id="settingPasswordLama" placeholder="Masukkan password lama Anda" autocomplete="current-password">
-            </div>
-            <div class="form-group-modal">
-                <label>Password Baru *</label>
-                <input type="password" id="settingPasswordBaru" placeholder="Minimal 6 karakter" autocomplete="new-password">
-                <div class="password-hint">Password harus berbeda dengan password lama.</div>
-            </div>
-            <div class="form-group-modal">
-                <label>Konfirmasi Password Baru *</label>
-                <input type="password" id="settingPasswordKonfirmasi" placeholder="Ulangi password baru" autocomplete="new-password">
-            </div>
-            <button class="btn" id="btnSimpanPengaturan" style="width:100%; background:#10b981; color:white; margin-bottom:20px;">💾 Ubah Password</button>
-
-            <div style="border-top:2px solid #e2e8f0; padding-top:20px;">
-                <h4 style="margin: 0 0 8px; color: #059669; font-size: 1rem;">🏫 Identitas Madrasah</h4>
-                <div class="password-hint" style="margin-bottom: 14px;">Diisi sekali oleh masing-masing guru. Otomatis dipakai di <b>LCKH, Jurnal, Rekap & Laporan Ekskul</b>.</div>
-                <div class="form-group-modal"><label>🏙️ Kota / Tempat</label><input type="text" id="sigTempat" placeholder="Contoh: Bantaeng"></div>
-                <div class="form-group-modal"><label>👑 Nama Kepala Madrasah</label><input type="text" id="sigKamadNama" placeholder="Nama lengkap dengan gelar"></div>
-                <div class="form-group-modal"><label>🔢 NIP Kepala Madrasah</label><input type="text" id="sigKamadNip" placeholder="Kosongkan bila tidak ada"></div>
-                <div style="margin-bottom:1rem;"><label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏛️ KOP Baris 1</label><input type="text" id="sigKop1" placeholder="KEMENTERIAN AGAMA KABUPATEN / KOTA ..." style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;"></div>
-                <div style="margin-bottom:1rem;"><label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏫 Nama Madrasah</label><input type="text" id="sigNamaMadrasah" placeholder="Contoh: MTs NEGERI 1 MAKASSAR" style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;"></div>
-                <div style="margin-bottom:1rem;"><label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">📍 Alamat Madrasah</label><input type="text" id="sigAlamat" placeholder="Jl. ..." style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;"></div>
-                <div class="form-group-modal"><label>🔗 Link RDM Madrasah</label><input type="url" id="sigRdmLink" placeholder="https://... link RDM madrasah Anda"><div class="password-hint">Khusus Admin: link ini otomatis menjadi default seluruh guru.</div></div>
-                <button class="btn" id="btnSimpanIdentitas" style="width: 100%; background: #059669; color: white;">💾 Simpan Identitas Madrasah</button>
-            </div>
-            <div style="margin-top: 16px;">
-                <button class="btn" style="width: 100%; background: #e2e8f0; color: #475569;" data-close="modalPengaturanAkun">Tutup</button>
-            </div>
+        <!-- HARGA -->
+        <div class="promo-section">
+          <div class="pricing-box">
+            <div style="font-size:0.85rem; color:#78350f; font-weight:600;">💰 INVESTASI TERJANGKAU</div>
+            <div class="harga">Rp 100.000</div>
+            <div class="periode">per tahun / per akun guru</div>
+            <div class="hemat">✨ = Hanya Rp 8.333/bulan (lebih murah dari 1x makan!)</div>
+          </div>
         </div>
-    </div>
 
-    <!-- ✅ MODAL PERPANJANG LANGGANAN -->
-    <div class="modal" id="modalRenewal">
-        <div class="modal-content" style="max-width: 450px;">
-            <div class="modal-header">
-                <h3>🔄 Perpanjang Langganan (1 Tahun)</h3>
-                <button class="close-btn" onclick="window.closeModal('modalRenewal')">&times;</button>
-            </div>
-            <div class="modal-body" style="padding: 20px;">
-                <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0891b2;">
-                    <h4 style="margin: 0 0 8px 0; color: #0e7490; font-size: 1rem;">Biaya Mahar: Rp 100.000 / Tahun</h4>
-                    <p style="margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5;">Silakan transfer ke rekening berikut:<br><strong>Bank BRI: 1234-5678-9012</strong><br>a.n. Yayasan / MAN Bantaeng</p>
-                </div>
-                <div class="form-group-modal">
-                    <label>Upload Bukti Transfer *</label>
-                    <input type="file" id="buktiTransfer" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
-                    <div class="password-hint">Format: JPG, PNG, atau PDF (Maksimal 2MB)</div>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 24px;">
-                    <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569; border:none; padding:10px; border-radius:8px; cursor:pointer;" onclick="window.closeModal('modalRenewal')">Batal</button>
-                    <button class="btn" id="btnSubmitRenewal" style="flex: 1; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="submitRenewal()"><i class="fas fa-paper-plane"></i> Kirim Permohonan</button>
-                </div>
-            </div>
+        <!-- CARA DAFTAR -->
+        <div class="promo-section">
+          <h3><i class="fas fa-list-ol"></i> Cara Daftar (3 Langkah Mudah)</h3>
+          <ol class="steps-list">
+            <li>Klik tombol <b>"Daftar di sini"</b> dan isi data diri Anda</li>
+            <li>Lakukan transfer biaya layanan <b>Rp 100.000/tahun</b></li>
+            <li>Admin akan approve dalam <b>&lt; 24 jam</b> — langsung bisa pakai!</li>
+          </ol>
         </div>
-    </div>
 
-    <footer>&copy; 2026 SIPELITA - Portal Madrasah Modern Untuk Efisiensi Manajemen & Administrasi Kelas.</footer>
-
-    <script src="js/config.js"></script>
-    <script src="js/main.js"></script>
-    
-    <script>
-        if (!window.openRDM) {
-            window.openRDM = function () {
-                var SET = window.SIG ? window.SIG.get() : {};
-                if (SET.rdmLink) window.open(SET.rdmLink, '_blank');
-                else alert('🔗 Link RDM madrasah Anda belum diatur.\nSilakan buka ⚙️ Pengaturan Akun → isi "Link RDM Madrasah".');
-            };
-        }
-        document.addEventListener('click', function (e) {
-            var link = e.target.closest ? e.target.closest('a.card-link') : null;
-            if (!link) return;
-            var t = link.querySelector('.card-title');
-            if (t && t.textContent.trim() === 'RDM') { e.preventDefault(); window.openRDM(); }
-        });
-    </script>
-
-    <script type="module">
-        import { AuthService } from './js/auth-service.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAlVg1QKRP-1sDJmlA-YFEfHLKqhT5OzBY",
-            authDomain: "sipelita-guru.firebaseapp.com",
-            projectId: "sipelita-guru",
-            storageBucket: "sipelita-guru.firebasestorage.app",
-            messagingSenderId: "595996765157",
-            appId: "1:595996765157:web:88f7f03489e1d1248e9d0c"
-        };
-
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        function showToast(message, type = 'success') {
-            const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
-            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-            const t = document.createElement('div');
-            t.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;border-radius:10px;font-weight:600;font-size:0.9rem;color:#fff;background:${colors[type]||colors.info};box-shadow:0 6px 20px rgba(0,0,0,.2);transition:opacity .3s;max-width:360px;`;
-            t.textContent = (icons[type] || '') + ' ' + message;
-            document.body.appendChild(t);
-            setTimeout(() => { t.style.opacity = '0'; }, 2500);
-            setTimeout(() => { t.remove(); }, 2900);
-        }
-
-        window.closeModal = (modalId) => { const m = document.getElementById(modalId); if (m) m.style.display = 'none'; };
-        window.openModal = (modalId) => { const m = document.getElementById(modalId); if (m) m.style.display = 'flex'; };
-
-        document.querySelectorAll('[data-close]').forEach(btn => {
-            btn.addEventListener('click', () => { if (btn.dataset.close) window.closeModal(btn.dataset.close); });
-        });
-
-        const fileToBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-
-        // ══════════════════════════════════════════════
-        // FUNGSI CEK & BLOKIR AKUN EXPIRED
-        // ══════════════════════════════════════════════
-        function checkAndBlockExpiredAccount(userData) {
-            if (!userData.subscription_end) return;
-            
-            const endDateMs = userData.subscription_end.toDate 
-                ? userData.subscription_end.toDate().getTime() 
-                : new Date(userData.subscription_end).getTime();
-            const now = new Date().getTime();
-            
-            if (now > endDateMs && userData.subscription_status !== 'pending_renewal') {
-                console.log('⛔ Akun expired! Memblokir akses...');
-                const overlay = document.getElementById('subscriptionExpiredOverlay');
-                if (overlay) {
-                    overlay.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
-                    document.querySelectorAll('.container > *').forEach(el => {
-                        el.style.pointerEvents = 'none';
-                        el.style.opacity = '0.2';
-                        el.style.filter = 'blur(5px)';
-                    });
-                }
-            }
-        }
-
-        window.handleRenewalClick = function() {
-            const overlay = document.getElementById('subscriptionExpiredOverlay');
-            if (overlay) {
-                overlay.style.display = 'none';
-                document.querySelectorAll('.container > *').forEach(el => {
-                    el.style.pointerEvents = 'auto';
-                    el.style.opacity = '1';
-                    el.style.filter = 'none';
-                });
-                window.openModal('modalRenewal');
-            }
-        };
-
-        function initSubscriptionFeature(userEmail) {
-            db.collection('users').where('email', '==', userEmail).limit(1).onSnapshot((snapshot) => {
-                if (snapshot.empty) return;
-                const userData = snapshot.docs[0].data();
-                renderSubscriptionCard(userData);
-                checkAndBlockExpiredAccount(userData); // ✅ CEK DAN BLOKIR JIKA EXPIRED
-            });
-        }
-
-        function renderSubscriptionCard(data) {
-            const card = document.getElementById('subscriptionCard');
-            if (!data.subscription_end) { card.style.display = 'none'; return; }
-            
-            card.style.display = 'block';
-            const endDate = data.subscription_end.toDate();
-            const now = new Date();
-            const diffTime = endDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('subEndDate').textContent = endDate.toLocaleDateString('id-ID', options);
-            
-            const daysLeftEl = document.getElementById('subDaysLeft');
-            const progressEl = document.getElementById('subProgressBar');
-            const actionEl = document.getElementById('subActionArea');
-            const miniBadge = document.getElementById('subBadgeMini');
-            const miniText = document.getElementById('subMiniText');
-            
-            const totalDays = 365;
-            const daysPassed = Math.max(0, totalDays - diffDays);
-            const percentage = Math.min(100, (daysPassed / totalDays) * 100);
-            progressEl.style.width = `${percentage}%`;
-
-            if (data.subscription_status === 'pending_renewal') {
-                miniBadge.className = 'sub-badge-mini badge-pending';
-                miniBadge.textContent = 'PENDING';
-                daysLeftEl.textContent = 'Sedang diproses Admin';
-                miniText.textContent = 'Menunggu verifikasi';
-                progressEl.style.background = '#3b82f6';
-                actionEl.innerHTML = `<button class="btn-renew" disabled><i class="fas fa-clock"></i> Menunggu Persetujuan Admin</button>`;
-            } else if (diffDays <= 0) {
-                miniBadge.className = 'sub-badge-mini badge-expired';
-                miniBadge.textContent = 'EXPIRED';
-                daysLeftEl.textContent = '0 Hari (Kadaluarsa)';
-                miniText.textContent = 'Segera perpanjang';
-                actionEl.innerHTML = `<button class="btn-renew expired" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Sekarang</button>`;
-            } else if (diffDays <= 30) {
-                miniBadge.className = 'sub-badge-mini badge-warning';
-                miniBadge.textContent = 'SEGERA HABIS';
-                daysLeftEl.textContent = `${diffDays} Hari Lagi`;
-                miniText.textContent = `Sisa ${diffDays} hari`;
-                actionEl.innerHTML = `<button class="btn-renew warning" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Periode</button>`;
-            } else {
-                miniBadge.className = 'sub-badge-mini badge-active';
-                miniBadge.textContent = 'AKTIF';
-                daysLeftEl.textContent = `${diffDays} Hari Lagi`;
-                miniText.textContent = `Sisa ${diffDays} hari`;
-                actionEl.innerHTML = `<button class="btn-renew" onclick="window.openModal('modalRenewal')" style="background: #f1f5f9; color: #475569;"><i class="fas fa-sync-alt"></i> Perpanjang Dini</button>`;
-            }
-        }
-
-        window.submitRenewal = async function() {
-            const fileInput = document.getElementById('buktiTransfer');
-            const file = fileInput.files[0];
-            if (!file) return showToast('⚠️ Harap upload bukti transfer terlebih dahulu!', 'warning');
-            if (file.size > 2 * 1024 * 1024) return showToast('⚠️ Ukuran file maksimal 2MB!', 'warning');
-            
-            const btn = document.getElementById('btnSubmitRenewal');
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-            
-            try {
-                const user = AuthService.checkAuth();
-                const base64Data = await fileToBase64(file);
-                
-                await db.collection('renewal_requests').add({
-                    user_uid: user.uid, user_name: user.nama, user_email: user.email,
-                    amount: 100000, bukti_base64: base64Data, file_name: file.name,
-                    status: 'pending', request_date: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                const userSnapshot = await db.collection('users').where('email', '==', user.email).limit(1).get();
-                if (!userSnapshot.empty) {
-                    await userSnapshot.docs[0].ref.update({ subscription_status: 'pending_renewal' });
-                }
-                
-                showToast('✅ Permohonan berhasil dikirim! Admin akan segera memverifikasi.', 'success');
-                window.closeModal('modalRenewal');
-                document.getElementById('buktiTransfer').value = '';
-            } catch (error) {
-                console.error('Error submitting renewal:', error);
-                showToast('❌ Gagal mengirim: ' + error.message, 'error');
-            } finally {
-                btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Permohonan';
-            }
-        };
-
-        async function refreshUserDataFromFirestore(userEmail) {
-            try {
-                const snapshot = await db.collection('users').where('email', '==', userEmail).limit(1).get();
-                if (!snapshot.empty) return snapshot.docs[0].data();
-                return null;
-            } catch (error) {
-                console.error('❌ Error refresh user data:', error);
-                return null;
-            }
-        }
-
-        try {
-            const user = AuthService.checkAuth();
-            if (user) {
-                const userNameEl = document.getElementById('userName');
-                const userRoleEl = document.getElementById('userRole');
-                const userNipEl = document.getElementById('userNip');
-                const containerEl = document.querySelector('.container');
-                const loadingEl = document.getElementById('authLoading');
-
-                if (userNameEl) userNameEl.textContent = `Hi, ${user.nama || 'User'}`;
-                if (userRoleEl) {
-                    const roleMap = { 'admin': '👑 Admin', 'kepala': '👑 Kepala Madrasah', 'wakil': '⭐ Wakil Kepala' };
-                    userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
-                }
-                if (userNipEl) userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
-
-                if (containerEl) containerEl.classList.add('ready');
-                if (loadingEl) loadingEl.style.display = 'none';
-
-                if (user.email) {
-                    initSubscriptionFeature(user.email);
-                    refreshUserDataFromFirestore(user.email).then(freshData => {
-                        if (freshData) {
-                            const updatedUser = { ...user, ...freshData, email: user.email };
-                            localStorage.setItem('sipelita_user', JSON.stringify(updatedUser));
-                            if (window.SIG) window.SIG.pull();
-                            if (userNameEl) userNameEl.textContent = `Hi, ${updatedUser.nama || 'User'}`;
-                            if (userNipEl) {
-                                userNipEl.textContent = updatedUser.nip ? 'NIP: ' + updatedUser.nip : 'NIP: Belum diisi';
-                                userNipEl.style.color = updatedUser.nip ? '#64748b' : '#94a3b8';
-                            }
-                        }
-                    });
-                }
-
-                const btnPengaturan = document.getElementById('btnPengaturanAkun');
-                if (btnPengaturan) {
-                    btnPengaturan.addEventListener('click', () => {
-                        document.getElementById('settingUserEmail').textContent = user.email || '-';
-                        document.getElementById('settingPasswordLama').value = '';
-                        document.getElementById('settingPasswordBaru').value = '';
-                        document.getElementById('settingPasswordKonfirmasi').value = '';
-                        const s = window.SIG ? window.SIG.get() : {};
-                        document.getElementById('sigTempat').value = s.tempat || '';
-                        document.getElementById('sigKamadNama').value = s.kamadNama || '';
-                        document.getElementById('sigKamadNip').value = s.kamadNip || '';
-                        document.getElementById('sigKop1').value = s.kop1 || '';
-                        document.getElementById('sigNamaMadrasah').value = s.namaMadrasah || '';
-                        document.getElementById('sigAlamat').value = s.alamatMadrasah || '';
-                        document.getElementById('sigRdmLink').value = s.rdmLink || '';
-                        window.openModal('modalPengaturanAkun');
-                    });
-                }
-
-                const btnSimpanPengaturan = document.getElementById('btnSimpanPengaturan');
-                if (btnSimpanPengaturan) {
-                    btnSimpanPengaturan.addEventListener('click', async () => {
-                        const passLama = document.getElementById('settingPasswordLama').value.trim();
-                        const passBaru = document.getElementById('settingPasswordBaru').value.trim();
-                        const passKonfirmasi = document.getElementById('settingPasswordKonfirmasi').value.trim();
-                        const currentUser = auth.currentUser;
-
-                        if (!passLama) return showToast('Password saat ini wajib diisi!', 'error');
-                        if (passBaru.length < 6) return showToast('Password baru minimal 6 karakter!', 'error');
-                        if (passBaru !== passKonfirmasi) return showToast('Konfirmasi password tidak cocok!', 'error');
-                        if (passLama === passBaru) return showToast('Password baru harus berbeda dengan yang lama!', 'error');
-
-                        btnSimpanPengaturan.disabled = true; btnSimpanPengaturan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-
-                        try {
-                            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, passLama);
-                            await currentUser.reauthenticateWithCredential(credential);
-                            await currentUser.updatePassword(passBaru);
-                            showToast('Password berhasil diubah! Anda akan dialihkan ke halaman login.', 'success');
-                            window.closeModal('modalPengaturanAkun');
-                            setTimeout(async () => {
-                                localStorage.removeItem('sipelita_user');
-                                sessionStorage.removeItem('sipelita_user');
-                                await auth.signOut();
-                                window.location.replace('home.html');
-                            }, 2000);
-                        } catch (error) {
-                            let msg = 'Gagal mengubah password.';
-                            if (error.code === 'auth/wrong-password') msg = 'Password saat ini salah!';
-                            else if (error.code === 'auth/weak-password') msg = 'Password terlalu lemah!';
-                            else if (error.code === 'auth/requires-recent-login') msg = 'Silakan logout dan login ulang terlebih dahulu!';
-                            else msg = error.message;
-                            showToast(msg, 'error');
-                            btnSimpanPengaturan.disabled = false; btnSimpanPengaturan.innerHTML = '💾 Ubah Password';
-                        }
-                    });
-                }
-
-                const btnSimpanIdentitas = document.getElementById('btnSimpanIdentitas');
-                if (btnSimpanIdentitas) {
-                    btnSimpanIdentitas.addEventListener('click', () => {
-                        if (!window.SIG) { showToast('Modul identitas belum siap, coba refresh halaman.', 'error'); return; }
-                        const identitas = {
-                            tempat: document.getElementById('sigTempat').value.trim(),
-                            kamadNama: document.getElementById('sigKamadNama').value.trim(),
-                            kamadNip: document.getElementById('sigKamadNip').value.trim(),
-                            kop1: (document.getElementById('sigKop1')?.value || '').trim(),
-                            namaMadrasah: (document.getElementById('sigNamaMadrasah')?.value || '').trim(),
-                            alamatMadrasah: (document.getElementById('sigAlamat')?.value || '').trim(),
-                            rdmLink: document.getElementById('sigRdmLink').value.trim()
-                        };
-                        if (!identitas.tempat && !identitas.kamadNama && !identitas.kamadNip && !identitas.rdmLink && !identitas.kop1 && !identitas.namaMadrasah && !identitas.alamatMadrasah) {
-                            showToast('⚠️ Isi minimal salah satu kolom!', 'warning'); return;
-                        }
-                        const isAdmin = user.role === 'admin';
-                        window.SIG.save(identitas, isAdmin);
-                        showToast(isAdmin ? '✅ Tersimpan & dijadikan default semua guru!' : '✅ Identitas madrasah tersimpan untuk akun Anda!', 'success');
-                    });
-                }
-                
-                const btnLogout = document.getElementById('btnLogout');
-                if (btnLogout) {
-                    btnLogout.addEventListener('click', async (e) => {
-                        e.preventDefault(); e.stopPropagation();
-                        btnLogout.disabled = true; btnLogout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Keluar...';
-                        try {
-                            localStorage.clear(); sessionStorage.clear();
-                            if (typeof AuthService !== 'undefined' && AuthService.logout) {
-                                try { await AuthService.logout(); } catch (err) { console.warn('Firebase logout warning:', err); }
-                            }
-                            window.location.replace('home.html');
-                        } catch (error) {
-                            console.error('Logout error:', error);
-                            window.location.replace('home.html');
-                        }
-                    });
-                }
-            } else {
-                window.location.replace('home.html');
-            }
-        } catch (error) {
-            console.error('❌ Error di script module:', error);
-            const btnLogoutFallback = document.getElementById('btnLogout');
-            if (btnLogoutFallback) {
-                btnLogoutFallback.addEventListener('click', () => { localStorage.clear(); window.location.replace('home.html'); });
-            }
-        }
-    </script>
-
-    <!-- ═════════════════════════════════════════════
-         FUNGSI TOGGLE DROPDOWN (GLOBAL SCOPE)
-         ══════════════════════════════════════════════ -->
-    <script>
-        window.toggleSubscriptionDetails = function() {
-            const body = document.getElementById('subBody');
-            const icon = document.getElementById('subToggleIcon');
-            if (!body || !icon) return;
-            
-            if (body.classList.contains('show')) {
-                body.classList.remove('show');
-                icon.style.transform = 'rotate(0deg)';
-                localStorage.setItem('subCardExpanded', 'false');
-            } else {
-                body.classList.add('show');
-                icon.style.transform = 'rotate(180deg)';
-                localStorage.setItem('subCardExpanded', 'true');
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const isExpanded = localStorage.getItem('subCardExpanded') === 'true';
-            if (isExpanded) {
-                const body = document.getElementById('subBody');
-                const icon = document.getElementById('subToggleIcon');
-                if (body) body.classList.add('show');
-                if (icon) icon.style.transform = 'rotate(180deg)';
-            }
-        });
-    </script>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         OVERLAY BLOKIR AKUN EXPIRED (OPSI 2 - SOFT BLOCK)
-         ═══════════════════════════════════════════════════════════ -->
-    <div id="subscriptionExpiredOverlay">
-        <div class="overlay-box">
-            <div class="overlay-icon">
-                <i class="fas fa-lock"></i>
-            </div>
-            <h2 class="overlay-title">⛔ AKUN TIDAK AKTIF</h2>
-            <p class="overlay-text">
-                Masa langganan Sipelita Guru Anda telah <strong style="color:#f87171;">kadaluarsa</strong>.<br>
-                Anda tidak dapat mengakses fitur apapun sampai langganan diperpanjang.
-            </p>
-            <div class="overlay-price-box">
-                <div class="overlay-price-label">Biaya Perpanjangan:</div>
-                <div class="overlay-price-value">Rp 100.000 / Tahun</div>
-            </div>
-            <div class="overlay-buttons">
-                <button class="btn-overlay btn-overlay-renew" onclick="window.handleRenewalClick()">
-                    <i class="fas fa-sync-alt"></i> Perpanjang Sekarang
-                </button>
-                <!-- ⚠️ GANTI NOMOR WA DI BAWAH INI DENGAN NOMOR ADMIN YANG SEBENARNYA -->
-                <a href="https://wa.me/6281234567890" target="_blank" class="btn-overlay btn-overlay-wa">
-                    <i class="fab fa-whatsapp"></i> Hubungi Admin
-                </a>
-            </div>
+        <!-- TESTIMONI -->
+        <div class="promo-section">
+          <h3><i class="fas fa-comments"></i> Apa Kata Mereka?</h3>
+          <div class="testimoni-card">
+            "Sejak pakai SIPELITA, saya hemat 2 jam setiap hari untuk administrasi. Fitur alarmnya juga sangat membantu!"
+            <div class="author"></div>
+          </div>
+          <div class="testimoni-card">
+            "Laporan PDF-nya profesional banget, langsung bisa ditandatangani Kepala Sekolah. Sangat recommended!"
+            <div class="author"></div>
+          </div>
         </div>
-    </div>
 
+        <!-- CTA -->
+        <div class="cta-box">
+          <h3>🚀 Mulai Perjalanan Digital Anda!</h3>
+          <p style="margin-bottom:14px; font-size:0.9rem;">Bergabunglah dengan guru yang sudah merasakan kemudahan</p>
+          <a href="register.html" class="cta-btn">📝 Daftar Sekarang</a>
+          <a href="https://wa.me/6281347027844" class="cta-btn wa" target="_blank">💬 Tanya Admin</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT MODAL -->
+  <script>
+    function openModalPromo() {
+      document.getElementById('modalPromo').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModalPromo() {
+      document.getElementById('modalPromo').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    // Tutup modal saat klik di luar
+    document.getElementById('modalPromo').addEventListener('click', function(e) {
+      if (e.target === this) closeModalPromo();
+    });
+    // Tutup dengan tombol ESC
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeModalPromo();
+    });
+  </script>
 </body>
 </html>
