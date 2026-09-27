@@ -809,44 +809,6 @@
                 });
             }
         }
-
-            <!-- ═════════════════════════════════════════════
-         FUNGSI TOGGLE DROPDOWN (HARUS DI GLOBAL SCOPE)
-         ══════════════════════════════════════════════ -->
-    <script>
-        // Fungsi ini HARUS di global scope agar onclick di HTML bisa akses
-        window.toggleSubscriptionDetails = function() {
-            const body = document.getElementById('subBody');
-            const icon = document.getElementById('subToggleIcon');
-            
-            if (!body || !icon) {
-                console.warn('️ Elemen dropdown tidak ditemukan');
-                return;
-            }
-            
-            if (body.classList.contains('show')) {
-                // Collapse (Tutup)
-                body.classList.remove('show');
-                icon.style.transform = 'rotate(0deg)';
-                localStorage.setItem('subCardExpanded', 'false');
-            } else {
-                // Expand (Buka)
-                body.classList.add('show');
-                icon.style.transform = 'rotate(180deg)';
-                localStorage.setItem('subCardExpanded', 'true');
-            }
-        };
-
-        // Restore state saat halaman dimuat
-        document.addEventListener('DOMContentLoaded', () => {
-            const isExpanded = localStorage.getItem('subCardExpanded') === 'true';
-            if (isExpanded) {
-                const body = document.getElementById('subBody');
-                const icon = document.getElementById('subToggleIcon');
-                if (body) body.classList.add('show');
-                if (icon) icon.style.transform = 'rotate(180deg)';
-            }
-        });
     </script>
 </body>
-</html>
+</html> cek file ini
