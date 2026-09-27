@@ -104,7 +104,7 @@
 
         /* ═══════════════════════════════════════════════════════════
            OVERLAY BLOKIR AKUN EXPIRED (SOFT BLOCK)
-           ══════════════════════════════════════════════════════════ */
+           ═══════════════════════════════════════════════════════════ */
         #subscriptionExpiredOverlay {
             display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9);
             z-index: 99999; flex-direction: column; align-items: center; justify-content: center;
@@ -146,83 +146,6 @@
         @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.9; }
-        }
-
-        /* Payment Box Styling */
-        .payment-method {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 12px;
-            transition: all 0.2s;
-        }
-        .payment-method:hover {
-            border-color: #10b981;
-            background: #f0fdf4;
-        }
-        .payment-method .method-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-        .payment-method .method-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.85rem;
-        }
-        .payment-method.bsi .method-icon {
-            background: #0066cc;
-            color: white;
-        }
-        .payment-method.dana .method-icon {
-            background: #118eea;
-            color: white;
-        }
-        .payment-method .method-name {
-            font-weight: 700;
-            color: #1e293b;
-            font-size: 0.95rem;
-        }
-        .payment-method .method-details {
-            background: white;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 8px;
-        }
-        .payment-method .account-number {
-            font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #0e7490;
-            letter-spacing: 1px;
-        }
-        .payment-method .account-name {
-            color: #475569;
-            font-size: 0.9rem;
-            margin-top: 4px;
-        }
-        .copy-btn {
-            background: #10b981;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 8px;
-            transition: all 0.2s;
-        }
-        .copy-btn:hover {
-            background: #059669;
-            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -309,7 +232,7 @@
     <div class="modal" id="modalPengaturanAkun">
         <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3>️ Pengaturan Akun</h3>
+                <h3>⚙️ Pengaturan Akun</h3>
                 <button class="close-btn" data-close="modalPengaturanAkun">&times;</button>
             </div>
             <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:20px;">
@@ -334,7 +257,7 @@
             <div style="border-top:2px solid #e2e8f0; padding-top:20px;">
                 <h4 style="margin: 0 0 8px; color: #059669; font-size: 1rem;">🏫 Identitas Madrasah</h4>
                 <div class="password-hint" style="margin-bottom: 14px;">Diisi sekali oleh masing-masing guru. Otomatis dipakai di <b>LCKH, Jurnal, Rekap & Laporan Ekskul</b>.</div>
-                <div class="form-group-modal"><label>️ Kota / Tempat</label><input type="text" id="sigTempat" placeholder="Contoh: Bantaeng"></div>
+                <div class="form-group-modal"><label>🏙️ Kota / Tempat</label><input type="text" id="sigTempat" placeholder="Contoh: Bantaeng"></div>
                 <div class="form-group-modal"><label>👑 Nama Kepala Madrasah</label><input type="text" id="sigKamadNama" placeholder="Nama lengkap dengan gelar"></div>
                 <div class="form-group-modal"><label>🔢 NIP Kepala Madrasah</label><input type="text" id="sigKamadNip" placeholder="Kosongkan bila tidak ada"></div>
                 <div style="margin-bottom:1rem;"><label style="display:block; font-weight:600; margin-bottom:0.4rem; font-size:0.9rem;">🏛️ KOP Baris 1</label><input type="text" id="sigKop1" placeholder="KEMENTERIAN AGAMA KABUPATEN / KOTA ..." style="width:100%; padding:0.5rem; border:1.5px solid #e2e8f0; border-radius:8px;"></div>
@@ -349,62 +272,26 @@
         </div>
     </div>
 
-    <!-- ✅ MODAL PERPANJANG LANGGANAN (Dengan Format Pembayaran BSI & Dana) -->
+    <!-- ✅ MODAL PERPANJANG LANGGANAN -->
     <div class="modal" id="modalRenewal">
-        <div class="modal-content" style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
                 <h3>🔄 Perpanjang Langganan (1 Tahun)</h3>
                 <button class="close-btn" onclick="window.closeModal('modalRenewal')">&times;</button>
             </div>
             <div class="modal-body" style="padding: 20px;">
                 <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0891b2;">
-                    <h4 style="margin: 0 0 8px 0; color: #0e7490; font-size: 1rem;">💰 Biaya Mahar: Rp 100.000 / Tahun</h4>
-                    <p style="margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5;">
-                        Silakan transfer ke salah satu rekening berikut:
-                    </p>
+                    <h4 style="margin: 0 0 8px 0; color: #0e7490; font-size: 1rem;">Biaya Mahar: Rp 100.000 / Tahun</h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5;">Silakan transfer ke rekening berikut:<br><strong>Bank BRI: 1234-5678-9012</strong><br>a.n. Yayasan / MAN Bantaeng</p>
                 </div>
-                
-                <!-- BSI Payment -->
-                <div class="payment-method bsi">
-                    <div class="method-header">
-                        <div class="method-icon">BSI</div>
-                        <div class="method-name">Bank Syariah Indonesia</div>
-                    </div>
-                    <div class="method-details">
-                        <div class="account-number" id="bsiRek">1234567890</div>
-                        <div class="account-name">a.n. [NAMA PEMILIK REKENING]</div>
-                        <button class="copy-btn" onclick="copyToClipboard('bsiRek')">
-                            <i class="fas fa-copy"></i> Salin No. Rekening
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Dana Payment -->
-                <div class="payment-method dana">
-                    <div class="method-header">
-                        <div class="method-icon">DANA</div>
-                        <div class="method-name">DANA E-Wallet</div>
-                    </div>
-                    <div class="method-details">
-                        <div class="account-number" id="danaRek">081234567890</div>
-                        <div class="account-name">a.n. [NAMA PEMILIK DANA]</div>
-                        <button class="copy-btn" onclick="copyToClipboard('danaRek')">
-                            <i class="fas fa-copy"></i> Salin Nomor Dana
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-group-modal" style="margin-top: 20px;">
+                <div class="form-group-modal">
                     <label>Upload Bukti Transfer *</label>
                     <input type="file" id="buktiTransfer" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
                     <div class="password-hint">Format: JPG, PNG, atau PDF (Maksimal 2MB)</div>
                 </div>
-
                 <div style="display: flex; gap: 10px; margin-top: 24px;">
                     <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569; border:none; padding:10px; border-radius:8px; cursor:pointer;" onclick="window.closeModal('modalRenewal')">Batal</button>
-                    <button class="btn" id="btnSubmitRenewal" style="flex: 1; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="submitRenewal()">
-                        <i class="fas fa-paper-plane"></i> Kirim Permohonan
-                    </button>
+                    <button class="btn" id="btnSubmitRenewal" style="flex: 1; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="submitRenewal()"><i class="fas fa-paper-plane"></i> Kirim Permohonan</button>
                 </div>
             </div>
         </div>
@@ -429,25 +316,6 @@
             var t = link.querySelector('.card-title');
             if (t && t.textContent.trim() === 'RDM') { e.preventDefault(); window.openRDM(); }
         });
-
-        // Copy to Clipboard Function
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            const text = element.textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('✅ Nomor berhasil disalin!', 'success');
-            }).catch(err => {
-                console.error('Gagal copy:', err);
-                // Fallback untuk browser lama
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showToast('✅ Nomor berhasil disalin!', 'success');
-            });
-        }
     </script>
 
     <script type="module">
@@ -493,7 +361,7 @@
 
         // ══════════════════════════════════════════════
         // FUNGSI CEK & BLOKIR AKUN EXPIRED
-        // ═════════════════════════════════════════════
+        // ══════════════════════════════════════════════
         function checkAndBlockExpiredAccount(userData) {
             if (!userData.subscription_end) return;
             
@@ -503,7 +371,7 @@
             const now = new Date().getTime();
             
             if (now > endDateMs && userData.subscription_status !== 'pending_renewal') {
-                console.log(' Akun expired! Memblokir akses...');
+                console.log('⛔ Akun expired! Memblokir akses...');
                 const overlay = document.getElementById('subscriptionExpiredOverlay');
                 if (overlay) {
                     overlay.style.display = 'flex';
@@ -648,7 +516,7 @@
 
                 if (userNameEl) userNameEl.textContent = `Hi, ${user.nama || 'User'}`;
                 if (userRoleEl) {
-                    const roleMap = { 'admin': '👑 Admin', 'kepala': ' Kepala Madrasah', 'wakil': '⭐ Wakil Kepala' };
+                    const roleMap = { 'admin': '👑 Admin', 'kepala': '👑 Kepala Madrasah', 'wakil': '⭐ Wakil Kepala' };
                     userRoleEl.textContent = roleMap[user.role] || '👤 Guru';
                 }
                 if (userNipEl) userNipEl.textContent = user.nip ? 'NIP: ' + user.nip : 'NIP: Memuat...';
