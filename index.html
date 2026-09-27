@@ -503,58 +503,65 @@
         }
 
         function renderSubscriptionCard(data) {
-            const card = document.getElementById('subscriptionCard');
-            if (!data.subscription_end) {
-                card.style.display = 'none';
-                return;
-            }
-            
-            card.style.display = 'block';
-            const endDate = data.subscription_end.toDate();
-            const now = new Date();
-            const diffTime = endDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('subEndDate').textContent = endDate.toLocaleDateString('id-ID', options);
-            
-            const daysLeftEl = document.getElementById('subDaysLeft');
-            const badgeEl = document.getElementById('subBadge');
-            const progressEl = document.getElementById('subProgressBar');
-            const actionEl = document.getElementById('subActionArea');
-            
-            card.classList.remove('state-warning', 'state-expired');
-            
-            const totalDays = 365;
-            const daysPassed = Math.max(0, totalDays - diffDays);
-            const percentage = Math.min(100, (daysPassed / totalDays) * 100);
-            progressEl.style.width = `${percentage}%`;
+    const card = document.getElementById('subscriptionCard');
+    if (!data.subscription_end) {
+        card.style.display = 'none';
+        return;
+    }
+    
+    card.style.display = 'block';
+    const endDate = data.subscription_end.toDate();
+    const now = new Date();
+    const diffTime = endDate - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('subEndDate').textContent = endDate.toLocaleDateString('id-ID', options);
+    
+    const daysLeftEl = document.getElementById('subDaysLeft');
+    const progressEl = document.getElementById('subProgressBar');
+    const actionEl = document.getElementById('subActionArea');
+    
+    // ✅ Hanya update elemen yang ADA di HTML baru (subBadgeMini, bukan subBadge)
+    const miniBadge = document.getElementById('subBadgeMini');
+    const miniText = document.getElementById('subMiniText');
+    
+    const totalDays = 365;
+    const daysPassed = Math.max(0, totalDays - diffDays);
+    const percentage = Math.min(100, (daysPassed / totalDays) * 100);
+    progressEl.style.width = `${percentage}%`;
 
-            if (data.subscription_status === 'pending_renewal') {
-                badgeEl.className = 'sub-badge badge-pending';
-                badgeEl.textContent = 'MENUNGGU VERIFIKASI';
-                daysLeftEl.textContent = 'Sedang diproses Admin';
-                progressEl.style.background = '#3b82f6';
-                actionEl.innerHTML = `<button class="btn-renew" disabled><i class="fas fa-clock"></i> Menunggu Persetujuan Admin</button>`;
-            } else if (diffDays <= 0) {
-                card.classList.add('state-expired');
-                badgeEl.className = 'sub-badge badge-expired';
-                badgeEl.textContent = 'TIDAK AKTIF';
-                daysLeftEl.textContent = '0 Hari (Kadaluarsa)';
-                actionEl.innerHTML = `<button class="btn-renew expired" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Sekarang</button>`;
-            } else if (diffDays <= 30) {
-                card.classList.add('state-warning');
-                badgeEl.className = 'sub-badge badge-warning';
-                badgeEl.textContent = 'SEGERA BERAKHIR';
-                daysLeftEl.textContent = `${diffDays} Hari Lagi`;
-                actionEl.innerHTML = `<button class="btn-renew warning" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Periode</button>`;
-            } else {
-                badgeEl.className = 'sub-badge badge-active';
-                badgeEl.textContent = 'AKTIF';
-                daysLeftEl.textContent = `${diffDays} Hari Lagi`;
-                actionEl.innerHTML = `<button class="btn-renew" onclick="window.openModal('modalRenewal')" style="background: #f1f5f9; color: #475569;"><i class="fas fa-sync-alt"></i> Perpanjang Dini</button>`;
-            }
-        }
+    // Logika Status - HANYA update miniBadge & miniText
+    if (data.subscription_status === 'pending_renewal') {
+        miniBadge.className = 'sub-badge-mini badge-pending';
+        miniBadge.textContent = 'PENDING';
+        daysLeftEl.textContent = 'Sedang diproses Admin';
+        miniText.textContent = 'Menunggu verifikasi';
+        progressEl.style.background = '#3b82f6';
+        actionEl.innerHTML = `<button class="btn-renew" disabled><i class="fas fa-clock"></i> Menunggu Persetujuan Admin</button>`;
+        
+    } else if (diffDays <= 0) {
+        miniBadge.className = 'sub-badge-mini badge-expired';
+        miniBadge.textContent = 'EXPIRED';
+        daysLeftEl.textContent = '0 Hari (Kadaluarsa)';
+        miniText.textContent = 'Segera perpanjang';
+        actionEl.innerHTML = `<button class="btn-renew expired" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Sekarang</button>`;
+        
+    } else if (diffDays <= 30) {
+        miniBadge.className = 'sub-badge-mini badge-warning';
+        miniBadge.textContent = 'SEGERA HABIS';
+        daysLeftEl.textContent = `${diffDays} Hari Lagi`;
+        miniText.textContent = `Sisa ${diffDays} hari`;
+        actionEl.innerHTML = `<button class="btn-renew warning" onclick="window.openModal('modalRenewal')"><i class="fas fa-sync-alt"></i> Perpanjang Periode</button>`;
+        
+    } else {
+        miniBadge.className = 'sub-badge-mini badge-active';
+        miniBadge.textContent = 'AKTIF';
+        daysLeftEl.textContent = `${diffDays} Hari Lagi`;
+        miniText.textContent = `Sisa ${diffDays} hari`;
+        actionEl.innerHTML = `<button class="btn-renew" onclick="window.openModal('modalRenewal')" style="background: #f1f5f9; color: #475569;"><i class="fas fa-sync-alt"></i> Perpanjang Dini</button>`;
+    }
+}
 
         window.submitRenewal = async function() {
             const fileInput = document.getElementById('buktiTransfer');
@@ -802,6 +809,44 @@
                 });
             }
         }
+
+            <!-- ═════════════════════════════════════════════
+         FUNGSI TOGGLE DROPDOWN (HARUS DI GLOBAL SCOPE)
+         ══════════════════════════════════════════════ -->
+    <script>
+        // Fungsi ini HARUS di global scope agar onclick di HTML bisa akses
+        window.toggleSubscriptionDetails = function() {
+            const body = document.getElementById('subBody');
+            const icon = document.getElementById('subToggleIcon');
+            
+            if (!body || !icon) {
+                console.warn('️ Elemen dropdown tidak ditemukan');
+                return;
+            }
+            
+            if (body.classList.contains('show')) {
+                // Collapse (Tutup)
+                body.classList.remove('show');
+                icon.style.transform = 'rotate(0deg)';
+                localStorage.setItem('subCardExpanded', 'false');
+            } else {
+                // Expand (Buka)
+                body.classList.add('show');
+                icon.style.transform = 'rotate(180deg)';
+                localStorage.setItem('subCardExpanded', 'true');
+            }
+        };
+
+        // Restore state saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            const isExpanded = localStorage.getItem('subCardExpanded') === 'true';
+            if (isExpanded) {
+                const body = document.getElementById('subBody');
+                const icon = document.getElementById('subToggleIcon');
+                if (body) body.classList.add('show');
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            }
+        });
     </script>
 </body>
 </html>
