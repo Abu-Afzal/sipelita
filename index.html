@@ -6,7 +6,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/images/sipelita-app.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Efisien Untuk Manajemen & Administrasi - SIPELITA</title>
+    <title>Dashboard Guru - SIPELITA</title>
     <link rel="icon" type="image/png" href="assets/images/sipelita-app.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,41 +24,25 @@
     <script>
       (function() {
         const sessionData = localStorage.getItem('sipelita_user');
-        if (!sessionData) {
-          window.location.replace('home.html');
-        }
+        if (!sessionData) { window.location.replace('home.html'); }
       })();
     </script>
     
     <style>
         /* Loading Screen */
-        #authLoading {
-            position: fixed; inset: 0; background: #f8fafc; z-index: 99998;
-            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        #authLoading .spinner {
-            width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top: 4px solid #10b981;
-            border-radius: 50%; animation: spin 1s linear infinite;
-        }
+        #authLoading { position: fixed; inset: 0; background: #f8fafc; z-index: 99998; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; font-family: system-ui, -apple-system, sans-serif; }
+        #authLoading .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top: 4px solid #10b981; border-radius: 50%; animation: spin 1s linear infinite; }
         #authLoading .loading-text { color: #64748b; font-weight: 600; font-size: 0.95rem; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .btn-settings-akun {
-            background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569;
-            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s ease;
-        }
+        .btn-settings-akun { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s ease; }
         .btn-settings-akun:hover { background: #e2e8f0; color: #0f172a; transform: rotate(45deg); }
         
         .form-group-modal { margin-bottom: 16px; }
-        .form-group-modal label { display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px; }
-        .form-group-modal input {
-            width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-            font-size: 0.9rem; outline: none; transition: border-color 0.2s; box-sizing: border-box; font-family: inherit;
-        }
+        .form-group-modal label { display: block; font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem; }
+        .form-group-modal input { width: 100%; padding: 0.65rem 0.8rem; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 0.85rem; outline: none; transition: border-color 0.2s; box-sizing: border-box; font-family: inherit; }
         .form-group-modal input:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
-        .password-hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+        .password-hint { font-size: 0.75rem; color: #64748b; margin-top: 0.3rem; }
 
         .container.hidden-until-auth { opacity: 0; transition: opacity 0.3s ease; }
         .container.hidden-until-auth.ready { opacity: 1; }
@@ -67,19 +51,12 @@
            CARD STATUS LANGGANAN (MODE COLLAPSIBLE)
            ══════════════════════════════════════════════ */
         .subscription-card { background: transparent; box-shadow: none; border: none; margin-bottom: 24px; animation: fadeIn 0.5s ease; }
-        .sub-header-collapsible {
-            display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;
-            background: white; border-radius: 10px; border: 1px solid #e2e8f0; cursor: pointer;
-            transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
+        .sub-header-collapsible { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .sub-header-collapsible:hover { background: #f8fafc; border-color: #cbd5e1; }
         .sub-title { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0; }
         .sub-title i { color: #f59e0b; }
         .sub-badge-mini { padding: 2px 8px; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-        .sub-body-collapsible {
-            display: none; padding: 16px; background: white; border: 1px solid #e2e8f0;
-            border-top: none; border-radius: 0 0 10px 10px; margin-top: -1px; animation: slideDown 0.3s ease;
-        }
+        .sub-body-collapsible { display: none; padding: 16px; background: white; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; margin-top: -1px; animation: slideDown 0.3s ease; }
         .sub-body-collapsible.show { display: block; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -104,49 +81,59 @@
 
         /* ═══════════════════════════════════════════════════════════
            OVERLAY BLOKIR AKUN EXPIRED (SOFT BLOCK)
-           ═══════════════════════════════════════════════════════════ */
-        #subscriptionExpiredOverlay {
-            display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9);
-            z-index: 99999; flex-direction: column; align-items: center; justify-content: center;
-            color: white; text-align: center; padding: 20px; backdrop-filter: blur(8px);
-        }
-        .overlay-box {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            padding: 40px; border-radius: 16px; max-width: 500px; width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid #ef4444;
-        }
-        .overlay-icon {
-            width: 80px; height: 80px; background: #ef4444; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
-            animation: pulse 2s infinite;
-        }
+           ══════════════════════════════════════════════════════════ */
+        #subscriptionExpiredOverlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; padding: 20px; backdrop-filter: blur(8px); }
+        .overlay-box { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 40px; border-radius: 16px; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid #ef4444; }
+        .overlay-icon { width: 80px; height: 80px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; animation: pulse 2s infinite; }
         .overlay-icon i { font-size: 2.5rem; color: white; }
         .overlay-title { margin-bottom: 16px; font-size: 1.8rem; color: #ef4444; }
         .overlay-text { margin-bottom: 24px; color: #cbd5e1; font-size: 1rem; line-height: 1.6; }
-        .overlay-price-box {
-            background: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #f59e0b;
-        }
+        .overlay-price-box { background: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #f59e0b; }
         .overlay-price-label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; }
         .overlay-price-value { font-size: 1.3rem; font-weight: 700; color: #fbbf24; }
         .overlay-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-        .btn-overlay {
-            color: white; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 700;
-            cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem;
-            transition: all 0.2s; text-decoration: none;
-        }
-        .btn-overlay-renew {
-            background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3);
-        }
+        .btn-overlay { color: white; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; transition: all 0.2s; text-decoration: none; }
+        .btn-overlay-renew { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
         .btn-overlay-renew:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16,185,129,0.4); }
-        .btn-overlay-wa {
-            background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 4px 12px rgba(37,211,102,0.3);
-        }
+        .btn-overlay-wa { background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 4px 12px rgba(37,211,102,0.3); }
         .btn-overlay-wa:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37,211,102,0.4); }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
-        }
+        /* ══════════════════════════════════════════════
+           MODAL PERPANJANGAN (ALA REGISTER.HTML)
+           ══════════════════════════════════════════════ */
+        .modal-renewal-content { max-width: 520px; border-radius: 16px; overflow: hidden; padding: 0; background: white; }
+        .modal-renewal-header { background: linear-gradient(135deg, #10b981, #059669); padding: 1.5rem; text-align: center; color: white; position: relative; }
+        .modal-renewal-header h3 { margin: 0; font-size: 1.3rem; }
+        .modal-renewal-header p { margin: 0.5rem 0 0; font-size: 0.85rem; opacity: 0.9; }
+        .modal-renewal-header .close-btn { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .modal-renewal-header .close-btn:hover { background: rgba(255,255,255,0.3); }
+        .modal-renewal-body { padding: 2rem 1.75rem; }
+        
+        .payment-box { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; transition: border-color 0.2s; }
+        .payment-box:hover { border-color: #10b981; }
+        .payment-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .payment-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; color: white; }
+        .payment-icon.bsi { background: #0066cc; }
+        .payment-icon.dana { background: #118eea; }
+        .payment-name { font-weight: 700; color: #1e293b; font-size: 0.95rem; }
+        .payment-details { background: white; padding: 10px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .account-number { font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 700; color: #059669; letter-spacing: 1px; }
+        .account-name { color: #475569; font-size: 0.85rem; margin-top: 2px; }
+        .copy-btn { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .copy-btn:hover { background: #059669; transform: translateY(-1px); }
+        
+        .note-box { margin-top: 1.5rem; padding: 0.8rem 1rem; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 8px; font-size: 0.8rem; color: #1e40af; line-height: 1.5; }
+        .note-box.green { background: #f0fdf4; border-left-color: #059669; color: #065f46; margin-top: 0; margin-bottom: 1.5rem; }
+        
+        .msg-renewal { margin-top: 0.9rem; font-size: 0.85rem; text-align: center; min-height: 1.1rem; color: #dc2626; font-weight: 600; }
+        
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 1.5rem; }
+        .btn-cancel { background: #f1f5f9; color: #475569; padding: 0.85rem; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.95rem; transition: all 0.2s; }
+        .btn-cancel:hover { background: #e2e8f0; }
+        .btn-submit { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.85rem; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.95rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
     </style>
 </head>
 <body>
@@ -272,26 +259,71 @@
         </div>
     </div>
 
-    <!-- ✅ MODAL PERPANJANG LANGGANAN -->
+    <!-- ✅ MODAL PERPANJANG LANGGANAN (FORMAT ALA REGISTER.HTML) -->
     <div class="modal" id="modalRenewal">
-        <div class="modal-content" style="max-width: 450px;">
-            <div class="modal-header">
-                <h3>🔄 Perpanjang Langganan (1 Tahun)</h3>
+        <div class="modal-renewal-content">
+            <div class="modal-renewal-header">
                 <button class="close-btn" onclick="window.closeModal('modalRenewal')">&times;</button>
+                <h3><i class="fas fa-sync-alt"></i> PERPANJANG LANGGANAN</h3>
+                <p>Perpanjang masa aktif SIPELITA Guru Anda selama 1 tahun.</p>
             </div>
-            <div class="modal-body" style="padding: 20px;">
-                <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0891b2;">
-                    <h4 style="margin: 0 0 8px 0; color: #0e7490; font-size: 1rem;">Biaya Mahar: Rp 100.000 / Tahun</h4>
-                    <p style="margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5;">Silakan transfer ke rekening berikut:<br><strong>Bank BRI: 1234-5678-9012</strong><br>a.n. Yayasan / MAN Bantaeng</p>
+            
+            <div class="modal-renewal-body">
+                <div class="note-box green">
+                    💡 <strong>Biaya Mahar: Rp 100.000 / Tahun</strong><br>
+                    Silakan transfer ke salah satu rekening di bawah ini, lalu upload bukti transfernya.
                 </div>
+
+                <!-- Payment Methods -->
+                <div style="display: grid; gap: 0.8rem; margin-bottom: 1.5rem;">
+                    <div class="payment-box">
+                        <div class="payment-header">
+                            <div class="payment-icon bsi">BSI</div>
+                            <div class="payment-name">Bank Syariah Indonesia</div>
+                        </div>
+                        <div class="payment-details">
+                            <div>
+                                <div id="bsiRek" class="account-number">1234567890</div>
+                                <div class="account-name">a.n. [NAMA PEMILIK REKENING]</div>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('bsiRek')"><i class="fas fa-copy"></i> Salin</button>
+                        </div>
+                    </div>
+
+                    <div class="payment-box">
+                        <div class="payment-header">
+                            <div class="payment-icon dana">DANA</div>
+                            <div class="payment-name">DANA E-Wallet</div>
+                        </div>
+                        <div class="payment-details">
+                            <div>
+                                <div id="danaRek" class="account-number">081234567890</div>
+                                <div class="account-name">a.n. [NAMA PEMILIK DANA]</div>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('danaRek')"><i class="fas fa-copy"></i> Salin</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Bukti -->
                 <div class="form-group-modal">
-                    <label>Upload Bukti Transfer *</label>
-                    <input type="file" id="buktiTransfer" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
+                    <label><i class="fas fa-file-upload"></i> Upload Bukti Transfer *</label>
+                    <input type="file" id="buktiTransfer" accept="image/*,.pdf">
                     <div class="password-hint">Format: JPG, PNG, atau PDF (Maksimal 2MB)</div>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 24px;">
-                    <button class="btn" style="flex: 1; background: #e2e8f0; color: #475569; border:none; padding:10px; border-radius:8px; cursor:pointer;" onclick="window.closeModal('modalRenewal')">Batal</button>
-                    <button class="btn" id="btnSubmitRenewal" style="flex: 1; background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="submitRenewal()"><i class="fas fa-paper-plane"></i> Kirim Permohonan</button>
+
+                <div id="msgRenewal" class="msg-renewal"></div>
+
+                <div class="btn-grid">
+                    <button class="btn-cancel" onclick="window.closeModal('modalRenewal')">Batal</button>
+                    <button class="btn-submit" id="btnSubmitRenewal" onclick="submitRenewal()">
+                        <i class="fas fa-paper-plane"></i> Kirim Permohonan
+                    </button>
+                </div>
+
+                <div class="note-box">
+                    ⏳ Setelah mengirim, status akun Anda akan berubah menjadi <b>"Menunggu Verifikasi"</b>.<br>
+                    Admin akan memproses dan menyetujui dalam waktu < 24 jam.
                 </div>
             </div>
         </div>
@@ -316,6 +348,23 @@
             var t = link.querySelector('.card-title');
             if (t && t.textContent.trim() === 'RDM') { e.preventDefault(); window.openRDM(); }
         });
+
+        // Copy to Clipboard Function
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('✅ Nomor berhasil disalin ke clipboard!', 'success');
+            }).catch(err => {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('✅ Nomor berhasil disalin!', 'success');
+            });
+        }
     </script>
 
     <script type="module">
@@ -345,7 +394,13 @@
             setTimeout(() => { t.remove(); }, 2900);
         }
 
-        window.closeModal = (modalId) => { const m = document.getElementById(modalId); if (m) m.style.display = 'none'; };
+        window.closeModal = (modalId) => { 
+            const m = document.getElementById(modalId); 
+            if (m) m.style.display = 'none'; 
+            // Reset pesan error saat modal ditutup
+            const msg = document.getElementById('msgRenewal');
+            if (msg) { msg.textContent = ''; msg.style.color = '#dc2626'; }
+        };
         window.openModal = (modalId) => { const m = document.getElementById(modalId); if (m) m.style.display = 'flex'; };
 
         document.querySelectorAll('[data-close]').forEach(btn => {
@@ -361,7 +416,7 @@
 
         // ══════════════════════════════════════════════
         // FUNGSI CEK & BLOKIR AKUN EXPIRED
-        // ══════════════════════════════════════════════
+        // ═════════════════════════════════════════════
         function checkAndBlockExpiredAccount(userData) {
             if (!userData.subscription_end) return;
             
@@ -403,7 +458,7 @@
                 if (snapshot.empty) return;
                 const userData = snapshot.docs[0].data();
                 renderSubscriptionCard(userData);
-                checkAndBlockExpiredAccount(userData); // ✅ CEK DAN BLOKIR JIKA EXPIRED
+                checkAndBlockExpiredAccount(userData);
             });
         }
 
@@ -462,11 +517,24 @@
         window.submitRenewal = async function() {
             const fileInput = document.getElementById('buktiTransfer');
             const file = fileInput.files[0];
-            if (!file) return showToast('⚠️ Harap upload bukti transfer terlebih dahulu!', 'warning');
-            if (file.size > 2 * 1024 * 1024) return showToast('⚠️ Ukuran file maksimal 2MB!', 'warning');
-            
+            const msg = document.getElementById('msgRenewal');
             const btn = document.getElementById('btnSubmitRenewal');
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+
+            if (!file) {
+                msg.style.color = '#dc2626';
+                msg.textContent = '⚠️ Harap upload bukti transfer terlebih dahulu!';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                msg.style.color = '#dc2626';
+                msg.textContent = '⚠️ Ukuran file maksimal 2MB!';
+                return;
+            }
+            
+            msg.style.color = '#64748b';
+            msg.textContent = '⏳ Memproses permohonan...';
+            btn.disabled = true; 
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
             
             try {
                 const user = AuthService.checkAuth();
@@ -483,14 +551,21 @@
                     await userSnapshot.docs[0].ref.update({ subscription_status: 'pending_renewal' });
                 }
                 
-                showToast('✅ Permohonan berhasil dikirim! Admin akan segera memverifikasi.', 'success');
-                window.closeModal('modalRenewal');
-                document.getElementById('buktiTransfer').value = '';
+                msg.style.color = '#059669';
+                msg.innerHTML = '✅ Permohonan berhasil dikirim!<br><small>Admin akan segera memverifikasi.</small>';
+                
+                setTimeout(() => {
+                    window.closeModal('modalRenewal');
+                    document.getElementById('buktiTransfer').value = '';
+                }, 2000);
+                
             } catch (error) {
                 console.error('Error submitting renewal:', error);
-                showToast('❌ Gagal mengirim: ' + error.message, 'error');
+                msg.style.color = '#dc2626';
+                msg.textContent = '❌ Gagal mengirim: ' + error.message;
             } finally {
-                btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Permohonan';
+                btn.disabled = false; 
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Permohonan';
             }
         };
 
