@@ -121,108 +121,92 @@
             opacity: 1;
         }
 
-        /* ══════════════════════════════════════════════
-           CARD STATUS LANGGANAN (SUBSCRIPTION)
+                /* ══════════════════════════════════════════════
+           CARD STATUS LANGGANAN (MODE COLLAPSIBLE)
            ══════════════════════════════════════════════ */
         .subscription-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
+            background: transparent;
+            box-shadow: none;
+            border: none;
             margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-            display: none;
             animation: fadeIn 0.5s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .sub-header {
+        
+        .sub-header-collapsible {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #f1f5f9;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
+        .sub-header-collapsible:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        
         .sub-title {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.05rem;
+            gap: 8px;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #1e293b;
             margin: 0;
         }
         .sub-title i { color: #f59e0b; }
         
-        .sub-badge {
-            padding: 4px 12px;
+        .sub-badge-mini {
+            padding: 2px 8px;
             border-radius: 99px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-        .badge-active { background: #dcfce7; color: #166534; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-expired { background: #fee2e2; color: #991b1b; }
-        .badge-pending { background: #dbeafe; color: #1e40af; }
 
-        .sub-info {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 16px;
+        .sub-body-collapsible {
+            display: none; /* Tersembunyi secara default */
+            padding: 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            margin-top: -1px; /* Menyatu dengan header */
+            animation: slideDown 0.3s ease;
         }
+        .sub-body-collapsible.show {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Badge Colors (Sama seperti sebelumnya) */
+        .badge-active, .sub-badge-mini.badge-active { background: #dcfce7; color: #166534; }
+        .badge-warning, .sub-badge-mini.badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-expired, .sub-badge-mini.badge-expired { background: #fee2e2; color: #991b1b; }
+        .badge-pending, .sub-badge-mini.badge-pending { background: #dbeafe; color: #1e40af; }
+
+        /* Sisa CSS sub-info, sub-progress, dll tetap sama seperti sebelumnya */
+        .sub-info { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
         .sub-info-item { display: flex; flex-direction: column; }
         .sub-info-label { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
         .sub-info-value { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
         .sub-info-value.highlight { color: #10b981; }
-
-        .sub-progress {
-            background: #e2e8f0;
-            border-radius: 99px;
-            height: 8px;
-            overflow: hidden;
-            margin-bottom: 16px;
-        }
-        .sub-progress-fill {
-            height: 100%;
-            background: #10b981;
-            border-radius: 99px;
-            transition: width 0.5s ease, background-color 0.3s ease;
-        }
-
+        .sub-progress { background: #e2e8f0; border-radius: 99px; height: 8px; overflow: hidden; margin-bottom: 16px; }
+        .sub-progress-fill { height: 100%; background: #10b981; border-radius: 99px; transition: width 0.5s ease, background-color 0.3s ease; }
         .sub-action { text-align: right; }
-        .btn-renew {
-            background: #10b981;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
+        .btn-renew { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
         .btn-renew:hover { background: #059669; transform: translateY(-1px); }
-        .btn-renew.warning { background: #f59e0b; }
-        .btn-renew.warning:hover { background: #d97706; }
-        .btn-renew.expired { background: #ef4444; }
-        .btn-renew.expired:hover { background: #dc2626; }
+        .btn-renew.warning { background: #f59e0b; } .btn-renew.warning:hover { background: #d97706; }
+        .btn-renew.expired { background: #ef4444; } .btn-renew.expired:hover { background: #dc2626; }
         .btn-renew:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; transform: none; }
-
-        /* State Colors */
-        .state-warning .sub-info-value.highlight { color: #d97706 !important; }
-        .state-warning .sub-progress-fill { background: #f59e0b !important; }
-        .state-warning { border-color: #fcd34d; background: #fffbeb; }
-        
-        .state-expired .sub-info-value.highlight { color: #dc2626 !important; }
-        .state-expired .sub-progress-fill { background: #ef4444 !important; }
-        .state-expired { border-color: #fca5a5; background: #fef2f2; }
     </style>
 </head>
 <body>
@@ -258,31 +242,41 @@
         </header>
 
         <!-- ✅ CARD STATUS LANGGANAN -->
-        <div class="subscription-card" id="subscriptionCard">
-            <div class="sub-header">
-                <h3 class="sub-title">
-                    <i class="fas fa-crown"></i> Status Langganan Sipelita Guru
-                </h3>
-                <span id="subBadge" class="sub-badge badge-active">AKTIF</span>
-            </div>
-            
-            <div class="sub-info">
-                <div class="sub-info-item">
-                    <span class="sub-info-label">Berlaku Hingga:</span>
-                    <span class="sub-info-value" id="subEndDate">-</span>
+                <!-- ✅ CARD STATUS LANGGANAN (MODE COLLAPSIBLE/DROPDOWN) -->
+        <div class="subscription-card" id="subscriptionCard" style="display: none;">
+            <!-- Header yang SELALU MUNCUL (Klik untuk expand) -->
+            <div class="sub-header-collapsible" onclick="toggleSubscriptionDetails()">
+                <div class="sub-title">
+                    <i class="fas fa-crown"></i>
+                    <span>Langganan Sipelita Guru</span>
+                    <span id="subBadgeMini" class="sub-badge-mini badge-active">AKTIF</span>
                 </div>
-                <div class="sub-info-item">
-                    <span class="sub-info-label">Sisa Waktu:</span>
-                    <span class="sub-info-value highlight" id="subDaysLeft">-</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="subMiniText" style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Sisa 320 Hari</span>
+                    <i id="subToggleIcon" class="fas fa-chevron-down" style="transition: transform 0.3s ease; color: #94a3b8;"></i>
                 </div>
             </div>
 
-            <div class="sub-progress">
-                <div class="sub-progress-fill" id="subProgressBar" style="width: 0%"></div>
-            </div>
+            <!-- Body yang BISA DISEMBUNYIKAN/DITAMPILKAN -->
+            <div class="sub-body-collapsible" id="subBody">
+                <div class="sub-info">
+                    <div class="sub-info-item">
+                        <span class="sub-info-label">Berlaku Hingga:</span>
+                        <span class="sub-info-value" id="subEndDate">-</span>
+                    </div>
+                    <div class="sub-info-item">
+                        <span class="sub-info-label">Sisa Waktu:</span>
+                        <span class="sub-info-value highlight" id="subDaysLeft">-</span>
+                    </div>
+                </div>
 
-            <div class="sub-action" id="subActionArea">
-                <!-- Tombol akan di-render otomatis oleh JavaScript -->
+                <div class="sub-progress">
+                    <div class="sub-progress-fill" id="subProgressBar" style="width: 0%"></div>
+                </div>
+
+                <div class="sub-action" id="subActionArea">
+                    <!-- Tombol akan di-render otomatis oleh JavaScript -->
+                </div>
             </div>
         </div>
 
