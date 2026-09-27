@@ -260,74 +260,79 @@
     </div>
 
     <!-- ✅ MODAL PERPANJANG LANGGANAN (FORMAT ALA REGISTER.HTML) -->
-    <div class="modal" id="modalRenewal">
-        <div class="modal-renewal-content">
-            <div class="modal-renewal-header">
-                <button class="close-btn" onclick="window.closeModal('modalRenewal')">&times;</button>
-                <h3><i class="fas fa-sync-alt"></i> PERPANJANG LANGGANAN</h3>
-                <p>Perpanjang masa aktif SIPELITA Guru Anda selama 1 tahun.</p>
+<div class="modal" id="modalRenewal">
+    <div class="modal-renewal-content">
+        <div class="modal-renewal-header">
+            <button class="close-btn" onclick="window.closeModal('modalRenewal')">&times;</button>
+            <h3><i class="fas fa-sync-alt"></i> PERPANJANG LANGGANAN</h3>
+            <p>Perpanjang masa aktif SIPELITA Guru Anda selama 1 tahun.</p>
+        </div>
+        
+        <div class="modal-renewal-body">
+            <div class="note-box green">
+                💡 <strong>Biaya Mahar: Rp 100.000 / Tahun</strong><br>
+                Silakan transfer ke salah satu rekening di bawah ini, lalu kirim bukti via WhatsApp.
             </div>
-            
-            <div class="modal-renewal-body">
-                <div class="note-box green">
-                    💡 <strong>Biaya Mahar: Rp 100.000 / Tahun</strong><br>
-                    Silakan transfer ke salah satu rekening di bawah ini, lalu upload bukti transfernya.
-                </div>
 
-                <!-- Payment Methods -->
-                <div style="display: grid; gap: 0.8rem; margin-bottom: 1.5rem;">
-                    <div class="payment-box">
-                        <div class="payment-header">
-                            <div class="payment-icon bsi">BSI</div>
-                            <div class="payment-name">Bank Syariah Indonesia</div>
-                        </div>
-                        <div class="payment-details">
-                            <div>
-                                <div id="bsiRek" class="account-number">7149214326</div>
-                                <div class="account-name">a.n. [ELIS HARIANTO]</div>
-                            </div>
-                            <button class="copy-btn" onclick="copyToClipboard('bsiRek')"><i class="fas fa-copy"></i> Salin</button>
-                        </div>
+            <!-- Payment Methods - Compact -->
+            <div style="display: grid; gap: 0.6rem; margin-bottom: 1rem;">
+                <!-- BSI Card -->
+                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; transition: border-color 0.2s;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <div style="background: #0066cc; color: white; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem;">BSI</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.85rem;">Bank Syariah Indonesia</div>
                     </div>
-
-                    <div class="payment-box">
-                        <div class="payment-header">
-                            <div class="payment-icon dana">DANA</div>
-                            <div class="payment-name">DANA E-Wallet</div>
+                    <div style="background: white; padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div id="bsiRek" style="font-family: 'Courier New', monospace; font-size: 0.95rem; font-weight: 700; color: #059669; letter-spacing: 1px;">7149214326</div>
+                            <div style="color: #64748b; font-size: 0.75rem; margin-top: 2px;">a.n. ELIS HARIANTO</div>
                         </div>
-                        <div class="payment-details">
-                            <div>
-                                <div id="danaRek" class="account-number">081347027844</div>
-                                <div class="account-name">a.n. [ELIS HARIANTO]</div>
-                            </div>
-                            <button class="copy-btn" onclick="copyToClipboard('danaRek')"><i class="fas fa-copy"></i> Salin</button>
-                        </div>
+                        <button class="copy-btn" onclick="copyToClipboard('bsiRek')" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i class="fas fa-copy"></i> Salin</button>
                     </div>
                 </div>
 
-                <!-- Upload Bukti -->
-                <div class="form-group-modal">
-                    <label><i class="fas fa-file-upload"></i> Upload Bukti Transfer *</label>
-                    <input type="file" id="buktiTransfer" accept="image/*,.pdf">
-                    <div class="password-hint">Format: JPG, PNG, atau PDF (Maksimal 2MB)</div>
+                <!-- DANA Card -->
+                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; transition: border-color 0.2s;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <div style="background: #118eea; color: white; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; font-family: Arial;">DANA</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.85rem;">DANA E-Wallet</div>
+                    </div>
+                    <div style="background: white; padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div id="danaRek" style="font-family: 'Courier New', monospace; font-size: 0.95rem; font-weight: 700; color: #059669; letter-spacing: 1px;">081347027844</div>
+                            <div style="color: #64748b; font-size: 0.75rem; margin-top: 2px;">a.n. ELIS HARIANTO</div>
+                        </div>
+                        <button class="copy-btn" onclick="copyToClipboard('danaRek')" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i class="fas fa-copy"></i> Salin</button>
+                    </div>
                 </div>
+            </div>
 
-                <div id="msgRenewal" class="msg-renewal"></div>
-
-                <div class="btn-grid">
-                    <button class="btn-cancel" onclick="window.closeModal('modalRenewal')">Batal</button>
-                    <button class="btn-submit" id="btnSubmitRenewal" onclick="submitRenewal()">
-                        <i class="fas fa-paper-plane"></i> Kirim Permohonan
-                    </button>
+            <!-- WhatsApp Button -->
+            <div style="margin-bottom: 1rem;">
+                <button onclick="sendBuktiWA()" style="width: 100%; background: #25D366; color: white; border: none; padding: 0.85rem; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: all 0.2s;">
+                    <i class="fab fa-whatsapp"></i> Kirim Bukti via WhatsApp
+                </button>
+                <div style="text-align: center; margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">
+                    <i class="fas fa-info-circle"></i> Setelah transfer, klik tombol di atas untuk kirim bukti ke Admin
                 </div>
+            </div>
 
-                <div class="note-box">
-                    ⏳ Setelah mengirim, status akun Anda akan berubah menjadi <b>"Menunggu Verifikasi"</b>.<br>
-                    Admin akan memproses dan menyetujui dalam waktu < 24 jam.
-                </div>
+            <div id="msgRenewal" class="msg-renewal"></div>
+
+            <div class="btn-grid">
+                <button class="btn-cancel" onclick="window.closeModal('modalRenewal')">Batal</button>
+                <button class="btn-submit" onclick="window.closeModal('modalRenewal')" style="background: linear-gradient(135deg, #059669, #10b981);">
+                    <i class="fas fa-check"></i> Tutup
+                </button>
+            </div>
+
+            <div class="note-box">
+                 Setelah mengirim bukti via WhatsApp, status akun Anda akan berubah menjadi <b>"Menunggu Verifikasi"</b>.<br>
+                Admin akan memproses dan mengaktifkan dalam waktu < 24 jam.
             </div>
         </div>
     </div>
+</div>
 
     <footer>&copy; 2026 SIPELITA - Portal Madrasah Modern Untuk Efisiensi Manajemen & Administrasi Kelas.</footer>
 
