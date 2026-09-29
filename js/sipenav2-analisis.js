@@ -24,7 +24,7 @@ function renderAnalisis() {
             <select id="analisisKategoriSelect" onchange="loadSumatifOptions()" style="padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.9rem; width: 100%;">
               <option value="sumatif">Penilaian Sumatif</option>
               <option value="formatif">Penilaian Formatif</option>
-              <option value="formatif">Analisis Per Butir Soal</option>
+              <option value="butir">Analisis Per Butir Soal</option>
             </select>
           </div>
           <div>
