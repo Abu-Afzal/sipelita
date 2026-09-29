@@ -541,6 +541,7 @@ function loadPage(page) {
     case 'rekap': content.innerHTML = renderRekap(); initRekapPage(); break;
     case 'rekap-nilai': content.innerHTML = renderRekapNilai(); initRekapNilaiPage(); break;
     case 'analisis': content.innerHTML = renderAnalisis(); initAnalisisPage(); break;
+    case 'analisis-butir': content.innerHTML = renderAnalisisButir(); initAnalisisButirPage(); break;
     case 'bank-soal': content.innerHTML = renderBankSoal(); initBankSoalPage(); break;
     case 'jurnal': content.innerHTML = renderJurnal(); initJurnalPage(); break;
     case 'rekap-jurnal': content.innerHTML = renderRekapJurnal(); initRekapJurnalPage(); break;
