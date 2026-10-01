@@ -33,7 +33,7 @@ function showNotification(message, type = 'success') {
         toast.style.opacity = '0';
         toast.style.transition = 'opacity 0.3s';
         setTimeout(() => toast.remove(), 300);
-    }, 2000);
+    }, 2500);
 }
 
 function tampilkanAlert(elementId, pesan, tipe = 'success') {
@@ -73,9 +73,10 @@ formTambah?.addEventListener('submit', async (e) => {
             approvedAt: new Date().toISOString(),
             approvedBy: auth.currentUser?.email || 'admin',
             createdAt: new Date().toISOString()
+            // expiresAt dibiarkan null agar Admin mengatur manual setelah pembayaran
         });
 
-        tampilkanAlert('alertTambah', '✅ User baru berhasil disimpan & langsung aktif!');
+        tampilkanAlert('alertTambah', '✅ User baru berhasil disimpan! Silakan atur masa aktifnya.');
         formTambah.reset();
         loadUsers();
         loadPendingUsers();
@@ -86,14 +87,14 @@ formTambah?.addEventListener('submit', async (e) => {
         if (err.code === 'auth/email-already-in-use') pesanError = '❌ Email ini sudah terdaftar!';
         else if (err.code === 'auth/weak-password') pesanError = '❌ Password minimal 6 karakter!';
         tampilkanAlert('alertTambah', pesanError, 'danger');
+    } finally {
+        btnTambah.disabled = false;
+        btnTambah.innerHTML = '💾 Simpan User';
     }
-
-    btnTambah.disabled = false;
-    btnTambah.innerHTML = '💾 Simpan User';
 });
 
 // ══════════════════════════════════════════════
-// 📋 LOAD DAFTAR USER (DIPERBAIKI: 8 KOLOM PASTI)
+// 📋 LOAD DAFTAR USER (DENGAN MASA AKTIF)
 // ══════════════════════════════════════════════
 async function loadUsers() {
     const tbody = document.getElementById('userTableBody');
@@ -111,15 +112,16 @@ async function loadUsers() {
         if (tableWrap) tableWrap.style.display = 'block';
 
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#64748b;">📭 Belum ada data user.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#64748b;">📭 Belum ada data user.</td></tr>';
             return;
         }
 
+        const now = new Date();
+
         snapshot.forEach(docSnap => {
             const user = docSnap.data();
-            const email = docSnap.id; // ID dokumen adalah email
+            const email = docSnap.id; 
             
-            // Escape karakter khusus agar tidak merusak HTML/JS
             const safeEmail = email.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safePw = (user.password || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeNama = (user.nama || '-').replace(/'/g, "\\'");
@@ -128,13 +130,39 @@ async function loadUsers() {
                 ? '<span class="badge badge-admin">👑 Admin</span>' 
                 : '<span class="badge badge-guru">👤 Guru</span>';
 
-            const statusBadge = user.status === 'pending'
-                ? '<span class="badge badge-pending">⏳ Pending</span>'
-                : user.status === 'rejected'
-                    ? '<span class="badge badge-rejected">❌ Ditolak</span>'
-                    : '<span class="badge badge-active">✅ Aktif</span>';
+            // 1. HITUNG MASA AKTIF
+            let expiresAt = user.expiresAt ? new Date(user.expiresAt) : null;
+            let masaAktifLabel = 'Belum Diatur';
+            let masaAktifColor = '#f59e0b';
+            let masaAktifBg = '#fef3c7';
+            let masaAktifText = '#92400e';
+            let tglExpired = '-';
+            
+            if (expiresAt) {
+                const diffTime = expiresAt - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                tglExpired = expiresAt.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+                
+                if (diffDays < 0) {
+                    masaAktifLabel = `Expired`;
+                    masaAktifColor = '#ef4444'; masaAktifBg = '#fee2e2'; masaAktifText = '#991b1b';
+                } else if (diffDays <= 30) {
+                    masaAktifLabel = `Segera Habis (${diffDays} hari)`;
+                    masaAktifColor = '#f59e0b'; masaAktifBg = '#fef3c7'; masaAktifText = '#92400e';
+                } else {
+                    masaAktifLabel = `Aktif (${diffDays} hari)`;
+                    masaAktifColor = '#10b981'; masaAktifBg = '#dcfce7'; masaAktifText = '#166534';
+                }
+            }
 
-            // LOGIKA PASSWORD: Tampilkan tombol lihat/salin, atau tombol "Set" jika belum ada
+            const masaAktifBadge = `
+                <span style="background:${masaAktifBg}; color:${masaAktifText}; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; border:1px solid ${masaAktifColor}40; display:inline-block; margin-bottom:4px;">
+                    ${masaAktifLabel}
+                </span>
+                <div style="font-size:0.75rem; color:#64748b;">s/d ${tglExpired}</div>
+            `;
+
+            // 2. LOGIKA PASSWORD
             let passwordCell = '';
             if (user.password && user.password.length > 0) {
                 passwordCell = `
@@ -154,7 +182,7 @@ async function loadUsers() {
                 `;
             }
 
-            // PASTIKAN 8 KOLOM (<td>) SESUAI DENGAN 8 HEADER (<th>)
+            // 3. RENDER 9 KOLOM
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${user.nama || '-'}</strong></td>
@@ -163,10 +191,18 @@ async function loadUsers() {
                 <td>${roleBadge}</td>
                 <td>${user.nip || '-'}</td>
                 <td>${user.mataPelajaran || user.mapel || '-'}</td>
-                <td>${statusBadge}</td>
+                <td>${masaAktifBadge}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm" onclick="window.bukaModalEdit('${safeEmail}')" style="padding:4px 8px;font-size:0.8rem;">✏️ Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="window.hapusUser('${safeEmail}', '${safeNama}')" style="padding:4px 8px;font-size:0.8rem;margin-left:4px;">🗑️</button>
+                    <span class="badge ${user.status === 'pending' ? 'badge-pending' : user.status === 'rejected' ? 'badge-rejected' : 'badge-active'}">
+                        ${user.status === 'pending' ? 'Pending' : user.status === 'rejected' ? 'Ditolak' : 'Aktif'}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                        <button class="btn btn-sm" onclick="window.tambahMasaAktif('${safeEmail}', '${safeNama}')" style="background:#e2e8f0; color:#1e293b; padding:4px 8px; font-size:0.75rem; border-radius:6px; border:none; cursor:pointer;" title="Tambah 1 Tahun">➕ 1 Thn</button>
+                        <button class="btn btn-primary btn-sm" onclick="window.bukaModalEdit('${safeEmail}')" style="padding:4px 8px; font-size:0.75rem;">✏️</button>
+                        <button class="btn btn-danger btn-sm" onclick="window.hapusUser('${safeEmail}', '${safeNama}')" style="padding:4px 8px; font-size:0.75rem;">🗑️</button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -176,6 +212,45 @@ async function loadUsers() {
         loading.innerHTML = `<div style="color:#ef4444;padding:20px;">❌ Gagal memuat: ${err.message}</div>`;
     }
 }
+
+// ══════════════════════════════════════════════
+// ➕ TAMBAH MASA AKTIF 1 TAHUN (SMART RENEWAL)
+// ══════════════════════════════════════════════
+window.tambahMasaAktif = async (email, nama) => {
+    if (!confirm(`Perpanjang masa aktif "${nama}" selama 1 Tahun (365 hari)?`)) return;
+    
+    try {
+        const docRef = doc(db, 'users', email);
+        const docSnap = await getDoc(docRef);
+        const userData = docSnap.data();
+        
+        let newExpiresAt = new Date();
+        
+        // Jika sudah ada expiresAt dan belum expired, tambahkan 1 tahun dari tanggal tersebut
+        // Ini mencegah user kehilangan sisa hari yang sudah mereka bayar
+        if (userData && userData.expiresAt) {
+            const currentExpires = new Date(userData.expiresAt);
+            const now = new Date();
+            if (currentExpires > now) {
+                newExpiresAt = currentExpires;
+            }
+        }
+        
+        // Tambah 1 tahun
+        newExpiresAt.setFullYear(newExpiresAt.getFullYear() + 1);
+        
+        await updateDoc(docRef, {
+            expiresAt: newExpiresAt.toISOString(),
+            status: 'active',
+            renewedAt: new Date().toISOString()
+        });
+        
+        showNotification(`✅ Masa aktif "${nama}" diperpanjang hingga ${newExpiresAt.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}`, 'success');
+        loadUsers();
+    } catch (err) {
+        showNotification('❌ Gagal memperpanjang: ' + err.message, 'error');
+    }
+};
 
 // ══════════════════════════════════════════════
 // 🔐 TOGGLE & COPY PASSWORD
@@ -200,7 +275,6 @@ window.copyPassword = async (password) => {
         await navigator.clipboard.writeText(password);
         showNotification('✅ Password disalin ke clipboard!', 'success');
     } catch (err) {
-        // Fallback untuk browser lama
         const textArea = document.createElement('textarea');
         textArea.value = password;
         document.body.appendChild(textArea);
@@ -227,11 +301,10 @@ window.setPassword = async (safeEmail, originalEmail) => {
 };
 
 // ══════════════════════════════════════════════
-// ✏️ EDIT USER (DIOPTIMALKAN DENGAN getDoc)
+// ✏️ EDIT USER
 // ══════════════════════════════════════════════
 window.bukaModalEdit = async (safeEmail) => {
     try {
-        // Gunakan getDoc untuk mengambil 1 dokumen spesifik (lebih cepat dari getDocs)
         const docSnap = await getDoc(doc(db, 'users', safeEmail));
         if (!docSnap.exists()) return alert('Data user tidak ditemukan!');
         
@@ -285,7 +358,7 @@ document.getElementById('btnBatalEdit')?.addEventListener('click', () => {
 // 🗑️ HAPUS USER
 // ══════════════════════════════════════════════
 window.hapusUser = async (email, nama) => {
-    if (!confirm(`⚠️ Yakin hapus user "${nama}" (${email}) secara permanen?`)) return;
+    if (!confirm(`⚠️ Yakin hapus user "${nama}" (${email}) secara permanen? Tindakan ini tidak dapat dibatalkan.`)) return;
     try {
         await deleteDoc(doc(db, 'users', email));
         showNotification('✅ User dihapus!', 'success');
@@ -297,7 +370,7 @@ window.hapusUser = async (email, nama) => {
 };
 
 // ══════════════════════════════════════════════
-// 📥 EKSPOR KE EXCEL
+// 📥 EKSPOR KE EXCEL (DIPERTAJAM)
 // ══════════════════════════════════════════════
 document.getElementById('btnExportExcel')?.addEventListener('click', () => {
     const tabel = document.querySelector('#tableUsers table');
@@ -306,10 +379,14 @@ document.getElementById('btnExportExcel')?.addEventListener('click', () => {
         return;
     }
     const cloneTabel = tabel.cloneNode(true);
-    // Hapus kolom aksi agar tidak ikut terekspor
+    
+    // Hapus kolom terakhir (Aksi) secara dinamis agar tidak ikut terekspor
     cloneTabel.querySelectorAll('tr').forEach(row => {
-        if (row.cells.length > 7) row.deleteCell(7); 
+        if (row.cells.length > 0) {
+            row.deleteCell(row.cells.length - 1);
+        }
     });
+    
     try {
         const wb = XLSX.utils.table_to_book(cloneTabel, { sheet: "Daftar Akun" });
         const tanggal = new Date().toISOString().split('T')[0];
@@ -414,4 +491,4 @@ window.loadUsers = loadUsers;
 loadUsers();
 loadPendingUsers();
 
-console.log('✅ Users manager loaded & fixed!');
+console.log('✅ Users manager loaded & optimized!');
