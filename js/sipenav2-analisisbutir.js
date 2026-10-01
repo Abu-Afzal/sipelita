@@ -459,24 +459,30 @@ async function tampilkanHasilAnalisis() {
   let totalSkorPerSoal = {};
   let maxPerSoal = {};
   let minPerSoal = {};
-  butirKeys.forEach(k => { 
-    totalSkorPerSoal[k] = 0; 
-    maxPerSoal[k] = -1; 
-    minPerSoal[k] = 999999; 
-  });
+  
+  // Inisialisasi
+  if (butirKeys && butirKeys.length > 0) {
+    butirKeys.forEach(k => { 
+      totalSkorPerSoal[k] = 0; 
+      maxPerSoal[k] = -1; 
+      minPerSoal[k] = 999999; 
+    });
+  }
 
   siswaList.forEach(s => {
     const studentRecord = records[s.id] || {};
     let totalNilaiSiswa = studentRecord.total || 0;
     const nilaiPerSoal = {};
     
-    butirKeys.forEach(k => {
-      const skor = studentRecord[k] !== undefined ? Number(studentRecord[k]) : 0;
-      nilaiPerSoal[k] = skor;
-      totalSkorPerSoal[k] += skor;
-      if (skor > maxPerSoal[k]) maxPerSoal[k] = skor;
-      if (skor < minPerSoal[k]) minPerSoal[k] = skor;
-    });
+    if (butirKeys && butirKeys.length > 0) {
+      butirKeys.forEach(k => {
+        const skor = studentRecord[k] !== undefined ? Number(studentRecord[k]) : 0;
+        nilaiPerSoal[k] = skor;
+        totalSkorPerSoal[k] += skor;
+        if (skor > maxPerSoal[k]) maxPerSoal[k] = skor;
+        if (skor < minPerSoal[k]) minPerSoal[k] = skor;
+      });
+    }
 
     const pctKetercapaianSiswa = totalSkorMax > 0 ? ((totalNilaiSiswa / totalSkorMax) * 100).toFixed(0) : 0;
     const isTuntas = totalNilaiSiswa >= kkm;
@@ -494,131 +500,131 @@ async function tampilkanHasilAnalisis() {
   const jmlTuntas = analisisData.filter(d => d.isTuntas).length;
   const jmlTidakTuntas = jmlPeserta - jmlTuntas;
   const ketuntasanKlasikal = jmlPeserta > 0 ? ((jmlTuntas / jmlPeserta) * 100).toFixed(0) : 0;
-  const ketuntasanIndividual = jmlTidakTuntas;
 
   // Statistik per soal
-  const statistikPerSoal = butirKeys.map(key => {
-    const skorMax = Number(soalButir[key].max || 0);
-    const skorDiperoleh = totalSkorPerSoal[key];
-    const skorIdeal = skorMax * jmlPeserta;
-    const rataRata = jmlPeserta > 0 ? skorDiperoleh / jmlPeserta : 0;
-    const pctKetercapaian = skorIdeal > 0 ? ((skorDiperoleh / skorIdeal) * 100).toFixed(0) : 0;
-    const pctKegagalan = (100 - pctKetercapaian).toFixed(0);
-    const skorKegagalan = skorIdeal - skorDiperoleh;
+  const statistikPerSoal = [];
+  if (butirKeys && butirKeys.length > 0) {
+    statistikPerSoal = butirKeys.map(key => {
+      const skorMax = Number(soalButir[key].max || 0);
+      const skorDiperoleh = totalSkorPerSoal[key] || 0;
+      const skorIdeal = skorMax * jmlPeserta;
+      const rataRata = jmlPeserta > 0 ? skorDiperoleh / jmlPeserta : 0;
+      const pctKetercapaian = skorIdeal > 0 ? ((skorDiperoleh / skorIdeal) * 100).toFixed(0) : 0;
+      const pctKegagalan = (100 - pctKetercapaian).toFixed(0);
+      const skorKegagalan = skorIdeal - skorDiperoleh;
 
-    return {
-      noSoal: key.replace('soal_', ''),
-      skorMax,
-      skorDiperoleh,
-      skorIdeal,
-      rataRata: rataRata.toFixed(2),
-      pctKetercapaian,
-      pctKegagalan,
-      skorKegagalan,
-      max: maxPerSoal[key] >= 0 ? maxPerSoal[key] : 0,
-      min: minPerSoal[key] < 999999 ? minPerSoal[key] : 0,
-      totalJml: skorDiperoleh
-    };
-  });
+      return {
+        noSoal: key.replace('soal_', ''),
+        skorMax,
+        skorDiperoleh,
+        skorIdeal,
+        rataRata: rataRata.toFixed(2),
+        pctKetercapaian,
+        pctKegagalan,
+        skorKegagalan,
+        max: maxPerSoal[key] >= 0 ? maxPerSoal[key] : 0,
+        min: minPerSoal[key] < 999999 ? minPerSoal[key] : 0,
+        totalJml: skorDiperoleh
+      };
+    });
+  }
 
   const totalJumlah = statistikPerSoal.reduce((sum, s) => sum + s.skorDiperoleh, 0);
-  const totalRataRata = jmlPeserta > 0 ? (totalJumlah / (jmlPeserta * butirKeys.length) * 100 / totalSkorMax * totalSkorMax).toFixed(0) : 0;
-  const totalRataRataSimple = (statistikPerSoal.reduce((sum, s) => sum + parseFloat(s.rataRata), 0) / butirKeys.length).toFixed(0);
+  const totalRataRataSimple = statistikPerSoal.length > 0 ? (statistikPerSoal.reduce((sum, s) => sum + parseFloat(s.rataRata), 0) / statistikPerSoal.length).toFixed(0) : 0;
 
   // ===== RENDER HEADER INFO =====
-  const mapel = penilaian.mapel || document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex].dataset.mapel || '-';
-  const kelasNama = document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex].dataset.nama;
+  const mapel = penilaian.mapel || (document.getElementById('butirKelasSelect') ? document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex].dataset.mapel : '-') || '-';
+  const kelasNama = document.getElementById('butirKelasSelect') ? document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex].dataset.nama : '-';
   const semester = penilaian.semester || 'Genap';
   const tahunAjaran = penilaian.tahun_ajaran || '2024/2025';
-  const jumlahSoal = butirKeys.length;
+  const jumlahSoal = butirKeys ? butirKeys.length : 0;
 
   // ===== RENDER TABEL A: RINCIAN NILAI PESERTA (HEADER 3 BARIS) =====
-  const headerBaris1 = `
-    <tr>
-      <th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">No.</th>
-      <th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0;">NAMA PESERTA DIDIK</th>
-      <th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">L/P</th>
-      <th colspan="${butirKeys.length}" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">NO. SOAL / SKOR MAKSIMUM</th>
-      <th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">Jmlh<br>Skor</th>
-      <th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">%<br>Ketercapaian</th>
-      <th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">Tuntas</th>
-    </tr>
-    <tr>
-      ${butirKeys.map(k => `<th style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">${k.replace('soal_', '')}</th>`).join('')}
-    </tr>
-    <tr>
-      ${butirKeys.map(k => `<th style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">${soalButir[k].max}</th>`).join('')}
-    </tr>
-  `;
+  let headerBaris1 = '<tr>';
+  headerBaris1 += '<th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">No.</th>';
+  headerBaris1 += '<th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0;">NAMA PESERTA DIDIK</th>';
+  headerBaris1 += '<th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">L/P</th>';
+  headerBaris1 += `<th colspan="${jumlahSoal}" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">NO. SOAL/SKOR MAKSIMUM</th>`;
+  headerBaris1 += '<th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">Jmlh<br>Skor</th>';
+  headerBaris1 += '<th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">% Ketercapaian</th>';
+  headerBaris1 += '<th rowspan="3" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">Tuntas</th>';
+  headerBaris1 += '</tr>';
+
+  let headerBaris2 = '<tr>';
+  if (butirKeys && butirKeys.length > 0) {
+    butirKeys.forEach(k => {
+      headerBaris2 += `<th style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">${k.replace('soal_', '')}</th>`;
+    });
+  }
+  headerBaris2 += '</tr>';
+
+  let headerBaris3 = '<tr>';
+  if (butirKeys && butirKeys.length > 0) {
+    butirKeys.forEach(k => {
+      const skorMax = soalButir[k] ? soalButir[k].max : 0;
+      headerBaris3 += `<th style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">${skorMax}</th>`;
+    });
+  }
+  headerBaris3 += '</tr>';
 
   let rowsSiswa = '';
-  analisisData.forEach((d, i) => {
-    let colsSoal = '';
-    butirKeys.forEach(k => {
-      colsSoal += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${d.nilaiPerSoal[k] || 0}</td>`;
-    });
+  if (analisisData && analisisData.length > 0) {
+    analisisData.forEach((d, i) => {
+      let colsSoal = '';
+      if (butirKeys && butirKeys.length > 0) {
+        butirKeys.forEach(k => {
+          colsSoal += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${d.nilaiPerSoal[k] || 0}</td>`;
+        });
+      }
 
-    rowsSiswa += `<tr>
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${i + 1}</td>
-      <td style="border:1px solid #000; padding:4px; font-size:10pt;">${d.siswa.student_name}</td>
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${d.siswa.l_p || '-'}</td>
-      ${colsSoal}
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${d.total}</td>
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${d.pctKetercapaian}</td>
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${d.isTuntas ? 'Tuntas' : 'Tidak Tuntas'}</td>
-    </tr>`;
-  });
+      rowsSiswa += `<tr>
+        <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${i + 1}</td>
+        <td style="border:1px solid #000; padding:4px; font-size:10pt;">${d.siswa.student_name || '-'}</td>
+        <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${d.siswa.l_p || '-'}</td>
+        ${colsSoal}
+        <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${d.total}</td>
+        <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${d.pctKetercapaian}</td>
+        <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${d.isTuntas ? 'Tuntas' : 'Tidak Tuntas'}</td>
+      </tr>`;
+    });
+  }
 
   // ===== RENDER STATISTIK PER SOAL =====
-  const jumlahRow = `
-    <tr>
-      <td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;"></td>
-      ${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${s.skorDiperoleh}</td>`).join('')}
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${totalJumlah}</td>
-      <td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td>
-    </tr>
-  `;
-  
-  const rataRataRow = `
-    <tr>
-      <td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;"></td>
-      ${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.rataRata}</td>`).join('')}
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${totalRataRataSimple}</td>
-      <td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td>
-    </tr>
-  `;
+  let jumlahRow = '<tr><td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;">Jumlah</td>';
+  let rataRataRow = '<tr><td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;">Rata-rata</td>';
+  let tertinggiRow = '<tr><td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;">Nilai tertinggi</td>';
+  let terendahRow = '<tr><td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;">Nilai terendah</td>';
 
-  const tertinggiRow = `
-    <tr>
-      <td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;"></td>
-      ${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.max}</td>`).join('')}
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${Math.max(...analisisData.map(d => d.total))}</td>
-      <td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td>
-    </tr>
-  `;
+  if (statistikPerSoal && statistikPerSoal.length > 0) {
+    statistikPerSoal.forEach(s => {
+      jumlahRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${s.skorDiperoleh}</td>`;
+      rataRataRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.rataRata}</td>`;
+      tertinggiRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.max}</td>`;
+      terendahRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.min}</td>`;
+    });
+  }
 
-  const terendahRow = `
-    <tr>
-      <td colspan="3" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold;"></td>
-      ${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.min}</td>`).join('')}
-      <td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${Math.min(...analisisData.map(d => d.total))}</td>
-      <td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td>
-    </tr>
-  `;
+  jumlahRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${totalJumlah}</td><td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td></tr>`;
+  rataRataRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${totalRataRataSimple}</td><td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td></tr>`;
+  tertinggiRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${analisisData.length > 0 ? Math.max(...analisisData.map(d => d.total)) : 0}</td><td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td></tr>`;
+  terendahRow += `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${analisisData.length > 0 ? Math.min(...analisisData.map(d => d.total)) : 0}</td><td colspan="2" style="border:1px solid #000; padding:4px; font-size:10pt;"></td></tr>`;
 
-  // ===== RENDER TABEL B: HASIL ANALISIS (FORMAT LEBAR + KOLOM KESIMPULAN) =====
-  const headerTabelB = `
-    <tr>
-      <th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:30px;">No</th>
-      <th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:200px;">Keterangan</th>
-      <th colspan="${butirKeys.length}" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">Nomor Soal</th>
-      <th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:80px;">Total</th>
-      <th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:250px;">Kesimpulan</th>
-    </tr>
-    <tr>
-      ${butirKeys.map(k => `<th style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">${k.replace('soal_', '')}</th>`).join('')}
-    </tr>
-  `;
+  // ===== RENDER TABEL B: HASIL ANALISIS =====
+  let headerTabelB = '<tr>';
+  headerTabelB += '<th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:30px;">No</th>';
+  headerTabelB += '<th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:200px;">Keterangan</th>';
+  headerTabelB += `<th colspan="${jumlahSoal}" style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">Nomor Soal</th>`;
+  headerTabelB += '<th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:80px;">Total</th>';
+  headerTabelB += '<th rowspan="2" style="border:1px solid #000; padding:6px; background:#f0f0f0; width:250px;">Kesimpulan</th>';
+  headerTabelB += '</tr>';
+
+  let subHeaderTabelB = '<tr>';
+  if (butirKeys && butirKeys.length > 0) {
+    butirKeys.forEach(k => {
+      subHeaderTabelB += `<th style="border:1px solid #000; padding:6px; background:#f0f0f0; text-align:center;">${k.replace('soal_', '')}</th>`;
+    });
+  }
+  subHeaderTabelB += '</tr>';
 
   const barisAnalisis = [
     { no: 1, ket: 'Jumlah skor yang diperoleh', vals: statistikPerSoal.map(s => s.skorDiperoleh), total: totalJumlah },
@@ -631,45 +637,54 @@ async function tampilkanHasilAnalisis() {
     { no: 8, ket: 'Jumlah peserta yang tuntas', vals: statistikPerSoal.map(s => s.tuntas || jmlPeserta), total: jmlTuntas }
   ];
 
-  // Hitung tidak tuntas per soal (siswa yang mendapat < 75% dari skor max soal)
-  statistikPerSoal.forEach((s, idx) => {
-    const tidakTuntas = analisisData.filter(d => {
-      const skorMax = Number(soalButir[butirKeys[idx]].max || 0);
-      return skorMax > 0 && (d.nilaiPerSoal[butirKeys[idx]] / skorMax) < 0.75;
-    }).length;
-    s.tidakTuntas = tidakTuntas;
-    s.tuntas = jmlPeserta - tidakTuntas;
-    barisAnalisis[6].vals[idx] = tidakTuntas;
-    barisAnalisis[7].vals[idx] = jmlPeserta - tidakTuntas;
-  });
+  // Hitung tidak tuntas per soal
+  if (statistikPerSoal && statistikPerSoal.length > 0 && butirKeys && butirKeys.length > 0) {
+    statistikPerSoal.forEach((s, idx) => {
+      const tidakTuntas = analisisData.filter(d => {
+        const skorMax = Number(soalButir[butirKeys[idx]] ? soalButir[butirKeys[idx]].max : 0);
+        return skorMax > 0 && (d.nilaiPerSoal[butirKeys[idx]] / skorMax) < 0.75;
+      }).length;
+      s.tidakTuntas = tidakTuntas;
+      s.tuntas = jmlPeserta - tidakTuntas;
+      barisAnalisis[6].vals[idx] = tidakTuntas;
+      barisAnalisis[7].vals[idx] = jmlPeserta - tidakTuntas;
+    });
+  }
 
   const kesimpulanHtml = `
     <strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
-    <strong>b. Ketuntasan Individual yang perlu remedial:</strong> ${jmlTidakTuntas} (${((jmlTidakTuntas/jmlPeserta)*100).toFixed(0)}%) orang<br><br>
+    <strong>b. Ketuntasan Individual yang perlu remedial:</strong> ${jmlTidakTuntas} (${jmlPeserta > 0 ? ((jmlTidakTuntas/jmlPeserta)*100).toFixed(0) : 0}%) orang<br><br>
     <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.
   `;
 
   let rowsTabelB = '';
-  barisAnalisis.forEach((baris, idx) => {
-    rowsTabelB += `<tr>
-      <td style="border:1px solid #000; padding:6px; font-size:10pt; text-align:center;">${baris.no}</td>
-      <td style="border:1px solid #000; padding:6px; font-size:10pt;">${baris.ket}</td>
-      ${baris.vals.map(v => `<td style="border:1px solid #000; padding:6px; font-size:10pt; text-align:center;">${v}</td>`).join('')}
-      <td style="border:1px solid #000; padding:6px; font-size:10pt; text-align:center; font-weight:bold;">${baris.total}</td>
-      ${idx === 0 ? `<td rowspan="8" style="border:1px solid #000; padding:10px; font-size:10pt; vertical-align:top;">${kesimpulanHtml}</td>` : ''}
-    </tr>`;
-  });
+  if (barisAnalisis && barisAnalisis.length > 0) {
+    barisAnalisis.forEach((baris, idx) => {
+      let valsHtml = '';
+      if (baris.vals && baris.vals.length > 0) {
+        valsHtml = baris.vals.map(v => `<td style="border:1px solid #000; padding:6px; font-size:10pt; text-align:center;">${v}</td>`).join('');
+      }
+      
+      rowsTabelB += `<tr>
+        <td style="border:1px solid #000; padding:6px; font-size:10pt; text-align:center;">${baris.no}</td>
+        <td style="border:1px solid #000; padding:6px; font-size:10pt;">${baris.ket}</td>
+        ${valsHtml}
+        <td style="border:1px solid #000; padding:6px; font-size:10pt; text-align:center; font-weight:bold;">${baris.total || ''}</td>
+        ${idx === 0 ? `<td rowspan="8" style="border:1px solid #000; padding:10px; font-size:10pt; vertical-align:top;">${kesimpulanHtml}</td>` : ''}
+      </tr>`;
+    });
+  }
 
   // ===== SIG: KOP SURAT & TANDA TANGAN =====
   const tglSurat = `${new Date().getDate()} ${NAMA_BULAN[new Date().getMonth()]} ${new Date().getFullYear()}`;
   const rawNipGuru = currentUserData?.nip || '';
   const nipGuru = rawNipGuru ? (rawNipGuru.startsWith('NIP.') ? rawNipGuru : 'NIP. ' + rawNipGuru) : 'NIP. ............................................';
-  const namaGuruCetak = formatKapital(currentUserData?.namaResmi || currentUserData?.nama || currentUser.email || '', FORMAT_NAMA.guru);
-  const namaKepala = formatKapital(CONFIG_MADRASAH.kepalaMadrasah || 'MUHAMMAD ARIF PITHER, S.Ag.,MM', FORMAT_NAMA.kepala);
-  const nipKepala = CONFIG_MADRASAH.nipKepala || '19710930 200710 1 001';
-  const namaMadrasah = CONFIG_MADRASAH.kop2 || 'MAN BANTAENG';
+  const namaGuruCetak = formatKapital ? formatKapital(currentUserData?.namaResmi || currentUserData?.nama || currentUser?.email || '', FORMAT_NAMA ? FORMAT_NAMA.guru : 'upper') : (currentUserData?.nama || 'Guru');
+  const namaKepala = formatKapital ? formatKapital(CONFIG_MADRASAH?.kepalaMadrasah || 'MUHAMMAD ARIF PITHER, S.Ag.,MM', FORMAT_NAMA ? FORMAT_NAMA.kepala : 'upper') : 'KEPALA MADRASAH';
+  const nipKepala = CONFIG_MADRASAH?.nipKepala || 'NIP. ............................................';
+  const namaMadrasah = CONFIG_MADRASAH?.kop2 || 'MAN BANTAENG';
 
-  const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
+  const logoKop = CONFIG_MADRASAH?.logo || (location.origin + '/assets/images/kemenag-app.png');
   const kopHtml = `
     <div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
       <table style="width:100%; border-collapse:collapse;">
@@ -678,9 +693,9 @@ async function tampilkanHasilAnalisis() {
             <img src="${logoKop}" style="width:62px; height:auto;" onerror="this.style.visibility='hidden'">
           </td>
           <td style="text-align:center; border:none;">
-            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH.kop1 || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG'}</div>
+            <div style="font-size:14pt; font-weight:bold;">${CONFIG_MADRASAH?.kop1 || 'KEMENTERIAN AGAMA KABUPATEN BANTAENG'}</div>
             <div style="font-size:14pt; font-weight:bold;">${namaMadrasah}</div>
-            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH.alamat || 'Jl. Pendidikan No. 1, Bantaeng'}</div>
+            <div style="font-size:12pt; font-style:italic;">${CONFIG_MADRASAH?.alamat || 'Jl. Pendidikan No. 1, Bantaeng'}</div>
           </td>
           <td style="width:75px; border:none;"></td>
         </tr>
@@ -698,7 +713,7 @@ async function tampilkanHasilAnalisis() {
           <b style="font-size:10pt;">${nipKepala}</b>
         </td>
         <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:100px;">
-          <div style="margin-top:4px;">${CONFIG_MADRASAH.kota || 'Bantaeng'}, ${tglSurat}</div>
+          <div style="margin-top:4px;">${CONFIG_MADRASAH?.kota || 'Bantaeng'}, ${tglSurat}</div>
           <div style="font-weight:bold; margin-top:4px;">GURU BIDANG STUDY</div>
           <div style="height:70px;"></div>
           <b><u><span style="font-size:10pt; white-space:nowrap;">${namaGuruCetak}</span></u></b><br>
@@ -747,20 +762,20 @@ async function tampilkanHasilAnalisis() {
       <h3 style="font-size:11pt; margin:16px 0 8px 0; font-weight:bold;">A. Rincian Nilai Peserta</h3>
       <div style="overflow-x:auto;">
         <table style="width:100%; border-collapse:collapse; font-size:10pt;">
-          <thead>${headerBaris1}</thead>
+          <thead>${headerBaris1}${headerBaris2}${headerBaris3}</thead>
           <tbody>
             ${rowsSiswa}
-            <tr><td colspan="${3 + butirKeys.length + 3}" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold; text-align:left;">Jumlah</td>${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${s.skorDiperoleh}</td>`).join('')}<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${totalJumlah}</td><td colspan="2" style="border:1px solid #000;"></td></tr>
-            <tr><td colspan="${3 + butirKeys.length + 3}" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold; text-align:left;">Rata-rata</td>${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.rataRata}</td>`).join('')}<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${totalRataRataSimple}</td><td colspan="2" style="border:1px solid #000;"></td></tr>
-            <tr><td colspan="${3 + butirKeys.length + 3}" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold; text-align:left;">Nilai tertinggi</td>${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.max}</td>`).join('')}<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${Math.max(...analisisData.map(d => d.total))}</td><td colspan="2" style="border:1px solid #000;"></td></tr>
-            <tr><td colspan="${3 + butirKeys.length + 3}" style="border:1px solid #000; padding:4px; font-size:10pt; font-weight:bold; text-align:left;">Nilai terendah</td>${statistikPerSoal.map(s => `<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center;">${s.min}</td>`).join('')}<td style="border:1px solid #000; padding:4px; font-size:10pt; text-align:center; font-weight:bold;">${Math.min(...analisisData.map(d => d.total))}</td><td colspan="2" style="border:1px solid #000;"></td></tr>
+            ${jumlahRow}
+            ${rataRataRow}
+            ${tertinggiRow}
+            ${terendahRow}
           </tbody>
         </table>
       </div>
 
       <h3 style="font-size:11pt; margin:20px 0 8px 0; font-weight:bold;">B. Hasil Analisis Per Butir Soal</h3>
       <table style="width:100%; border-collapse:collapse; font-size:10pt;">
-        <thead>${headerTabelB}</thead>
+        <thead>${headerTabelB}${subHeaderTabelB}</thead>
         <tbody>${rowsTabelB}</tbody>
       </table>
 
