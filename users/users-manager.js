@@ -1,6 +1,6 @@
 import { auth, db } from '../js/firebase-config.js';
 import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, setDoc, getDocs, collection, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, setDoc, getDocs, getDoc, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const formTambah = document.getElementById('formTambahUser');
 const btnTambah  = document.getElementById('btnTambah');
@@ -25,12 +25,7 @@ function showNotification(message, type = 'success') {
     if (!document.getElementById('toast-keyframes')) {
         const style = document.createElement('style');
         style.id = 'toast-keyframes';
-        style.textContent = `
-            @keyframes slideInRight {
-                from { transform: translateX(400px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-        `;
+        style.textContent = `@keyframes slideInRight { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
         document.head.appendChild(style);
     }
     document.body.appendChild(toast);
@@ -52,7 +47,7 @@ function tampilkanAlert(elementId, pesan, tipe = 'success') {
 }
 
 // ══════════════════════════════════════════════
-// ➕ TAMBAH USER BARU (LANGSUNG ACTIVE)
+// ➕ TAMBAH USER BARU
 // ══════════════════════════════════════════════
 formTambah?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -74,8 +69,8 @@ formTambah?.addEventListener('submit', async (e) => {
             uid: cred.user.uid,
             email, nama, password, role,
             nip, mataPelajaran,
-            status: 'active',                             // ← WAJIB: langsung aktif
-            approvedAt: new Date().toISOString(),         // ← WAJIB
+            status: 'active',
+            approvedAt: new Date().toISOString(),
             approvedBy: auth.currentUser?.email || 'admin',
             createdAt: new Date().toISOString()
         });
@@ -98,7 +93,7 @@ formTambah?.addEventListener('submit', async (e) => {
 });
 
 // ══════════════════════════════════════════════
-// 📋 LOAD DAFTAR USER (Dengan Status Badge)
+// 📋 LOAD DAFTAR USER (DIPERBAIKI: 8 KOLOM PASTI)
 // ══════════════════════════════════════════════
 async function loadUsers() {
     const tbody = document.getElementById('userTableBody');
@@ -122,53 +117,56 @@ async function loadUsers() {
 
         snapshot.forEach(docSnap => {
             const user = docSnap.data();
-            const email = docSnap.id;
-            const safePassword = (user.password || '')
-                .replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-                .replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const email = docSnap.id; // ID dokumen adalah email
+            
+            // Escape karakter khusus agar tidak merusak HTML/JS
+            const safeEmail = email.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safePw = (user.password || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safeNama = (user.nama || '-').replace(/'/g, "\\'");
 
             const roleBadge = user.role === 'admin' 
                 ? '<span class="badge badge-admin">👑 Admin</span>' 
                 : '<span class="badge badge-guru">👤 Guru</span>';
 
-            // ✅ BADGE STATUS APPROVAL
             const statusBadge = user.status === 'pending'
                 ? '<span class="badge badge-pending">⏳ Pending</span>'
                 : user.status === 'rejected'
                     ? '<span class="badge badge-rejected">❌ Ditolak</span>'
                     : '<span class="badge badge-active">✅ Aktif</span>';
 
+            // LOGIKA PASSWORD: Tampilkan tombol lihat/salin, atau tombol "Set" jika belum ada
             let passwordCell = '';
-            if (user.password) {
+            if (user.password && user.password.length > 0) {
                 passwordCell = `
                     <div class="pw-cell">
-                        <span id="pwd-${docSnap.id}">••••••••</span>
-                        <button onclick="window.togglePassword('${docSnap.id}', '${safePassword}')" title="Lihat">👁️</button>
-                        <button onclick="window.copyPassword('${safePassword}')" title="Salin">📋</button>
+                        <span id="pwd-${safeEmail}">••••••••</span>
+                        <button type="button" onclick="window.togglePassword('${safeEmail}', '${safePw}')" title="Lihat" style="background:none;border:none;cursor:pointer;font-size:1rem;">👁️</button>
+                        <button type="button" onclick="window.copyPassword('${safePw}')" title="Salin" style="background:none;border:none;cursor:pointer;font-size:1rem;">📋</button>
                     </div>
                 `;
             } else {
                 passwordCell = `
                     <div class="pw-cell">
-                        <span style="color:#94a3b8;font-style:italic;">Belum di-set</span>
-                        <button onclick="window.setPassword('${docSnap.id}', '${email.replace(/'/g, "\\'")}')" 
-                                style="background:#10b981;color:white;padding:2px 8px;font-size:0.72rem;border-radius:4px;font-weight:600;">🔑 Set</button>
+                        <span style="color:#94a3b8;font-style:italic;font-size:0.85rem;">Belum di-set</span>
+                        <button type="button" onclick="window.setPassword('${safeEmail}', '${safeEmail}')" 
+                                style="background:#10b981;color:white;padding:2px 6px;font-size:0.7rem;border-radius:4px;font-weight:600;border:none;cursor:pointer;margin-left:4px;">🔑 Set</button>
                     </div>
                 `;
             }
 
+            // PASTIKAN 8 KOLOM (<td>) SESUAI DENGAN 8 HEADER (<th>)
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${user.nama || '-'}</strong></td>
-                <td>${user.email}</td>
+                <td>${user.email || email}</td>
                 <td>${passwordCell}</td>
                 <td>${roleBadge}</td>
                 <td>${user.nip || '-'}</td>
-                <td>${user.mataPelajaran || '-'}</td>
+                <td>${user.mataPelajaran || user.mapel || '-'}</td>
                 <td>${statusBadge}</td>
                 <td>
-                    <button class="btn btn-warning btn-sm" onclick="window.bukaModalEdit('${email}')">✏️ Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="window.hapusUser('${email}')" style="margin-left:5px;">🗑️</button>
+                    <button class="btn btn-primary btn-sm" onclick="window.bukaModalEdit('${safeEmail}')" style="padding:4px 8px;font-size:0.8rem;">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="window.hapusUser('${safeEmail}', '${safeNama}')" style="padding:4px 8px;font-size:0.8rem;margin-left:4px;">🗑️</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -182,59 +180,69 @@ async function loadUsers() {
 // ══════════════════════════════════════════════
 // 🔐 TOGGLE & COPY PASSWORD
 // ══════════════════════════════════════════════
-window.togglePassword = (docId, password) => {
-    const span = document.getElementById(`pwd-${docId}`);
+window.togglePassword = (safeEmail, password) => {
+    const span = document.getElementById(`pwd-${safeEmail}`);
     if (!span) return;
+    
     if (span.textContent === '••••••••') {
         span.textContent = password;
         span.style.color = '#d32f2f';
-        span.style.letterSpacing = 'normal';
+        span.style.fontFamily = 'monospace';
     } else {
         span.textContent = '••••••••';
         span.style.color = '#1a237e';
-        span.style.letterSpacing = '1px';
+        span.style.fontFamily = 'inherit';
     }
 };
 
 window.copyPassword = async (password) => {
     try {
         await navigator.clipboard.writeText(password);
-        showNotification('✅ Password disalin!', 'success');
+        showNotification('✅ Password disalin ke clipboard!', 'success');
     } catch (err) {
-        alert('Password: ' + password);
+        // Fallback untuk browser lama
+        const textArea = document.createElement('textarea');
+        textArea.value = password;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('✅ Password disalin!', 'success');
     }
 };
 
-window.setPassword = async (docId, email) => {
-    const newPassword = prompt(`Set password baru untuk:\n${email}\n\n(Minimal 6 karakter)`);
+window.setPassword = async (safeEmail, originalEmail) => {
+    const newPassword = prompt(`Set password baru untuk:\n${originalEmail}\n\n(Minimal 6 karakter)`);
     if (!newPassword || newPassword.length < 6) {
-        if (newPassword) alert('❌ Password minimal 6 karakter!');
+        if (newPassword) showNotification('❌ Password minimal 6 karakter!', 'error');
         return;
     }
     try {
-        await updateDoc(doc(db, 'users', docId), { password: newPassword });
+        await updateDoc(doc(db, 'users', originalEmail), { password: newPassword });
         showNotification('✅ Password berhasil di-set!', 'success');
         loadUsers();
     } catch (err) {
-        alert('❌ Gagal: ' + err.message);
+        showNotification('❌ Gagal: ' + err.message, 'error');
     }
 };
 
 // ══════════════════════════════════════════════
-// ✏️ EDIT USER
+// ✏️ EDIT USER (DIOPTIMALKAN DENGAN getDoc)
 // ══════════════════════════════════════════════
-window.bukaModalEdit = async (email) => {
+window.bukaModalEdit = async (safeEmail) => {
     try {
-        const docSnap = await getDocs(collection(db, 'users'));
-        let userData = null;
-        docSnap.forEach(d => { if (d.id === email) userData = d.data(); });
-        if (!userData) return alert('Data user tidak ditemukan!');
+        // Gunakan getDoc untuk mengambil 1 dokumen spesifik (lebih cepat dari getDocs)
+        const docSnap = await getDoc(doc(db, 'users', safeEmail));
+        if (!docSnap.exists()) return alert('Data user tidak ditemukan!');
+        
+        const userData = docSnap.data();
 
-        document.getElementById('editDocId').value = email;
+        document.getElementById('editDocId').value = safeEmail;
         document.getElementById('editNama').value = userData.nama || '';
         document.getElementById('editNip').value = userData.nip || '';
-        document.getElementById('editMapel').value = userData.mataPelajaran || '';
+        document.getElementById('editMapel').value = userData.mataPelajaran || userData.mapel || '';
         document.getElementById('editRole').value = userData.role || 'guru';
+        
         document.getElementById('modalEdit').style.display = 'flex';
     } catch (err) {
         alert('Gagal memuat data: ' + err.message);
@@ -262,10 +270,11 @@ document.getElementById('formEditUser')?.addEventListener('submit', async (e) =>
         showNotification('✅ Data user diperbarui!', 'success');
         loadUsers();
     } catch (err) {
-        alert('❌ Gagal: ' + err.message);
+        showNotification('❌ Gagal: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '💾 Simpan Perubahan';
     }
-    btn.disabled = false;
-    btn.innerHTML = '💾 Simpan Perubahan';
 });
 
 document.getElementById('btnBatalEdit')?.addEventListener('click', () => {
@@ -275,15 +284,15 @@ document.getElementById('btnBatalEdit')?.addEventListener('click', () => {
 // ══════════════════════════════════════════════
 // 🗑️ HAPUS USER
 // ══════════════════════════════════════════════
-window.hapusUser = async (email) => {
-    if (!confirm(`⚠️ Yakin hapus user "${email}" secara permanen?`)) return;
+window.hapusUser = async (email, nama) => {
+    if (!confirm(`⚠️ Yakin hapus user "${nama}" (${email}) secara permanen?`)) return;
     try {
         await deleteDoc(doc(db, 'users', email));
         showNotification('✅ User dihapus!', 'success');
         loadUsers();
         loadPendingUsers();
     } catch (err) {
-        alert('❌ Gagal: ' + err.message);
+        showNotification('❌ Gagal: ' + err.message, 'error');
     }
 };
 
@@ -293,24 +302,26 @@ window.hapusUser = async (email) => {
 document.getElementById('btnExportExcel')?.addEventListener('click', () => {
     const tabel = document.querySelector('#tableUsers table');
     if (!tabel || tabel.offsetParent === null) {
-        alert('❌ Tabel belum ada atau masih kosong!');
+        showNotification('❌ Tabel belum ada atau masih kosong!', 'error');
         return;
     }
     const cloneTabel = tabel.cloneNode(true);
+    // Hapus kolom aksi agar tidak ikut terekspor
     cloneTabel.querySelectorAll('tr').forEach(row => {
-        if (row.lastElementChild) row.removeChild(row.lastElementChild);
+        if (row.cells.length > 7) row.deleteCell(7); 
     });
     try {
-        const wb = XLSX.utils.table_to_book(cloneTabel, { sheet: "Daftar Akun SIPELITA" });
+        const wb = XLSX.utils.table_to_book(cloneTabel, { sheet: "Daftar Akun" });
         const tanggal = new Date().toISOString().split('T')[0];
         XLSX.writeFile(wb, `Daftar_Akun_SIPELITA_${tanggal}.xlsx`);
+        showNotification('✅ File Excel berhasil diunduh!', 'success');
     } catch (err) {
-        alert('❌ Gagal ekspor: ' + err.message);
+        showNotification('❌ Gagal ekspor: ' + err.message, 'error');
     }
 });
 
 // ══════════════════════════════════════════════
-// ⏳ APPROVAL PENDAFTAR BARU (dari register.html)
+// ⏳ APPROVAL PENDAFTAR BARU
 // ══════════════════════════════════════════════
 window.loadPendingUsers = async () => {
     const section = document.getElementById('approvalSection');
@@ -341,16 +352,17 @@ window.loadPendingUsers = async () => {
                 ? new Date(u.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' })
                 : '-';
             const safeNama = (u.nama || '-').replace(/"/g, '&quot;').replace(/'/g, "\\'");
+            const safeEmail = u.email.replace(/'/g, "\\'");
             return `
                 <tr>
                     <td><strong>${u.nama || '-'}</strong></td>
                     <td>${u.email}</td>
-                    <td>${u.mataPelajaran || '-'}</td>
+                    <td>${u.mataPelajaran || u.mapel || '-'}</td>
                     <td>${u.nip || '-'}</td>
                     <td>${tgl}</td>
                     <td style="text-align:center; white-space:nowrap;">
-                        <button class="btn-approve" onclick="window.approveUser('${u.id}', '${safeNama}')">✅ Approve</button>
-                        <button class="btn-reject-approval" onclick="window.rejectUser('${u.id}', '${safeNama}')">❌ Reject</button>
+                        <button class="btn-approve" onclick="window.approveUser('${safeEmail}', '${safeNama}')">✅ Approve</button>
+                        <button class="btn-reject-approval" onclick="window.rejectUser('${safeEmail}', '${safeNama}')">❌ Reject</button>
                     </td>
                 </tr>
             `;
@@ -361,10 +373,10 @@ window.loadPendingUsers = async () => {
     }
 };
 
-window.approveUser = async (id, nama) => {
+window.approveUser = async (email, nama) => {
     if (!confirm(`✅ Setujui pendaftaran "${nama}"?\n\nGuru ini langsung bisa login.`)) return;
     try {
-        await updateDoc(doc(db, 'users', id), {
+        await updateDoc(doc(db, 'users', email), {
             status: 'active',
             approvedAt: new Date().toISOString(),
             approvedBy: auth.currentUser?.email || 'admin'
@@ -373,15 +385,15 @@ window.approveUser = async (id, nama) => {
         window.loadPendingUsers();
         loadUsers();
     } catch (err) {
-        alert('❌ Gagal approve: ' + err.message);
+        showNotification('❌ Gagal approve: ' + err.message, 'error');
     }
 };
 
-window.rejectUser = async (id, nama) => {
+window.rejectUser = async (email, nama) => {
     const alasan = prompt(`Alasan penolakan untuk "${nama}" (opsional):`);
     if (alasan === null) return;
     try {
-        await updateDoc(doc(db, 'users', id), {
+        await updateDoc(doc(db, 'users', email), {
             status: 'rejected',
             rejectedAt: new Date().toISOString(),
             rejectedBy: auth.currentUser?.email || 'admin',
@@ -391,7 +403,7 @@ window.rejectUser = async (id, nama) => {
         window.loadPendingUsers();
         loadUsers();
     } catch (err) {
-        alert('❌ Gagal reject: ' + err.message);
+        showNotification('❌ Gagal reject: ' + err.message, 'error');
     }
 };
 
@@ -402,4 +414,4 @@ window.loadUsers = loadUsers;
 loadUsers();
 loadPendingUsers();
 
-console.log('✅ Users manager loaded (with approval)');
+console.log('✅ Users manager loaded & fixed!');
