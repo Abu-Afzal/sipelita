@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// SIPENA 2.0 - MODUL ANALISIS BUTIR SOAL
+// SIPENA 2.0 - MODUL ANALISIS BUTIR SOAL (FINAL & AMAN)
 // FORMAT: ANALISIS HASIL SUMATIF AKHIR SEMESTER (MAN BANTAENG)
 // ═══════════════════════════════════════════════════════════
 
@@ -23,7 +23,7 @@ function renderAnalisisButir() {
             </select>
           </div>
           <div class="fg" style="margin:0;">
-            <label> Penilaian</label>
+            <label>📝 Penilaian</label>
             <select id="butirPenilaianSelect" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
               <option value="">-- Pilih Penilaian --</option>
             </select>
@@ -33,7 +33,7 @@ function renderAnalisisButir() {
             <input type="number" id="butirKKM" value="75" min="0" max="100" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
           </div>
           <div class="fg" style="margin:0;">
-            <label>📅 Semester</label>
+            <label> Semester</label>
             <select id="butirSemester" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
               <option value="Ganjil">Ganjil</option>
               <option value="Genap" selected>Genap</option>
@@ -168,7 +168,6 @@ async function checkButirData() {
 
     if (penilaian.kkm !== kkm) await db.collection('penilaian').doc(penilaianId).update({ kkm: kkm });
 
-    // Simpan data setup di memori (termasuk Semester & TA pilihan guru)
     const setupData = { penilaianId, kelasId, kkm, penilaian, semester, tahunAjaran };
 
     if (Object.keys(soalButir).length === 0) {
@@ -187,7 +186,7 @@ async function checkButirData() {
 
 // ═══════════════════════════════════════════════════════════
 // 4. SETUP WIZARD
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function generateSkorMaxInputs() {
   const jumlah = Number(document.getElementById('setupJumlahSoal').value) || 10;
   const container = document.getElementById('skorMaxContainer');
@@ -237,10 +236,10 @@ function batalSetup() {
 }
 
 async function resetSetup() {
-  if (!confirm('Yakin ingin mereset setup?')) return;
+  if (!confirm('Yakin ingin mereset setup? Data nilai per butir akan hilang!')) return;
   try {
     await db.collection('penilaian').doc(currentButirSetup.penilaianId).update({
-      soal_butir: {}, nilai: {}, total_skor_max: 0
+      soal_butir: {}, nilai_butir: {}, total_skor_max: 0
     });
     currentButirSetup.soalButir = {};
     renderTabelInputNilai();
@@ -249,7 +248,7 @@ async function resetSetup() {
 
 // ═══════════════════════════════════════════════════════════
 // 5. RENDER TABEL INPUT NILAI
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 async function renderTabelInputNilai() {
   document.getElementById('step1').style.display = 'none';
   document.getElementById('step2').style.display = 'none';
@@ -280,7 +279,7 @@ async function renderTabelInputNilai() {
   siswaSnap.forEach(doc => siswaList.push({ id: doc.id, ...doc.data() }));
   siswaList.sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
 
-  // Baca dari nilai_butir (format baru), fallback ke nilai (format lama)
+  // Baca dari nilai_butir (format detail), fallback ke nilai (format total)
   const records = penilaian.nilai_butir || penilaian.nilai || {};
   const bodyRow = document.getElementById('bodyTabelInput');
   bodyRow.innerHTML = '';
@@ -324,70 +323,70 @@ function hitungTotalSiswa(siswaId) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// FUNGSI PINTAR: TIDAK MENIMPA NILAI LAMA DENGAN 0
+// FUNGSI PINTAR: 100% AMAN, TIDAK AKAN MENIMPA NILAI LAMA
 // ═══════════════════════════════════════════════════════════
 async function simpanNilaiButir() {
   if (!confirm('Simpan nilai?')) return;
   try {
     const { penilaianId, siswaList, butirKeys, soalButir } = currentButirSetup;
     
-    // 1. Ambil data existing terlebih dahulu
+    // 1. AMBIL DATA ASLI DARI DATABASE DULU
     const docSnap = await db.collection('penilaian').doc(penilaianId).get();
-    const existingData = docSnap.data();
-    const existingNilai = existingData.nilai || {};
-    const existingNilaiButir = existingData.nilai_butir || {};
+    const dataAsli = docSnap.data();
+    const nilaiAsli = dataAsli.nilai || {}; 
+    const nilaiButirAsli = dataAsli.nilai_butir || {};
 
+    const nilaiBaru = {};
     const nilaiButirBaru = {};
-    const nilaiTotalBaru = {};
+    let adaPerubahan = false;
 
     siswaList.forEach(s => {
       const inputs = document.querySelectorAll(`.input-nilai-butir[data-siswa="${s.id}"]`);
       let totalBaru = 0;
-      let adaInput = false;
-      const nilaiPerSoal = {};
+      let adaYangDiisi = false;
+      const detailSoal = {};
       
       inputs.forEach(input => {
         const val = input.value.trim();
         if (val !== '') {
-          adaInput = true;
-          const nilai = Number(val) || 0;
-          nilaiPerSoal[input.dataset.soal] = nilai;
-          totalBaru += nilai;
+          adaYangDiisi = true;
+          const skor = Number(val) || 0;
+          detailSoal[input.dataset.soal] = skor;
+          totalBaru += skor;
         }
       });
 
-      const nilaiLama = existingNilai[s.id];
-      const nilaiButirLama = existingNilaiButir[s.id];
-
-      // LOGIKA PINTAR:
-      if (adaInput) {
-        // Jika guru mengisi, simpan data baru
-        nilaiPerSoal.total = totalBaru;
-        nilaiButirBaru[s.id] = nilaiPerSoal;
-        nilaiTotalBaru[s.id] = totalBaru;
+      // LOGIKA PENTING:
+      if (adaYangDiisi) {
+        // Jika guru mengisi kolom soal, hitung dan simpan totalnya
+        detailSoal.total = totalBaru;
+        nilaiButirBaru[s.id] = detailSoal;
+        nilaiBaru[s.id] = totalBaru; // Update nilai utama
+        adaPerubahan = true;
       } else {
-        // Jika guru TIDAK mengisi (kosong), PERTAHANKAN nilai lama!
-        if (typeof nilaiLama === 'object' && nilaiLama !== null) {
-          nilaiTotalBaru[s.id] = nilaiLama.total || 0;
-        } else {
-          nilaiTotalBaru[s.id] = Number(nilaiLama) || 0;
-        }
+        // Jika guru TIDAK mengisi kolom soal sama sekali, 
+        // PERTAHANKAN nilai asli dari database! JANGAN DIUBAH!
+        nilaiBaru[s.id] = nilaiAsli[s.id] !== undefined ? nilaiAsli[s.id] : 0;
         
-        // Pertahankan juga data butir lama jika ada
-        if (nilaiButirLama) {
-          nilaiButirBaru[s.id] = nilaiButirLama;
+        // Pertahankan detail butir asli jika ada
+        if (nilaiButirAsli[s.id]) {
+          nilaiButirBaru[s.id] = nilaiButirAsli[s.id];
         }
       }
     });
+
+    // 2. SIMPAN KE DATABASE
+    const updateData = { nilai_butir: nilaiButirBaru };
     
-    // 2. Update dengan MERGE, bukan REPLACE total
-    await db.collection('penilaian').doc(penilaianId).update({
-      nilai_butir: nilaiButirBaru,
-      nilai: nilaiTotalBaru
-    });
+    // Hanya update field 'nilai' utama jika ada perubahan yang valid dari user
+    if (adaPerubahan) {
+      updateData.nilai = nilaiBaru;
+    }
+
+    await db.collection('penilaian').doc(penilaianId).update(updateData);
     
-    alert('Nilai berhasil disimpan!');
-    renderTabelInputNilai(); // Refresh tampilan
+    alert('Nilai berhasil disimpan dengan aman!');
+    renderTabelInputNilai();
   } catch (error) { 
     alert('Gagal: ' + error.message); 
   }
@@ -400,7 +399,7 @@ function kembaliKeInput() {
 
 // ══════════════════════════════════════════════════════════
 // 6. TAMPILKAN HASIL ANALISIS
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 async function tampilkanHasilAnalisis() {
   console.log('✅✅✅ tampilkanHasilAnalisis() DIPANGGIL ✅✅✅');
   await simpanNilaiButir();
@@ -412,7 +411,6 @@ async function tampilkanHasilAnalisis() {
   // Baca dari nilai_butir (format baru), fallback ke nilai (format lama)
   const records = penilaian.nilai_butir || penilaian.nilai || {};
 
-  // Proses data per siswa
   const analisisData = [];
   let totalSkorPerSoal = {}, maxPerSoal = {}, minPerSoal = {};
   butirKeys.forEach(k => { totalSkorPerSoal[k] = 0; maxPerSoal[k] = -1; minPerSoal[k] = 999999; });
@@ -440,7 +438,6 @@ async function tampilkanHasilAnalisis() {
   const jmlTidakTuntas = jmlPeserta - jmlTuntas;
   const ketuntasanKlasikal = jmlPeserta > 0 ? ((jmlTuntas / jmlPeserta) * 100).toFixed(0) : 0;
 
-  // Statistik per soal
   const statistikPerSoal = butirKeys.map(key => {
     const skorMax = Number(soalButir[key].max || 0);
     const skorDiperoleh = totalSkorPerSoal[key];
@@ -461,7 +458,6 @@ async function tampilkanHasilAnalisis() {
   const maxTotal = Math.max(...analisisData.map(d => d.total));
   const minTotal = Math.min(...analisisData.map(d => d.total));
 
-  // Hitung tidak tuntas per soal
   statistikPerSoal.forEach((s, idx) => {
     const tidakTuntas = analisisData.filter(d => {
       const skorMax = Number(soalButir[butirKeys[idx]].max || 0);
@@ -471,21 +467,18 @@ async function tampilkanHasilAnalisis() {
     s.tuntas = jmlPeserta - tidakTuntas;
   });
 
-  // Info asesmen
   const mapel = penilaian.mapel || (document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.mapel) || '-';
   const kelasNama = document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.nama || '-';
   const semester = currentButirSetup?.semester || penilaian.semester || 'Genap';
   const tahunAjaran = currentButirSetup?.tahunAjaran || penilaian.tahun_ajaran || '2024/2025';
   const jumlahSoal = butirKeys.length;
 
-  // ===== STYLE KONSISTEN UNTUK SEMUA TABEL =====
   const b = 'border:1px solid #000; padding:4px; font-size:10pt;';
   const thStyle = `style="${b} background:#f0f0f0; font-weight:bold; text-align:center;"`;
   const tdStyle = `style="${b}"`;
   const tdCenter = `style="${b} text-align:center;"`;
   const tdBold = `style="${b} text-align:center; font-weight:bold;"`;
 
-  // ===== HEADER TABEL A (3 BARIS) =====
   const headerBaris1 = `<tr>
     <th rowspan="3" ${thStyle}>No.</th>
     <th rowspan="3" ${thStyle}>NAMA PESERTA DIDIK</th>
@@ -498,7 +491,6 @@ async function tampilkanHasilAnalisis() {
   <tr>${butirKeys.map(k => `<th ${thStyle}>${k.replace('soal_', '')}</th>`).join('')}</tr>
   <tr>${butirKeys.map(k => `<th ${thStyle}>${soalButir[k].max}</th>`).join('')}</tr>`;
 
-  // ===== BARIS SISWA =====
   let rowsSiswa = '';
   analisisData.forEach((d, i) => {
     rowsSiswa += `<tr>
@@ -512,7 +504,6 @@ async function tampilkanHasilAnalisis() {
     </tr>`;
   });
 
-  // ===== BARIS STATISTIK =====
   const makeStatRow = (label, key) => `<tr>
     <td colspan="3" ${tdStyle} style="${b} font-weight:bold;">${label}</td>
     ${statistikPerSoal.map(s => `<td ${tdCenter}>${key === 'max' ? s.max : key === 'min' ? s.min : key === 'rataRata' ? s.rataRata : s.skorDiperoleh}</td>`).join('')}
@@ -521,7 +512,6 @@ async function tampilkanHasilAnalisis() {
     <td ${tdCenter}></td>
   </tr>`;
 
-  // ===== HEADER TABEL B (2 BARIS) =====
   const headerTabelB = `<tr>
     <th rowspan="2" ${thStyle} style="${thStyle} width:30px;">No</th>
     <th rowspan="2" ${thStyle} style="${thStyle} width:200px;">Keterangan</th>
@@ -531,7 +521,6 @@ async function tampilkanHasilAnalisis() {
   </tr>
   <tr>${butirKeys.map(k => `<th ${thStyle}>${k.replace('soal_', '')}</th>`).join('')}</tr>`;
 
-  // ===== BARIS ANALISIS (8 BARIS) =====
   const barisAnalisis = [
     { no: 1, ket: 'Jumlah skor yang diperoleh', vals: statistikPerSoal.map(s => s.skorDiperoleh), total: totalJumlah },
     { no: 2, ket: 'Jumlah skor ideal (seharusnya)', vals: statistikPerSoal.map(s => s.skorIdeal), total: totalSkorMax * jmlPeserta },
@@ -560,7 +549,6 @@ async function tampilkanHasilAnalisis() {
     </tr>`;
   });
 
-  // ===== KOP SURAT =====
   const logoKop = CONFIG_MADRASAH.logo || (location.origin + '/assets/images/kemenag-app.png');
   const kopHtml = `<div style="border-bottom:3px double #000; padding-bottom:8px; margin-bottom:16px;">
     <table style="width:100%; border-collapse:collapse;">
@@ -578,7 +566,6 @@ async function tampilkanHasilAnalisis() {
     </table>
   </div>`;
 
-  // ===== TANDA TANGAN =====
   const OFFSET_KOTA = 22;
   const SPASI_TTD = 60;
   const tglSurat = `${new Date().getDate()} ${NAMA_BULAN[new Date().getMonth()]} ${new Date().getFullYear()}`;
@@ -605,7 +592,6 @@ async function tampilkanHasilAnalisis() {
     </tr>
   </table>`;
 
-  // ===== GABUNGKAN SEMUA =====
   document.getElementById('hasilAnalisisContent').innerHTML = `
     <div id="analisisPrintArea" style="background:white; padding:20px; font-family:'Times New Roman', serif;">
       ${kopHtml}
@@ -674,7 +660,7 @@ async function tampilkanHasilAnalisis() {
 
 // ═══════════════════════════════════════════════════════════
 // 7. EXPORT EXCEL
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function exportAnalisisButirExcel() {
   if (!butirCache) { alert('Jalankan analisis dulu!'); return; }
   const c = butirCache;
