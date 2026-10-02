@@ -552,7 +552,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${mapel}</strong></td>
           <td style="border:none; width:140px; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; width:120px; padding:1px 0; text-align:left; padding-left:80px;">Jumlah Soal</td>
+          <td style="border:none; width:120px; padding:1px 0; text-align:left; padding-left:200px;">Jumlah Soal</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${jumlahSoal}</strong></td>
         </tr>
@@ -561,7 +561,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${kelasNama}</strong></td>
           <td style="border:none; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; padding:1px 0; text-align:left; padding-left:80px;">KKM</td>
+          <td style="border:none; padding:1px 0; text-align:left; padding-left:200px;">KKM</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${kkm}</strong></td>
         </tr>
@@ -570,7 +570,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${semester}</strong></td>
           <td style="border:none; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; padding:1px 0; text-align:left; padding-left:80px;">Tahun Ajaran</td>
+          <td style="border:none; padding:1px 0; text-align:left; padding-left:200px;">Tahun Ajaran</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${tahunAjaran}</strong></td>
         </tr>
