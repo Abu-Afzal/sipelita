@@ -551,7 +551,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; width:140px; padding:1px 0; text-align:left;">Mata Pelajaran</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${mapel}</strong></td>
-          <td style="border:none; width:140px; padding:1px 0; text-align:left;"></td>
+          <td style="border:none; width:250px; padding:1px 0; text-align:left;"></td>
           <td style="border:none; width:120px; padding:1px 0; text-align:left;">Jumlah Soal</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${jumlahSoal}</strong></td>
