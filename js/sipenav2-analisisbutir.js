@@ -14,8 +14,8 @@ function renderAnalisisButir() {
     <div class="content-card">
       <div class="section-title">📝 Analisis Hasil Asesmen Per Butir Soal</div>
       
-      <div id="step1" style="background:#f0f9ff; padding:16px; border-radius:10px; margin-bottom:18px; border-left:4px solid #0ea5e9;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+           <div id="step1" style="background:#f0f9ff; padding:16px; border-radius:10px; margin-bottom:18px; border-left:4px solid #0ea5e9;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
           <div class="fg" style="margin:0;">
             <label>🏫 Kelas</label>
             <select id="butirKelasSelect" onchange="loadButirOptions()" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
@@ -31,6 +31,17 @@ function renderAnalisisButir() {
           <div class="fg" style="margin:0;">
             <label>🎯 KKM</label>
             <input type="number" id="butirKKM" value="75" min="0" max="100" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
+          </div>
+          <div class="fg" style="margin:0;">
+            <label>📅 Semester</label>
+            <select id="butirSemester" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
+              <option value="Ganjil">Ganjil</option>
+              <option value="Genap" selected>Genap</option>
+            </select>
+          </div>
+          <div class="fg" style="margin:0;">
+            <label> Tahun Ajaran</label>
+            <input type="text" id="butirTahunAjaran" value="2024/2025" placeholder="2024/2025" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
           </div>
           <div style="display:flex;align-items:flex-end;">
             <button class="btn btn-primary" onclick="checkButirData()" style="width:100%;">
@@ -160,10 +171,18 @@ async function checkButirData() {
       document.getElementById('step2').style.display = 'block';
       document.getElementById('step3').style.display = 'none';
       document.getElementById('step4').style.display = 'none';
-      currentButirSetup = { penilaianId, kelasId, kkm, penilaian };
+      currentButirSetup = { 
+        penilaianId, kelasId, kkm, penilaian,
+        semester: document.getElementById('butirSemester').value,
+        tahunAjaran: document.getElementById('butirTahunAjaran').value
+      };
       generateSkorMaxInputs();
     } else {
-      currentButirSetup = { penilaianId, kelasId, kkm, penilaian, soalButir };
+      currentButirSetup = { 
+        penilaianId, kelasId, kkm, penilaian, soalButir,
+        semester: document.getElementById('butirSemester').value,
+        tahunAjaran: document.getElementById('butirTahunAjaran').value
+      };
       renderTabelInputNilai();
     }
   } catch (error) { console.error('Error:', error); alert('Gagal: ' + error.message); }
@@ -245,7 +264,10 @@ async function renderTabelInputNilai() {
   const totalSkorMax = Object.values(soalButir).reduce((sum, s) => sum + Number(s.max || 0), 0);
 
   document.getElementById('asesmenTitle').textContent = `Asesmen: ${penilaian.nama_penilaian}`;
-  document.getElementById('asesmenInfo').textContent = `Kelas: ${penilaian.kelas_nama || '-'} | KKM: ${kkm} | Total Skor Max: ${totalSkorMax}`;
+  const sem = _currentButirSetup?.semester || penilaian.semester || '-';
+  const thn = _currentButirSetup?.tahunAjaran || penilaian.tahun_ajaran || '-';
+  document.getElementById('asesmenInfo').textContent = 
+    `Kelas: ${penilaian.kelas_nama || '-'} | Semester: ${sem} | TA: ${thn} | KKM: ${kkm} | Total Skor Max: ${totalSkorMax}`;
 
   const headerRow = document.getElementById('headerTabelInput');
   headerRow.innerHTML = `
@@ -407,8 +429,8 @@ async function tampilkanHasilAnalisis() {
   // Info asesmen
   const mapel = penilaian.mapel || (document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.mapel) || '-';
   const kelasNama = document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.nama || '-';
-  const semester = penilaian.semester || 'Genap';
-  const tahunAjaran = penilaian.tahun_ajaran || '2024/2025';
+  const semester = _currentButirSetup?.semester || penilaian.semester || 'Genap';
+  const tahunAjaran = _currentButirSetup?.tahunAjaran || penilaian.tahun_ajaran || '2024/2025';
   const jumlahSoal = butirKeys.length;
 
   // ===== STYLE KONSISTEN UNTUK SEMUA TABEL =====
