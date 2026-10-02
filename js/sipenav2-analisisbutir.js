@@ -271,7 +271,7 @@ async function renderTabelInputNilai() {
     <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">L/P</th>
     ${butirKeys.map(k => `<th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Soal ${k.replace('soal_', '')}<br>(${soalButir[k].max})</th>`).join('')}
     <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Total</th>
-    <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Acuan</th>
+    <th style="border:1px solid #000; padding:8px; background:#e0f2fe;">Acuan</th>
     <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Tuntas</th>
   `;
 
@@ -280,14 +280,24 @@ async function renderTabelInputNilai() {
   siswaSnap.forEach(doc => siswaList.push({ id: doc.id, ...doc.data() }));
   siswaList.sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
 
-  // Baca nilai utama (total) sebagai acuan, dan nilai_butir untuk detail
+  // ✅ BACA NILAI UTAMA (TOTAL) SEBAGAI ACUAN
   const nilaiUtama = penilaian.nilai || {};
   const nilaiButir = penilaian.nilai_butir || {};
   const bodyRow = document.getElementById('bodyTabelInput');
   bodyRow.innerHTML = '';
 
   siswaList.forEach((s, idx) => {
-    const nilaiAwal = (typeof nilaiUtama[s.id] === 'object' && nilaiUtama[s.id] !== null) ? (nilaiUtama[s.id].total || 0) : (Number(nilaiUtama[s.id]) || 0);
+    // Ambil nilai acuan dari field 'nilai' (format lama: angka langsung)
+    let nilaiAwal = 0;
+    const dataNilai = nilaiUtama[s.id];
+    if (typeof dataNilai === 'object' && dataNilai !== null) {
+      // Format object (dari analisis butir sebelumnya)
+      nilaiAwal = dataNilai.total || 0;
+    } else {
+      // Format angka langsung (dari input penilaian)
+      nilaiAwal = Number(dataNilai) || 0;
+    }
+
     const studentRecord = nilaiButir[s.id] || {};
 
     const tr = document.createElement('tr');
@@ -303,7 +313,7 @@ async function renderTabelInputNilai() {
         </td>
       `).join('')}
       <td style="border:1px solid #000; padding:6px; text-align:center; font-weight:bold; background:#f0f9ff;" id="total-${s.id}">0</td>
-      <td style="border:1px solid #000; padding:6px; text-align:center; font-size:0.85rem; color:#059669; font-weight:bold;" id="acuan-${s.id}">${nilaiAwal}</td>
+      <td style="border:1px solid #000; padding:6px; text-align:center; font-size:0.85rem; color:#059669; font-weight:bold; background:#ecfdf5;" id="acuan-${s.id}">${nilaiAwal}</td>
       <td style="border:1px solid #000; padding:6px; text-align:center;" id="tuntas-${s.id}">-</td>
     `;
     bodyRow.appendChild(tr);
