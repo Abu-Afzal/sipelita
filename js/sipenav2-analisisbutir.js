@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════
-// SIPENA 2.0 - MODUL ANALISIS BUTIR SOAL (FINAL & AMAN)
+// SIPENA 2.0 - MODUL ANALISIS BUTIR SOAL (FINAL & VALIDASI KETAT)
 // FORMAT: ANALISIS HASIL SUMATIF AKHIR SEMESTER (MAN BANTAENG)
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 
 let butirCache = null;
 let currentButirSetup = null;
@@ -33,7 +33,7 @@ function renderAnalisisButir() {
             <input type="number" id="butirKKM" value="75" min="0" max="100" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
           </div>
           <div class="fg" style="margin:0;">
-            <label> Semester</label>
+            <label>📅 Semester</label>
             <select id="butirSemester" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
               <option value="Ganjil">Ganjil</option>
               <option value="Genap" selected>Genap</option>
@@ -86,6 +86,7 @@ function renderAnalisisButir() {
           </table>
         </div>
         <div style="margin-top:18px; display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn btn-warning" onclick="isiNolSemua()" style="margin-right:auto;"><i class="fas fa-fill-drip"></i> Isi 0 Semua</button>
           <button class="btn btn-success" onclick="simpanNilaiButir()"><i class="fas fa-save"></i> Simpan Nilai</button>
           <button class="btn btn-primary" onclick="tampilkanHasilAnalisis()"><i class="fas fa-chart-bar"></i> Tampilkan Analisis</button>
         </div>
@@ -186,7 +187,7 @@ async function checkButirData() {
 
 // ═══════════════════════════════════════════════════════════
 // 4. SETUP WIZARD
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 function generateSkorMaxInputs() {
   const jumlah = Number(document.getElementById('setupJumlahSoal').value) || 10;
   const container = document.getElementById('skorMaxContainer');
@@ -246,7 +247,7 @@ async function resetSetup() {
   } catch (error) { alert('Gagal: ' + error.message); }
 }
 
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // 5. RENDER TABEL INPUT NILAI
 // ═══════════════════════════════════════════════════════════
 async function renderTabelInputNilai() {
@@ -270,7 +271,7 @@ async function renderTabelInputNilai() {
     <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">L/P</th>
     ${butirKeys.map(k => `<th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Soal ${k.replace('soal_', '')}<br>(${soalButir[k].max})</th>`).join('')}
     <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Total</th>
-    <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">%</th>
+    <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Acuan</th>
     <th style="border:1px solid #000; padding:8px; background:#f0f0f0;">Tuntas</th>
   `;
 
@@ -279,13 +280,16 @@ async function renderTabelInputNilai() {
   siswaSnap.forEach(doc => siswaList.push({ id: doc.id, ...doc.data() }));
   siswaList.sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
 
-  // Baca dari nilai_butir (format detail), fallback ke nilai (format total)
-  const records = penilaian.nilai_butir || penilaian.nilai || {};
+  // Baca nilai utama (total) sebagai acuan, dan nilai_butir untuk detail
+  const nilaiUtama = penilaian.nilai || {};
+  const nilaiButir = penilaian.nilai_butir || {};
   const bodyRow = document.getElementById('bodyTabelInput');
   bodyRow.innerHTML = '';
 
   siswaList.forEach((s, idx) => {
-    const studentRecord = records[s.id] || {};
+    const nilaiAwal = (typeof nilaiUtama[s.id] === 'object' && nilaiUtama[s.id] !== null) ? (nilaiUtama[s.id].total || 0) : (Number(nilaiUtama[s.id]) || 0);
+    const studentRecord = nilaiButir[s.id] || {};
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="border:1px solid #000; padding:6px; text-align:center;">${idx + 1}</td>
@@ -293,13 +297,13 @@ async function renderTabelInputNilai() {
       <td style="border:1px solid #000; padding:6px; text-align:center;">${s.l_p || '-'}</td>
       ${butirKeys.map(k => `
         <td style="border:1px solid #000; padding:4px; text-align:center;">
-          <input type="number" class="input-nilai-butir" data-siswa="${s.id}" data-soal="${k}" min="0" max="${soalButir[k].max}" 
-                 value="${studentRecord[k] || 0}" onchange="hitungTotalSiswa('${s.id}')"
+          <input type="number" class="input-nilai-butir" data-siswa="${s.id}" data-soal="${k}" data-acuan="${nilaiAwal}" min="0" max="${soalButir[k].max}" 
+                 value="${studentRecord[k] !== undefined ? studentRecord[k] : ''}" onchange="hitungTotalSiswa('${s.id}', ${nilaiAwal})"
                  style="width:100%; padding:4px; border:1px solid #e2e8f0; border-radius:4px; text-align:center;">
         </td>
       `).join('')}
-      <td style="border:1px solid #000; padding:6px; text-align:center; font-weight:bold;" id="total-${s.id}">${studentRecord.total || 0}</td>
-      <td style="border:1px solid #000; padding:6px; text-align:center;" id="pct-${s.id}">0%</td>
+      <td style="border:1px solid #000; padding:6px; text-align:center; font-weight:bold; background:#f0f9ff;" id="total-${s.id}">0</td>
+      <td style="border:1px solid #000; padding:6px; text-align:center; font-size:0.85rem; color:#059669; font-weight:bold;" id="acuan-${s.id}">${nilaiAwal}</td>
       <td style="border:1px solid #000; padding:6px; text-align:center;" id="tuntas-${s.id}">-</td>
     `;
     bodyRow.appendChild(tr);
@@ -310,85 +314,118 @@ async function renderTabelInputNilai() {
   currentButirSetup.butirKeys = butirKeys;
 }
 
-function hitungTotalSiswa(siswaId) {
+function hitungTotalSiswa(siswaId, nilaiAwal) {
   const inputs = document.querySelectorAll(`.input-nilai-butir[data-siswa="${siswaId}"]`);
   let total = 0;
-  inputs.forEach(input => { total += Number(input.value) || 0; });
+  let adaIsian = false;
+  
+  inputs.forEach(input => { 
+    const val = input.value.trim();
+    if (val !== '') {
+      total += Number(val) || 0;
+      adaIsian = true;
+    }
+  });
+
+  const totalEl = document.getElementById(`total-${siswaId}`);
+  totalEl.textContent = total;
+
+  // Visual Feedback: Jika total berbeda dengan acuan, beri warna merah
+  if (adaIsian && total !== nilaiAwal) {
+    totalEl.style.color = '#ef4444'; // Merah jika beda
+    totalEl.title = `Berbeda dengan nilai acuan (${nilaiAwal})`;
+  } else {
+    totalEl.style.color = '#000'; // Hitam jika sama atau belum diisi
+  }
+
   const totalSkorMax = currentButirSetup.totalSkorMax;
   const kkm = currentButirSetup.kkm;
   const pct = totalSkorMax > 0 ? ((total / totalSkorMax) * 100).toFixed(0) : 0;
-  document.getElementById(`total-${siswaId}`).textContent = total;
-  document.getElementById(`pct-${siswaId}`).textContent = pct + '%';
   document.getElementById(`tuntas-${siswaId}`).textContent = total >= kkm ? 'Tuntas' : 'Tidak';
 }
 
+// Fungsi Helper: Isi 0 Semua
+function isiNolSemua() {
+  if (!confirm('Isi semua kolom yang kosong dengan angka 0?')) return;
+  document.querySelectorAll('.input-nilai-butir').forEach(input => {
+    if (input.value.trim() === '') {
+      input.value = 0;
+      hitungTotalSiswa(input.dataset.siswa, input.dataset.acuan);
+    }
+  });
+  alert('Semua kolom kosong telah diisi dengan 0.');
+}
+
 // ═══════════════════════════════════════════════════════════
-// FUNGSI PINTAR: 100% AMAN, TIDAK AKAN MENIMPA NILAI LAMA
+// FUNGSI SIMPAN DENGAN VALIDASI KETAT (WAJIB ISI SEMUA)
 // ═══════════════════════════════════════════════════════════
 async function simpanNilaiButir() {
-  if (!confirm('Simpan nilai?')) return;
-  try {
-    const { penilaianId, siswaList, butirKeys, soalButir } = currentButirSetup;
-    
-    // 1. AMBIL DATA ASLI DARI DATABASE DULU
-    const docSnap = await db.collection('penilaian').doc(penilaianId).get();
-    const dataAsli = docSnap.data();
-    const nilaiAsli = dataAsli.nilai || {}; 
-    const nilaiButirAsli = dataAsli.nilai_butir || {};
+  // 1. VALIDASI: Cek apakah ada kolom yang masih kosong
+  let adaKosong = false;
+  let siswaBelumLengkap = null;
 
+  for (const s of currentButirSetup.siswaList) {
+    const inputsSiswa = document.querySelectorAll(`.input-nilai-butir[data-siswa="${s.id}"]`);
+    let isLengkap = true;
+    
+    inputsSiswa.forEach(input => {
+      if (input.value.trim() === '') {
+        isLengkap = false;
+        adaKosong = true;
+      }
+    });
+
+    if (!isLengkap && !siswaBelumLengkap) {
+      siswaBelumLengkap = s.student_name;
+    }
+  }
+
+  // 2. BLOKIR SIMPAN JIKA ADA YANG KOSONG
+  if (adaKosong) {
+    alert(`⚠️ MOHON LENGKAPI SEMUA KOLOM!\n\nSiswa atas nama "${siswaBelumLengkap}" masih memiliki kolom nilai soal yang kosong.\n\nSilakan isi semua kolom. Gunakan angka 0 jika siswa memang tidak mendapat skor.`);
+    return; 
+  }
+
+  // 3. JIKA SEMUA TERISI, LANJUTKAN PROSES SIMPAN
+  if (!confirm('Semua kolom sudah terisi. Simpan nilai dan perbarui total skor?')) return;
+  
+  try {
+    const { penilaianId, siswaList } = currentButirSetup;
+    
     const nilaiBaru = {};
     const nilaiButirBaru = {};
-    let adaPerubahan = false;
 
     siswaList.forEach(s => {
       const inputs = document.querySelectorAll(`.input-nilai-butir[data-siswa="${s.id}"]`);
       let totalBaru = 0;
-      let adaYangDiisi = false;
       const detailSoal = {};
       
       inputs.forEach(input => {
-        const val = input.value.trim();
-        if (val !== '') {
-          adaYangDiisi = true;
-          const skor = Number(val) || 0;
-          detailSoal[input.dataset.soal] = skor;
-          totalBaru += skor;
-        }
+        const skor = Number(input.value) || 0; 
+        detailSoal[input.dataset.soal] = skor;
+        totalBaru += skor;
       });
 
-      // LOGIKA PENTING:
-      if (adaYangDiisi) {
-        // Jika guru mengisi kolom soal, hitung dan simpan totalnya
-        detailSoal.total = totalBaru;
-        nilaiButirBaru[s.id] = detailSoal;
-        nilaiBaru[s.id] = totalBaru; // Update nilai utama
-        adaPerubahan = true;
-      } else {
-        // Jika guru TIDAK mengisi kolom soal sama sekali, 
-        // PERTAHANKAN nilai asli dari database! JANGAN DIUBAH!
-        nilaiBaru[s.id] = nilaiAsli[s.id] !== undefined ? nilaiAsli[s.id] : 0;
-        
-        // Pertahankan detail butir asli jika ada
-        if (nilaiButirAsli[s.id]) {
-          nilaiButirBaru[s.id] = nilaiButirAsli[s.id];
-        }
-      }
+      detailSoal.total = totalBaru;
+      
+      // Simpan rincian per soal
+      nilaiButirBaru[s.id] = detailSoal;
+      
+      // ✅ MENIMPA NILAI UTAMA: Total baru (hasil penjumlahan) akan menjadi nilai final
+      nilaiBaru[s.id] = totalBaru; 
     });
 
-    // 2. SIMPAN KE DATABASE
-    const updateData = { nilai_butir: nilaiButirBaru };
+    // Update database
+    await db.collection('penilaian').doc(penilaianId).update({
+      nilai: nilaiBaru,          // Nilai total diperbarui (menimpa yang lama)
+      nilai_butir: nilaiButirBaru // Rincian per soal disimpan
+    });
     
-    // Hanya update field 'nilai' utama jika ada perubahan yang valid dari user
-    if (adaPerubahan) {
-      updateData.nilai = nilaiBaru;
-    }
-
-    await db.collection('penilaian').doc(penilaianId).update(updateData);
+    alert('✅ Nilai berhasil disimpan! Total nilai telah diperbarui.');
+    renderTabelInputNilai(); // Refresh tampilan tabel
     
-    alert('Nilai berhasil disimpan dengan aman!');
-    renderTabelInputNilai();
   } catch (error) { 
-    alert('Gagal: ' + error.message); 
+    alert('❌ Gagal menyimpan: ' + error.message); 
   }
 }
 
@@ -399,7 +436,7 @@ function kembaliKeInput() {
 
 // ══════════════════════════════════════════════════════════
 // 6. TAMPILKAN HASIL ANALISIS
-// ══════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════
 async function tampilkanHasilAnalisis() {
   console.log('✅✅✅ tampilkanHasilAnalisis() DIPANGGIL ✅✅✅');
   await simpanNilaiButir();
@@ -707,3 +744,4 @@ function previewAnalisisButirPDF() {
 window.renderAnalisisButir = renderAnalisisButir;
 window.initAnalisisButirPage = initAnalisisButirPage;
 window.tampilkanHasilAnalisis = tampilkanHasilAnalisis;
+window.isiNolSemua = isiNolSemua;
