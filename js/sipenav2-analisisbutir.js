@@ -527,7 +527,7 @@ async function tampilkanHasilAnalisis() {
         <div style="height:${SPASI_TTD}px;"></div>
         <b><u><span style="font-size:10pt;">${namaKepala}</span></u></b><br><b style="font-size:11pt;">${nipKepala}</b>
       </td>
-      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:200px;">
+      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:250px;">
         ${CONFIG_MADRASAH.kota || 'Bantaeng'}, ${tglSurat}
         <div style="height:${OFFSET_KOTA}px;"></div>
         Guru Mata Pelajaran
