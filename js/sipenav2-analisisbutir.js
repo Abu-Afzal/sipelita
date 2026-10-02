@@ -15,7 +15,7 @@ function renderAnalisisButir() {
       <div class="section-title">📝 Analisis Hasil Asesmen Per Butir Soal</div>
       
       <div id="step1" style="background:#f0f9ff; padding:16px; border-radius:10px; margin-bottom:18px; border-left:4px solid #0ea5e9;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
           <div class="fg" style="margin:0;">
             <label>🏫 Kelas</label>
             <select id="butirKelasSelect" onchange="loadButirOptions()" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
@@ -31,17 +31,6 @@ function renderAnalisisButir() {
           <div class="fg" style="margin:0;">
             <label>🎯 KKM</label>
             <input type="number" id="butirKKM" value="75" min="0" max="100" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
-          </div>
-          <div class="fg" style="margin:0;">
-            <label>📅 Semester</label>
-            <select id="butirSemester" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
-              <option value="Ganjil">Ganjil</option>
-              <option value="Genap" selected>Genap</option>
-            </select>
-          </div>
-          <div class="fg" style="margin:0;">
-            <label>📆 Tahun Ajaran</label>
-            <input type="text" id="butirTahunAjaran" value="2024/2025" placeholder="2024/2025" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
           </div>
           <div style="display:flex;align-items:flex-end;">
             <button class="btn btn-primary" onclick="checkButirData()" style="width:100%;">
@@ -148,14 +137,12 @@ async function loadButirOptions() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 3. CEK DATA & SIMPAN SETUP SEMENTARA
+// 3. CEK DATA
 // ═══════════════════════════════════════════════════════════
 async function checkButirData() {
   const kelasId = document.getElementById('butirKelasSelect').value;
   const penilaianId = document.getElementById('butirPenilaianSelect').value;
   const kkm = Number(document.getElementById('butirKKM').value) || 75;
-  const semester = document.getElementById('butirSemester').value;
-  const tahunAjaran = document.getElementById('butirTahunAjaran').value;
 
   if (!kelasId || !penilaianId) { alert('Pilih kelas dan penilaian!'); return; }
 
@@ -166,21 +153,17 @@ async function checkButirData() {
     const penilaian = { id: docSnap.id, ...docSnap.data() };
     const soalButir = penilaian.soal_butir || {};
 
-    // Update KKM jika berbeda (aman, tidak merusak data nilai)
     if (penilaian.kkm !== kkm) await db.collection('penilaian').doc(penilaianId).update({ kkm: kkm });
-
-    // Simpan data setup di memori (termasuk Semester & TA pilihan guru)
-    const setupData = { penilaianId, kelasId, kkm, penilaian, semester, tahunAjaran };
 
     if (Object.keys(soalButir).length === 0) {
       document.getElementById('step1').style.display = 'none';
       document.getElementById('step2').style.display = 'block';
       document.getElementById('step3').style.display = 'none';
       document.getElementById('step4').style.display = 'none';
-      currentButirSetup = setupData;
+      currentButirSetup = { penilaianId, kelasId, kkm, penilaian };
       generateSkorMaxInputs();
     } else {
-      currentButirSetup = { ...setupData, soalButir };
+      currentButirSetup = { penilaianId, kelasId, kkm, penilaian, soalButir };
       renderTabelInputNilai();
     }
   } catch (error) { console.error('Error:', error); alert('Gagal: ' + error.message); }
@@ -351,7 +334,7 @@ function kembaliKeInput() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 6. TAMPILKAN HASIL ANALISIS (FINAL & RAPID)
+// 6. TAMPILKAN HASIL ANALISIS (DIPERBAIKI MENYELURUH)
 // ═══════════════════════════════════════════════════════════
 async function tampilkanHasilAnalisis() {
   console.log('✅✅✅ tampilkanHasilAnalisis() DIPANGGIL ✅✅✅');
@@ -421,11 +404,11 @@ async function tampilkanHasilAnalisis() {
     s.tuntas = jmlPeserta - tidakTuntas;
   });
 
-  // Info asesmen (Ambil dari input guru, fallback ke data penilaian)
+  // Info asesmen
   const mapel = penilaian.mapel || (document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.mapel) || '-';
   const kelasNama = document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.nama || '-';
-  const semester = currentButirSetup?.semester || penilaian.semester || 'Genap';
-  const tahunAjaran = currentButirSetup?.tahunAjaran || penilaian.tahun_ajaran || '2024/2025';
+  const semester = penilaian.semester || 'Genap';
+  const tahunAjaran = penilaian.tahun_ajaran || '2024/2025';
   const jumlahSoal = butirKeys.length;
 
   // ===== STYLE KONSISTEN UNTUK SEMUA TABEL =====
@@ -462,7 +445,7 @@ async function tampilkanHasilAnalisis() {
     </tr>`;
   });
 
-  // ===== BARIS STATISTIK =====
+  // ===== BARIS STATISTIK (Jumlah, Rata-rata, Tertinggi, Terendah) =====
   const makeStatRow = (label, key) => `<tr>
     <td colspan="3" ${tdStyle} style="${b} font-weight:bold;">${label}</td>
     ${statistikPerSoal.map(s => `<td ${tdCenter}>${key === 'max' ? s.max : key === 'min' ? s.min : key === 'rataRata' ? s.rataRata : s.skorDiperoleh}</td>`).join('')}
@@ -493,11 +476,9 @@ async function tampilkanHasilAnalisis() {
     { no: 8, ket: 'Jumlah peserta yang tuntas', vals: statistikPerSoal.map(s => s.tuntas || jmlPeserta), total: jmlTuntas }
   ];
 
-  const kesimpulanHtml = `<div style="text-align:left; padding:4px;">
-    <strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
+  const kesimpulanHtml = `<strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
     <strong>b. Ketuntasan Individual yang perlu remedial:</strong> ${jmlTidakTuntas} (${jmlPeserta > 0 ? ((jmlTidakTuntas/jmlPeserta)*100).toFixed(0) : 0}%) orang<br><br>
-    <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.
-  </div>`;
+    <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.`;
 
   let rowsTabelB = '';
   barisAnalisis.forEach((baris, idx) => {
@@ -506,7 +487,7 @@ async function tampilkanHasilAnalisis() {
       <td ${tdStyle}>${baris.ket}</td>
       ${baris.vals.map(v => `<td ${tdCenter}>${v}</td>`).join('')}
       <td ${tdBold}>${baris.total}</td>
-      ${idx === 0 ? `<td rowspan="8" style="${b} vertical-align:top; text-align:left;">${kesimpulanHtml}</td>` : ''}
+      ${idx === 0 ? `<td rowspan="8" style="${b} vertical-align:top;">${kesimpulanHtml}</td>` : ''}
     </tr>`;
   });
 
@@ -528,9 +509,10 @@ async function tampilkanHasilAnalisis() {
     </table>
   </div>`;
 
-  // ===== TANDA TANGAN =====
+  // ===== TANDA TANGAN (ADOPSI DARI sipenav2-analisis.js) =====
   const OFFSET_KOTA = 22;
   const SPASI_TTD = 60;
+  const GESER_KANAN = 100;
   const tglSurat = `${new Date().getDate()} ${NAMA_BULAN[new Date().getMonth()]} ${new Date().getFullYear()}`;
   const rawNipGuru = currentUserData?.nip || '';
   const nipGuru = rawNipGuru ? (rawNipGuru.startsWith('NIP.') ? rawNipGuru : 'NIP. ' + rawNipGuru) : 'NIP. ............................................';
@@ -545,7 +527,7 @@ async function tampilkanHasilAnalisis() {
         <div style="height:${SPASI_TTD}px;"></div>
         <b><u><span style="font-size:10pt;">${namaKepala}</span></u></b><br><b style="font-size:11pt;">${nipKepala}</b>
       </td>
-      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:300px;">
+      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:${GESER_KANAN}px;">
         ${CONFIG_MADRASAH.kota || 'Bantaeng'}, ${tglSurat}
         <div style="height:${OFFSET_KOTA}px;"></div>
         Guru Mata Pelajaran
@@ -560,38 +542,18 @@ async function tampilkanHasilAnalisis() {
     <div id="analisisPrintArea" style="background:white; padding:20px; font-family:'Times New Roman', serif;">
       ${kopHtml}
       
+      <!-- ✅ HANYA JUDUL, TANPA NAMA SEKOLAH KEDUA KALI -->
       <div style="text-align:center; margin:12px 0;">
         <div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-transform:uppercase;">ANALISIS HASIL SUMATIF AKHIR SEMESTER</div>
       </div>
 
       <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
-        <tr>
-          <td style="border:none; width:140px; padding:1px 0; text-align:left;">Mata Pelajaran</td>
-          <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
-          <td style="border:none; padding:1px 0; text-align:left;"><strong>${mapel}</strong></td>
-          <td style="border:none; width:100%; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; width:120px; padding:1px 0; text-align:left;">Jumlah Soal</td>
-          <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
-          <td style="border:none; padding:1px 0; text-align:left;"><strong>${jumlahSoal}</strong></td>
-        </tr>
-        <tr>
-          <td style="border:none; padding:1px 0; text-align:left;">Kelas</td>
-          <td style="border:none; padding:1px 0; text-align:left;">:</td>
-          <td style="border:none; padding:1px 0; text-align:left;"><strong>${kelasNama}</strong></td>
-          <td style="border:none; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; padding:1px 0; text-align:left;">KKM</td>
-          <td style="border:none; padding:1px 0; text-align:left;">:</td>
-          <td style="border:none; padding:1px 0; text-align:left;"><strong>${kkm}</strong></td>
-        </tr>
-        <tr>
-          <td style="border:none; padding:1px 0; text-align:left;">Semester</td>
-          <td style="border:none; padding:1px 0; text-align:left;">:</td>
-          <td style="border:none; padding:1px 0; text-align:left;"><strong>${semester}</strong></td>
-          <td style="border:none; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; padding:1px 0; text-align:left;">Tahun Ajaran</td>
-          <td style="border:none; padding:1px 0; text-align:left;">:</td>
-          <td style="border:none; padding:1px 0; text-align:left;"><strong>${tahunAjaran}</strong></td>
-        </tr>
+        <tr><td style="border:none; width:140px; padding:1px 0;">Mata Pelajaran</td><td style="border:none; width:10px; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${mapel}</strong></td>
+            <td style="border:none; width:120px; padding:1px 0;">Jumlah Soal</td><td style="border:none; width:10px; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${jumlahSoal}</strong></td></tr>
+        <tr><td style="border:none; padding:1px 0;">Kelas</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${kelasNama}</strong></td>
+            <td style="border:none; padding:1px 0;">KKM</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${kkm}</strong></td></tr>
+        <tr><td style="border:none; padding:1px 0;">Semester</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${semester}</strong></td>
+            <td style="border:none; padding:1px 0;">Tahun Ajaran</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${tahunAjaran}</strong></td></tr>
       </table>
 
       <h3 style="font-size:11pt; margin:16px 0 8px 0; font-weight:bold;">A. Rincian Nilai Peserta</h3>
@@ -659,7 +621,7 @@ function previewAnalisisButirPDF() {
     </head><body>
     ${content.innerHTML}
     <div class="no-print" style="margin-top:20px; text-align:center;">
-      <button onclick="window.print()" style="padding:10px 20px; font-size:12pt; cursor:pointer;">🖨️ Cetak Sekarang</button>
+      <button onclick="window.print()" style="padding:10px 20px; font-size:12pt; cursor:pointer;">️ Cetak Sekarang</button>
       <button onclick="window.close()" style="padding:10px 20px; font-size:12pt; cursor:pointer;">Tutup</button>
     </div>
     </body></html>
