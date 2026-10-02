@@ -520,14 +520,14 @@ async function tampilkanHasilAnalisis() {
   const namaKepala = formatKapital(CONFIG_MADRASAH.kepalaMadrasah || 'MUHAMMAD ARIF PITHER, S.Ag.,MM', FORMAT_NAMA.kepala);
   const nipKepala = CONFIG_MADRASAH.nipKepala || 'NIP. ............................................';
 
-  const ttdHtml = `<table style="width:100%; margin-top:28px; font-size:12pt; border-collapse:collapse;">
+      const ttdHtml = `<table style="width:100%; margin-top:28px; font-size:12pt; border-collapse:collapse;">
     <tr>
       <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:${OFFSET_KOTA}px;">
         Mengetahui,<br>Kepala Madrasah
         <div style="height:${SPASI_TTD}px;"></div>
         <b><u><span style="font-size:10pt;">${namaKepala}</span></u></b><br><b style="font-size:11pt;">${nipKepala}</b>
       </td>
-      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:${GESER_KANAN}px;">
+      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:250px;">
         ${CONFIG_MADRASAH.kota || 'Bantaeng'}, ${tglSurat}
         <div style="height:${OFFSET_KOTA}px;"></div>
         Guru Mata Pelajaran
@@ -542,18 +542,38 @@ async function tampilkanHasilAnalisis() {
     <div id="analisisPrintArea" style="background:white; padding:20px; font-family:'Times New Roman', serif;">
       ${kopHtml}
       
-      <!-- ✅ HANYA JUDUL, TANPA NAMA SEKOLAH KEDUA KALI -->
       <div style="text-align:center; margin:12px 0;">
         <div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-transform:uppercase;">ANALISIS HASIL SUMATIF AKHIR SEMESTER</div>
       </div>
 
-      <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
-        <tr><td style="border:none; width:140px; padding:1px 0;">Mata Pelajaran</td><td style="border:none; width:10px; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${mapel}</strong></td>
-            <td style="border:none; width:120px; padding:1px 0;">Jumlah Soal</td><td style="border:none; width:10px; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${jumlahSoal}</strong></td></tr>
-        <tr><td style="border:none; padding:1px 0;">Kelas</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${kelasNama}</strong></td>
-            <td style="border:none; padding:1px 0;">KKM</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${kkm}</strong></td></tr>
-        <tr><td style="border:none; padding:1px 0;">Semester</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${semester}</strong></td>
-            <td style="border:none; padding:1px 0;">Tahun Ajaran</td><td style="border:none; padding:1px 0;">:</td><td style="border:none; padding:1px 0;"><strong>${tahunAjaran}</strong></td></tr>
+                 <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
+        <tr>
+          <td style="border:none; width:140px; padding:1px 0; text-align:left;">Mata Pelajaran</td>
+          <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
+          <td style="border:none; padding:1px 0; text-align:left;"><strong>${mapel}</strong></td>
+          <td style="border:none; width:140px; padding:1px 0; text-align:left;"></td>
+          <td style="border:none; width:120px; padding:1px 0; text-align:left; padding-left:500px;">Jumlah Soal</td>
+          <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
+          <td style="border:none; padding:1px 0; text-align:left;"><strong>${jumlahSoal}</strong></td>
+        </tr>
+        <tr>
+          <td style="border:none; padding:1px 0; text-align:left;">Kelas</td>
+          <td style="border:none; padding:1px 0; text-align:left;">:</td>
+          <td style="border:none; padding:1px 0; text-align:left;"><strong>${kelasNama}</strong></td>
+          <td style="border:none; padding:1px 0; text-align:left;"></td>
+          <td style="border:none; padding:1px 0; text-align:left; padding-left:500px;">KKM</td>
+          <td style="border:none; padding:1px 0; text-align:left;">:</td>
+          <td style="border:none; padding:1px 0; text-align:left;"><strong>${kkm}</strong></td>
+        </tr>
+        <tr>
+          <td style="border:none; padding:1px 0; text-align:left;">Semester</td>
+          <td style="border:none; padding:1px 0; text-align:left;">:</td>
+          <td style="border:none; padding:1px 0; text-align:left;"><strong>${semester}</strong></td>
+          <td style="border:none; padding:1px 0; text-align:left;"></td>
+          <td style="border:none; padding:1px 0; text-align:left; padding-left:500px;">Tahun Ajaran</td>
+          <td style="border:none; padding:1px 0; text-align:left;">:</td>
+          <td style="border:none; padding:1px 0; text-align:left;"><strong>${tahunAjaran}</strong></td>
+        </tr>
       </table>
 
       <h3 style="font-size:11pt; margin:16px 0 8px 0; font-weight:bold;">A. Rincian Nilai Peserta</h3>
