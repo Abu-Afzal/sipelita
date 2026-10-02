@@ -330,19 +330,18 @@ async function simpanNilaiButir() {
   try {
     const { penilaianId, siswaList, butirKeys, soalButir } = currentButirSetup;
     
-    // 1. Ambil data existing agar tidak menimpa nilai total yang sudah ada dengan 0
+    // 1. Ambil data existing terlebih dahulu
     const docSnap = await db.collection('penilaian').doc(penilaianId).get();
     const existingData = docSnap.data();
     const existingNilai = existingData.nilai || {};
-    const existingNilaiButir = existingData.nilai_butir || {};
 
     const nilaiButirBaru = {};
-    const nilaiTotalBaru = {}; // Format lama: {uid: 85} agar rekap-nilai.js tetap bisa baca
+    const nilaiTotalBaru = {};
 
     siswaList.forEach(s => {
       const inputs = document.querySelectorAll(`.input-nilai-butir[data-siswa="${s.id}"]`);
       let totalBaru = 0;
-      let adaInput = false; // Flag: apakah guru mengisi kolom per soal?
+      let adaInput = false;
       const nilaiPerSoal = {};
       
       inputs.forEach(input => {
@@ -359,33 +358,26 @@ async function simpanNilaiButir() {
 
       // LOGIKA PINTAR:
       if (adaInput) {
-        // Jika guru mengisi, simpan data baru
         nilaiPerSoal.total = totalBaru;
         nilaiButirBaru[s.id] = nilaiPerSoal;
         nilaiTotalBaru[s.id] = totalBaru;
       } else {
-        // Jika guru TIDAK mengisi (kosong), PERTAHANKAN nilai lama!
+        // PERTAHANKAN nilai lama!
         if (typeof nilaiLama === 'object' && nilaiLama !== null) {
           nilaiTotalBaru[s.id] = nilaiLama.total || 0;
         } else {
           nilaiTotalBaru[s.id] = Number(nilaiLama) || 0;
         }
-        
-        // Pertahankan juga data butir lama jika ada
-        if (existingNilaiButir[s.id]) {
-          nilaiButirBaru[s.id] = existingNilaiButir[s.id];
-        }
       }
     });
     
-    // 2. Update dengan MERGE, bukan REPLACE total
+    // Update 2 field terpisah
     await db.collection('penilaian').doc(penilaianId).update({
       nilai_butir: nilaiButirBaru,
-      nilai: nilaiTotalBaru
+      nilai: nilaiTotalBaru  // Format angka agar rekap-nilai.js bisa baca
     });
     
     alert('Nilai berhasil disimpan!');
-    renderTabelInputNilai(); // Refresh tampilan
   } catch (error) { 
     alert('Gagal: ' + error.message); 
   }
