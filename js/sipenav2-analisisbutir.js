@@ -476,11 +476,9 @@ async function tampilkanHasilAnalisis() {
     { no: 8, ket: 'Jumlah peserta yang tuntas', vals: statistikPerSoal.map(s => s.tuntas || jmlPeserta), total: jmlTuntas }
   ];
 
-   const kesimpulanHtml = `<div style="text-align:left; padding:4px;">
-    <strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
+  const kesimpulanHtml = `<strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
     <strong>b. Ketuntasan Individual yang perlu remedial:</strong> ${jmlTidakTuntas} (${jmlPeserta > 0 ? ((jmlTidakTuntas/jmlPeserta)*100).toFixed(0) : 0}%) orang<br><br>
-    <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.
-  </div>`;
+    <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.`;
 
   let rowsTabelB = '';
   barisAnalisis.forEach((baris, idx) => {
@@ -489,7 +487,7 @@ async function tampilkanHasilAnalisis() {
       <td ${tdStyle}>${baris.ket}</td>
       ${baris.vals.map(v => `<td ${tdCenter}>${v}</td>`).join('')}
       <td ${tdBold}>${baris.total}</td>
-      ${idx === 0 ? `<td rowspan="8" style="${b} vertical-align:top; text-align:left;">${kesimpulanHtml}</td>` : ''}
+      ${idx === 0 ? `<td rowspan="8" style="${b} vertical-align:top;">${kesimpulanHtml}</td>` : ''}
     </tr>`;
   });
 
