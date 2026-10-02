@@ -309,39 +309,23 @@ async function simpanNilaiButir() {
   if (!confirm('Simpan nilai?')) return;
   try {
     const { penilaianId, siswaList, butirKeys, soalButir } = currentButirSetup;
-    
-    const nilaiButirBaru = {}; // Khusus untuk analisis butir (Object)
-    const nilaiTotalBaru = {}; // Khusus untuk rekap nilai (Angka)
-
+    const nilaiBaru = {};
     siswaList.forEach(s => {
       const inputs = document.querySelectorAll(`.input-nilai-butir[data-siswa="${s.id}"]`);
       let total = 0;
       const nilaiPerSoal = {};
-      
       inputs.forEach(input => {
         const soal = input.dataset.soal;
         const nilai = Number(input.value) || 0;
         nilaiPerSoal[soal] = nilai;
         total += nilai;
       });
-      
       nilaiPerSoal.total = total;
-      nilaiButirBaru[s.id] = nilaiPerSoal;
-      
-      // ✅ INI KUNCINYA: Simpan total sebagai angka langsung agar rekap-nilai.js tetap bisa baca
-      nilaiTotalBaru[s.id] = total;
+      nilaiBaru[s.id] = nilaiPerSoal;
     });
-    
-    // Update database: Simpan di 2 field terpisah agar tidak saling ganggu
-    await db.collection('penilaian').doc(penilaianId).update({
-      nilai_butir: nilaiButirBaru,
-      nilai: nilaiTotalBaru 
-    });
-    
-    alert('Nilai berhasil disimpan!');
-  } catch (error) { 
-    alert('Gagal: ' + error.message); 
-  }
+    await db.collection('penilaian').doc(penilaianId).update({ nilai: nilaiBaru });
+    alert('Nilai disimpan!');
+  } catch (error) { alert('Gagal: ' + error.message); }
 }
 
 function kembaliKeInput() {
@@ -359,7 +343,7 @@ async function tampilkanHasilAnalisis() {
   document.getElementById('step4').style.display = 'block';
 
   const { penilaianId, kelasId, kkm, penilaian, soalButir, siswaList, butirKeys, totalSkorMax } = currentButirSetup;
-  const records = penilaian.nilai_butir || penilaian.nilai || {};
+  const records = penilaian.nilai || {};
 
   // Proses data per siswa
   const analisisData = [];
@@ -492,9 +476,11 @@ async function tampilkanHasilAnalisis() {
     { no: 8, ket: 'Jumlah peserta yang tuntas', vals: statistikPerSoal.map(s => s.tuntas || jmlPeserta), total: jmlTuntas }
   ];
 
-  const kesimpulanHtml = `<strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
+   const kesimpulanHtml = `<div style="text-align:left; padding:4px;">
+    <strong>a. Ketuntasan Klasikal:</strong> ${jmlTuntas} (${ketuntasanKlasikal}%) orang<br><br>
     <strong>b. Ketuntasan Individual yang perlu remedial:</strong> ${jmlTidakTuntas} (${jmlPeserta > 0 ? ((jmlTidakTuntas/jmlPeserta)*100).toFixed(0) : 0}%) orang<br><br>
-    <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.`;
+    <strong>c. Bentuk remedial:</strong> Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.
+  </div>`;
 
   let rowsTabelB = '';
   barisAnalisis.forEach((baris, idx) => {
@@ -503,7 +489,7 @@ async function tampilkanHasilAnalisis() {
       <td ${tdStyle}>${baris.ket}</td>
       ${baris.vals.map(v => `<td ${tdCenter}>${v}</td>`).join('')}
       <td ${tdBold}>${baris.total}</td>
-      ${idx === 0 ? `<td rowspan="8" style="${b} vertical-align:top;">${kesimpulanHtml}</td>` : ''}
+      ${idx === 0 ? `<td rowspan="8" style="${b} vertical-align:top; text-align:left;">${kesimpulanHtml}</td>` : ''}
     </tr>`;
   });
 
@@ -543,7 +529,7 @@ async function tampilkanHasilAnalisis() {
         <div style="height:${SPASI_TTD}px;"></div>
         <b><u><span style="font-size:10pt;">${namaKepala}</span></u></b><br><b style="font-size:11pt;">${nipKepala}</b>
       </td>
-      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:250px;">
+      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:300px;">
         ${CONFIG_MADRASAH.kota || 'Bantaeng'}, ${tglSurat}
         <div style="height:${OFFSET_KOTA}px;"></div>
         Guru Mata Pelajaran
