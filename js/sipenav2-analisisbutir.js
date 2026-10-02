@@ -520,14 +520,14 @@ async function tampilkanHasilAnalisis() {
   const namaKepala = formatKapital(CONFIG_MADRASAH.kepalaMadrasah || 'MUHAMMAD ARIF PITHER, S.Ag.,MM', FORMAT_NAMA.kepala);
   const nipKepala = CONFIG_MADRASAH.nipKepala || 'NIP. ............................................';
 
-    const ttdHtml = `<table style="width:100%; margin-top:28px; font-size:12pt; border-collapse:collapse;">
+      const ttdHtml = `<table style="width:100%; margin-top:28px; font-size:12pt; border-collapse:collapse;">
     <tr>
       <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:24px; padding-top:${OFFSET_KOTA}px;">
         Mengetahui,<br>Kepala Madrasah
         <div style="height:${SPASI_TTD}px;"></div>
         <b><u><span style="font-size:10pt;">${namaKepala}</span></u></b><br><b style="font-size:11pt;">${nipKepala}</b>
       </td>
-      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:${GESER_KANAN}px;">
+      <td style="width:50%; text-align:left; vertical-align:top; border:none; padding-left:150px;">
         ${CONFIG_MADRASAH.kota || 'Bantaeng'}, ${tglSurat}
         <div style="height:${OFFSET_KOTA}px;"></div>
         Guru Mata Pelajaran
@@ -546,11 +546,12 @@ async function tampilkanHasilAnalisis() {
         <div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-transform:uppercase;">ANALISIS HASIL SUMATIF AKHIR SEMESTER</div>
       </div>
 
-      <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
+           <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
         <tr>
           <td style="border:none; width:140px; padding:1px 0; text-align:left;">Mata Pelajaran</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${mapel}</strong></td>
+          <td style="border:none; width:140px; padding:1px 0; text-align:left;"></td>
           <td style="border:none; width:120px; padding:1px 0; text-align:left;">Jumlah Soal</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${jumlahSoal}</strong></td>
@@ -559,6 +560,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; padding:1px 0; text-align:left;">Kelas</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${kelasNama}</strong></td>
+          <td style="border:none; padding:1px 0; text-align:left;"></td>
           <td style="border:none; padding:1px 0; text-align:left;">KKM</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${kkm}</strong></td>
@@ -567,6 +569,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; padding:1px 0; text-align:left;">Semester</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${semester}</strong></td>
+          <td style="border:none; padding:1px 0; text-align:left;"></td>
           <td style="border:none; padding:1px 0; text-align:left;">Tahun Ajaran</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${tahunAjaran}</strong></td>
