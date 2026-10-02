@@ -309,23 +309,39 @@ async function simpanNilaiButir() {
   if (!confirm('Simpan nilai?')) return;
   try {
     const { penilaianId, siswaList, butirKeys, soalButir } = currentButirSetup;
-    const nilaiBaru = {};
+    
+    const nilaiButirBaru = {}; // Khusus untuk analisis butir (Object)
+    const nilaiTotalBaru = {}; // Khusus untuk rekap nilai (Angka)
+
     siswaList.forEach(s => {
       const inputs = document.querySelectorAll(`.input-nilai-butir[data-siswa="${s.id}"]`);
       let total = 0;
       const nilaiPerSoal = {};
+      
       inputs.forEach(input => {
         const soal = input.dataset.soal;
         const nilai = Number(input.value) || 0;
         nilaiPerSoal[soal] = nilai;
         total += nilai;
       });
+      
       nilaiPerSoal.total = total;
-      nilaiBaru[s.id] = nilaiPerSoal;
+      nilaiButirBaru[s.id] = nilaiPerSoal;
+      
+      // ✅ INI KUNCINYA: Simpan total sebagai angka langsung agar rekap-nilai.js tetap bisa baca
+      nilaiTotalBaru[s.id] = total;
     });
-    await db.collection('penilaian').doc(penilaianId).update({ nilai: nilaiBaru });
-    alert('Nilai disimpan!');
-  } catch (error) { alert('Gagal: ' + error.message); }
+    
+    // Update database: Simpan di 2 field terpisah agar tidak saling ganggu
+    await db.collection('penilaian').doc(penilaianId).update({
+      nilai_butir: nilaiButirBaru,
+      nilai: nilaiTotalBaru 
+    });
+    
+    alert('Nilai berhasil disimpan!');
+  } catch (error) { 
+    alert('Gagal: ' + error.message); 
+  }
 }
 
 function kembaliKeInput() {
@@ -343,7 +359,7 @@ async function tampilkanHasilAnalisis() {
   document.getElementById('step4').style.display = 'block';
 
   const { penilaianId, kelasId, kkm, penilaian, soalButir, siswaList, butirKeys, totalSkorMax } = currentButirSetup;
-  const records = penilaian.nilai || {};
+  const records = penilaian.nilai_butir || penilaian.nilai || {};
 
   // Proses data per siswa
   const analisisData = [];
