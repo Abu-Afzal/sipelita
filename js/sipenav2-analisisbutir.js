@@ -706,21 +706,202 @@ async function tampilkanHasilAnalisis() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 7. EXPORT EXCEL
+// 7. EXPORT EXCEL (FORMAT SESUAI REFERENSI MAN BANTAENG)
 // ═══════════════════════════════════════════════════════════
 function exportAnalisisButirExcel() {
-  if (!butirCache) { alert('Jalankan analisis dulu!'); return; }
+  if (!butirCache) { 
+    window.toast ? window.toast('Jalankan analisis dulu!', 'err') : alert('Jalankan analisis dulu!'); 
+    return; 
+  }
+  
   const c = butirCache;
-  const dataSiswa = c.analisisData.map((d, i) => ({
-    'No': i + 1, 'Nama Peserta Didik': d.siswa.student_name, 'L/P': d.siswa.l_p || '-',
-    ...Object.fromEntries(Object.entries(d.nilaiPerSoal).map(([k, v]) => [`Soal ${k.replace('soal_', '')}`, v])),
-    'Jml Skor': d.total, '% Ketercapaian': d.pctKetercapaian + '%', 'Tuntas': d.isTuntas ? 'Tuntas' : 'Tidak Tuntas'
-  }));
-  const wsSiswa = XLSX.utils.json_to_sheet(dataSiswa);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, wsSiswa, "Rincian Nilai");
+  
+  // ══════════════════════════════════════════════════════════
+  // SHEET 1: RINCIAN NILAI PESERTA (Tabel A)
+  // ═══════════════════════════════════════════════════════════
+  const sheetA = [];
+  
+  // Baris 1-2: Judul
+  sheetA.push(['ANALISIS HASIL SUMATIF AKHIR SEMESTER']);
+  sheetA.push([c.namaMadrasah || 'MAN BANTAENG']);
+  sheetA.push([]);
+  
+  // Baris 4-6: Info
+  sheetA.push(['Mata Pelajaran', ':', c.mapel, '', '', '', 'Jumlah Soal', ':', c.jumlahSoal]);
+  sheetA.push(['Kelas', ':', c.kelasNama, '', '', '', 'KKM', ':', c.kkm]);
+  sheetA.push(['Semester', ':', c.semester, '', '', '', 'Tahun Ajaran', ':', c.tahunAjaran]);
+  sheetA.push([]);
+  
+  // Baris 8-10: Header Tabel A (3 baris)
+  // Baris 8: Header utama
+  const headerRow1 = ['No.', 'NAMA PESERTA DIDIK', 'L/P'];
+  // Gabungkan "NO. SOAL / SKOR MAKSIMUM" untuk semua soal
+  c.butirKeys.forEach(() => headerRow1.push(''));
+  headerRow1.push('Jmlh Skor', '% Ketercapaian', 'Tuntas');
+  sheetA.push(headerRow1);
+  
+  // Baris 9: Nomor soal
+  const headerRow2 = ['', '', ''];
+  c.butirKeys.forEach(k => headerRow2.push(k.replace('soal_', '')));
+  headerRow2.push('', '', '');
+  sheetA.push(headerRow2);
+  
+  // Baris 10: Skor maksimal
+  const headerRow3 = ['', '', ''];
+  c.butirKeys.forEach(k => headerRow3.push(c.soalButir[k].max));
+  headerRow3.push('', '', '');
+  sheetA.push(headerRow3);
+  
+  // Baris 11+: Data siswa
+  c.analisisData.forEach((d, i) => {
+    const row = [i + 1, d.siswa.student_name, d.siswa.l_p || '-'];
+    c.butirKeys.forEach(k => row.push(d.nilaiPerSoal[k] || 0));
+    row.push(d.total, d.pctKetercapaian + '%', d.isTuntas ? 'Tuntas' : 'Tidak Tuntas');
+    sheetA.push(row);
+  });
+  
+  sheetA.push([]);
+  sheetA.push([]);
+  sheetA.push([]);
+  
+  // Baris Statistik: Jumlah
+  const rowJumlah = ['', 'Jumlah', ''];
+  c.statistikPerSoal.forEach(s => rowJumlah.push(s.skorDiperoleh));
+  rowJumlah.push(c.totalJumlah, '', '');
+  sheetA.push(rowJumlah);
+  
+  // Baris Statistik: Rata-rata
+  const rowRata = ['', 'Rata-rata', ''];
+  c.statistikPerSoal.forEach(s => rowRata.push(parseFloat(s.rataRata)));
+  rowRata.push(parseFloat(c.statistikPerSoal.reduce((sum, s) => sum + parseFloat(s.rataRata), 0) / c.butirKeys.length).toFixed(0), '', '');
+  sheetA.push(rowRata);
+  
+  // Baris Statistik: Nilai tertinggi
+  const rowMax = ['', 'Nilai tertinggi', ''];
+  c.statistikPerSoal.forEach(s => rowMax.push(s.max));
+  rowMax.push(Math.max(...c.analisisData.map(d => d.total)), '', '');
+  sheetA.push(rowMax);
+  
+  // Baris Statistik: Nilai terendah
+  const rowMin = ['', 'Nilai terendah', ''];
+  c.statistikPerSoal.forEach(s => rowMin.push(s.min));
+  rowMin.push(Math.min(...c.analisisData.map(d => d.total)), '', '');
+  sheetA.push(rowMin);
+  
+  const wsA = XLSX.utils.aoa_to_sheet(sheetA);
+  
+  // Set lebar kolom
+  wsA['!cols'] = [
+    {wch: 5},   // No
+    {wch: 30},  // Nama
+    {wch: 5},   // L/P
+    ...c.butirKeys.map(() => ({wch: 8})), // Soal
+    {wch: 10},  // Jmlh Skor
+    {wch: 12},  // % Ketercapaian
+    {wch: 12}   // Tuntas
+  ];
+  
+  // Merge cells untuk judul
+  wsA['!merges'] = [
+    {s: {r: 0, c: 0}, e: {r: 0, c: 8}}, // Judul
+    {s: {r: 1, c: 0}, e: {r: 1, c: 8}}, // Nama Madrasah
+    {s: {r: 7, c: 3}, e: {r: 7, c: 3 + c.butirKeys.length - 1}}, // NO. SOAL/SKOR MAKSIMUM
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, wsA, "Rincian Nilai");
+  
+  // ═══════════════════════════════════════════════════════════
+  // SHEET 2: HASIL ANALISIS PER BUTIR SOAL (Tabel B)
+  // ═══════════════════════════════════════════════════════════
+  const sheetB = [];
+  
+  // Baris 1-2: Judul
+  sheetB.push(['ANALISIS HASIL SUMATIF AKHIR SEMESTER']);
+  sheetB.push([c.namaMadrasah || 'MAN BANTAENG']);
+  sheetB.push([]);
+  
+  // Baris 4-6: Info
+  sheetB.push(['Mata Pelajaran', ':', c.mapel, '', '', '', 'Jumlah Soal', ':', c.jumlahSoal]);
+  sheetB.push(['Kelas', ':', c.kelasNama, '', '', '', 'KKM', ':', c.kkm]);
+  sheetB.push(['Semester', ':', c.semester, '', '', '', 'Tahun Ajaran', ':', c.tahunAjaran]);
+  sheetB.push([]);
+  
+  // Baris 8-9: Header Tabel B (2 baris)
+  const headerB1 = ['No', 'Keterangan'];
+  c.butirKeys.forEach(() => headerB1.push(''));
+  headerB1.push('Total', 'Kesimpulan');
+  sheetB.push(headerB1);
+  
+  const headerB2 = ['', '', 'Nomor Soal'];
+  c.butirKeys.forEach(k => headerB2.push(k.replace('soal_', '')));
+  headerB2.push('', '');
+  sheetB.push(headerB2);
+  
+  // Baris 10-17: 8 baris analisis
+  const barisAnalisis = [
+    { no: 1, ket: 'Jumlah skor yang diperoleh', vals: c.statistikPerSoal.map(s => s.skorDiperoleh), total: c.totalJumlah },
+    { no: 2, ket: 'Jumlah skor ideal (seharusnya)', vals: c.statistikPerSoal.map(s => s.skorIdeal), total: c.totalSkorMax * c.jmlPeserta },
+    { no: 3, ket: '% Ketercapaian', vals: c.statistikPerSoal.map(s => s.pctKetercapaian + '%'), total: ((c.totalJumlah / (c.totalSkorMax * c.jmlPeserta)) * 100).toFixed(0) + '%' },
+    { no: 4, ket: '% Kegagalan', vals: c.statistikPerSoal.map(s => s.pctKegagalan + '%'), total: (100 - (c.totalJumlah / (c.totalSkorMax * c.jmlPeserta)) * 100).toFixed(0) + '%' },
+    { no: 5, ket: 'Skor kegagalan', vals: c.statistikPerSoal.map(s => s.skorKegagalan), total: (c.totalSkorMax * c.jmlPeserta) - c.totalJumlah },
+    { no: 6, ket: 'Jumlah peserta ujian', vals: c.statistikPerSoal.map(s => c.jmlPeserta), total: '' },
+    { no: 7, ket: 'Jumlah peserta yang tidak tuntas', vals: c.statistikPerSoal.map(s => s.tidakTuntas || 0), total: c.jmlTidakTuntas },
+    { no: 8, ket: 'Jumlah peserta yang tuntas', vals: c.statistikPerSoal.map(s => s.tuntas || c.jmlPeserta), total: c.jmlTuntas }
+  ];
+  
+  barisAnalisis.forEach((baris, idx) => {
+    const row = [baris.no, baris.ket];
+    baris.vals.forEach(v => row.push(v));
+    row.push(baris.total);
+    // Kesimpulan hanya di baris pertama (merge)
+    if (idx === 0) {
+      const ketuntasanKlasikal = c.jmlPeserta > 0 ? ((c.jmlTuntas / c.jmlPeserta) * 100).toFixed(0) : 0;
+      const pctRemedial = c.jmlPeserta > 0 ? ((c.jmlTidakTuntas / c.jmlPeserta) * 100).toFixed(0) : 0;
+      row.push(`a. Ketuntasan Klasikal: ${c.jmlTuntas} (${ketuntasanKlasikal}%) orang\n\nb. Ketuntasan Individual yang perlu remedial: ${c.jmlTidakTuntas} (${pctRemedial}%) orang\n\nc. Bentuk remedial: Pemberian tugas individu untuk menjawab soal-soal dan melaporkan hasilnya.`);
+    } else {
+      row.push('');
+    }
+    sheetB.push(row);
+  });
+  
+  sheetB.push([]);
+  sheetB.push([]);
+  
+  // Tanda tangan
+  const tglSurat = `${new Date().getDate()} ${NAMA_BULAN[new Date().getMonth()]} ${new Date().getFullYear()}`;
+  sheetB.push(['Mengetahui:', '', '', '', '', '', '', '', '', (c.namaMadrasah || 'Bantaeng') + ', ' + tglSurat]);
+  sheetB.push(['KEPALA ' + (c.namaMadrasah || 'MAN BANTAENG'), '', '', '', '', '', '', '', 'GURU BIDANG STUDY', '']);
+  sheetB.push([]);
+  sheetB.push([]);
+  sheetB.push([]);
+  sheetB.push([c.namaKepala || '', '', '', '', '', '', '', '', c.namaGuru || '', '']);
+  sheetB.push([c.nipKepala || '', '', '', '', '', '', '', '', c.nipGuru || '', '']);
+  
+  const wsB = XLSX.utils.aoa_to_sheet(sheetB);
+  
+  // Set lebar kolom
+  wsB['!cols'] = [
+    {wch: 5},   // No
+    {wch: 35},  // Keterangan
+    ...c.butirKeys.map(() => ({wch: 8})), // Nomor Soal
+    {wch: 10},  // Total
+    {wch: 50}   // Kesimpulan
+  ];
+  
+  // Merge cells
+  wsB['!merges'] = [
+    {s: {r: 0, c: 0}, e: {r: 0, c: 9}}, // Judul
+    {s: {r: 1, c: 0}, e: {r: 1, c: 9}}, // Nama Madrasah
+    {s: {r: 7, c: 2}, e: {r: 7, c: 2 + c.butirKeys.length - 1}}, // Nomor Soal
+    {s: {r: 9, c: 13}, e: {r: 16, c: 13}}, // Kesimpulan (merge 8 baris)
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, wsB, "Hasil Analisis");
+  
+  // Download file
   XLSX.writeFile(wb, `Analisis_Butir_Soal_${c.kelasNama}_${c.mapel}.xlsx`);
-  alert('File Excel berhasil diunduh!');
+  window.toast ? window.toast('✅ File Excel berhasil diunduh!', 'success') : alert('File Excel berhasil diunduh!');
 }
 
 // ═══════════════════════════════════════════════════════════
