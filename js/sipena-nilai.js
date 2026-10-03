@@ -647,7 +647,7 @@ window.hapusDataNilai = async () => {
 // ══════════════════════════════════════════════
 window.cetakRekapNilaiPDF = () => {
   const filter = window.getNilaiFilter();
-  const tahunAjaran = document.getElementById('nilaiTahunAjaran')?.value || '2024/2025';
+  const tahunAjaran = document.getElementById('nilaiTahunAjaran')?.value || '2026/2027';
 
   const siswa = allData
     .filter(d => d.type === 'student' && d.class_name === filter.class_name && d.user_name === filter.user_name)

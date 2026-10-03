@@ -41,7 +41,7 @@ function renderAnalisisButir() {
           </div>
           <div class="fg" style="margin:0;">
             <label>📆 Tahun Ajaran</label>
-            <input type="text" id="butirTahunAjaran" value="2024/2025" placeholder="2024/2025" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
+            <input type="text" id="butirTahunAjaran" value="2026/2027" placeholder="2026/2027" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
           </div>
           <div style="display:flex;align-items:flex-end;">
             <button class="btn btn-primary" onclick="checkButirData()" style="width:100%;">
@@ -517,7 +517,7 @@ async function tampilkanHasilAnalisis() {
   const mapel = penilaian.mapel || (document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.mapel) || '-';
   const kelasNama = document.getElementById('butirKelasSelect').options[document.getElementById('butirKelasSelect').selectedIndex]?.dataset.nama || '-';
   const semester = currentButirSetup?.semester || penilaian.semester || 'Genap';
-  const tahunAjaran = currentButirSetup?.tahunAjaran || penilaian.tahun_ajaran || '2024/2025';
+  const tahunAjaran = currentButirSetup?.tahunAjaran || penilaian.tahun_ajaran || '2026/2027';
   const jumlahSoal = butirKeys.length;
 
   const b = 'border:1px solid #000; padding:4px; font-size:10pt;';
