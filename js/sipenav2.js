@@ -550,7 +550,16 @@ function loadPage(page) {
 
 function renderDashboard() {
   return `
-    <div class="card" style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem;">
+    <!-- ✅ JADWAL MENGAJAR DIPINDAH KE ATAS -->
+    <div class="card" style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius); box-shadow: var(--shadow);">
+      <h3 style="margin-bottom: 1rem; font-size: 1.05rem;">📅 Jadwal Mengajar Hari Ini</h3>
+      <div id="jadwalHariIniArea" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <div style="text-align:center; padding:1rem; color:var(--text-secondary);">Memuat jadwal...</div>
+      </div>
+    </div>
+
+    <!-- ✅ KEUNGGULAN DIPINDAH KE BAWAH -->
+    <div class="card" style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-top: 1rem;">
       <h3 style="margin-bottom: 1rem; font-size: 1.05rem;">✨ Keunggulan SIPENA 2.0</h3>
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.6rem;">
 
@@ -605,13 +614,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <div class="card" style="background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius); box-shadow: var(--shadow);">
-      <h3 style="margin-bottom: 1rem; font-size: 1.05rem;">📅 Jadwal Mengajar Hari Ini</h3>
-      <div id="jadwalHariIniArea" style="display:flex; flex-direction:column; gap:0.5rem;">
-        <div style="text-align:center; padding:1rem; color:var(--text-secondary);">Memuat jadwal...</div>
-      </div>
-    </div>
-
+    <!-- Tips tetap di paling bawah -->
     <div class="card" style="margin-top:1rem; background: var(--bg-card); padding: 1rem 1.25rem; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid #f59e0b;">
       <span style="font-size:0.88rem; color:#78350f;">💡 <b>Tips:</b> Setelah menginput nilai sumatif, buka menu <b>Penilaian → Analisis Nilai</b> untuk langsung melihat siswa yang perlu remedial — tanpa hitung manual.</span>
     </div>
