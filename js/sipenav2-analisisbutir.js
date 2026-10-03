@@ -647,13 +647,13 @@ async function tampilkanHasilAnalisis() {
         <div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-transform:uppercase;">ANALISIS HASIL SUMATIF AKHIR SEMESTER</div>
       </div>
 
-      <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
+           <table style="width:100%; margin-bottom:12px; font-size:12pt; border:none; border-collapse:collapse;">
         <tr>
           <td style="border:none; width:140px; padding:1px 0; text-align:left;">Mata Pelajaran</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${mapel}</strong></td>
-          <td style="border:none; width:100%; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; width:120px; padding:1px 0; text-align:left;">Jumlah Soal</td>
+          <td style="border:none; width:140px; padding:1px 0; text-align:left;"></td>
+          <td style="border:none; width:120px; padding:1px 0; text-align:left; padding-left:500px;">Jumlah Soal</td>
           <td style="border:none; width:10px; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${jumlahSoal}</strong></td>
         </tr>
@@ -662,7 +662,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${kelasNama}</strong></td>
           <td style="border:none; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; padding:1px 0; text-align:left;">KKM</td>
+          <td style="border:none; padding:1px 0; text-align:left; padding-left:500px;">KKM</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${kkm}</strong></td>
         </tr>
@@ -671,7 +671,7 @@ async function tampilkanHasilAnalisis() {
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${semester}</strong></td>
           <td style="border:none; padding:1px 0; text-align:left;"></td>
-          <td style="border:none; padding:1px 0; text-align:left;">Tahun Ajaran</td>
+          <td style="border:none; padding:1px 0; text-align:left; padding-left:500px;">Tahun Ajaran</td>
           <td style="border:none; padding:1px 0; text-align:left;">:</td>
           <td style="border:none; padding:1px 0; text-align:left;"><strong>${tahunAjaran}</strong></td>
         </tr>
