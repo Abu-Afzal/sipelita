@@ -331,13 +331,20 @@ async function fetchIdentitasSekolah() {
     } catch (e) {}
   }
 
+  // ✅ SANITIZE EMAIL: ganti @ dan . dengan _ untuk cocok dengan format doc ID di Firebase
+  const sanitizedEmail = currentUser.email.replace(/[@.]/g, '_');
+
   // 🗂️ Sapuan koleksi SIG — termasuk pengaturan_user!
   const cols = ['pengaturan_user', 'identitas_madrasah', 'sekolah', 'sipena2',
                 'pengaturan', 'settings', 'config', 'sig'];
   for (const c of cols) {
-    // per-user: doc uid → doc email → query uid → query email
+    // per-user: doc uid → doc email → doc sanitized email → query uid → query email
     try { const a = await db.collection(c).doc(currentUser.uid).get();   if (a.exists) { sumber.push(a.data()); continue; } } catch (e) {}
     try { const b = await db.collection(c).doc(currentUser.email).get(); if (b.exists) { sumber.push(b.data()); continue; } } catch (e) {}
+    
+    // ✅ TAMBAHKAN BARIS INI: Coba cari dengan Document ID yang pakai underscore
+    try { const c2 = await db.collection(c).doc(sanitizedEmail).get();   if (c2.exists) { sumber.push(c2.data()); continue; } } catch (e) {}
+    
     try { const q = await db.collection(c).where('uid', '==', currentUser.uid).limit(1).get();       q.forEach(d => sumber.push(d.data())); } catch (e) {}
     try { const q = await db.collection(c).where('user_uid', '==', currentUser.uid).limit(1).get();  q.forEach(d => sumber.push(d.data())); } catch (e) {}
     try { const q = await db.collection(c).where('email', '==', currentUser.email).limit(1).get();   q.forEach(d => sumber.push(d.data())); } catch (e) {}
@@ -356,10 +363,15 @@ async function fetchIdentitasSekolah() {
     else {
       const u2 = await db.collection('users').doc(currentUser.email).get();
       if (u2.exists) sumber.push(u2.data());
+      else {
+        // ✅ TAMBAHKAN BARIS INI: Coba cari di collection users dengan sanitized email
+        const u3 = await db.collection('users').doc(sanitizedEmail).get();
+        if (u3.exists) sumber.push(u3.data());
+      }
     }
   } catch (e) {}
 
-   // Terapkan berurutan (nilai tidak kosong menimpa)
+  // Terapkan berurutan (nilai tidak kosong menimpa)
   let ketemu = false, kop1Explicit = false;
   for (const d of sumber) {
     const x = ekstrakSIG(d);
@@ -371,7 +383,7 @@ async function fetchIdentitasSekolah() {
     if (x.alamat) { CONFIG_MADRASAH.alamat = x.alamat; ketemu = true; }
   }
 
-  // 🏛️ KOP baris 1 OTOMATIS dari kota bila guru tidak mengisi manual
+  // ️ KOP baris 1 OTOMATIS dari kota bila guru tidak mengisi manual
   if (ketemu && !kop1Explicit && CONFIG_MADRASAH.kota) {
     CONFIG_MADRASAH.kop1 = 'KEMENTERIAN AGAMA KABUPATEN ' + CONFIG_MADRASAH.kota.toUpperCase();
   }
@@ -429,14 +441,19 @@ async function muatFormPengaturan() {
   
   try {
     console.log('🔍 Membaca data pengaturan_user untuk form...');
-    const docRef = db.collection('pengaturan_user').doc(currentUser.email);
-    const docSnap = await docRef.get();
+    const sanitizedEmail = currentUser.email.replace(/[@.]/g, '_');
+    
+    // Coba email biasa dulu, jika gagal coba sanitized email
+    let docSnap = await db.collection('pengaturan_user').doc(currentUser.email).get();
+    if (!docSnap.exists) {
+      docSnap = await db.collection('pengaturan_user').doc(sanitizedEmail).get();
+    }
     
     if (docSnap.exists) {
       const data = docSnap.data();
       console.log('✅ Data ditemukan di database:', data);
       
-      // Isi langsung ke elemen HTML (Pastikan ID di HTML Anda sama persis)
+      // Isi langsung ke elemen HTML
       if (document.getElementById('sig_kop1')) document.getElementById('sig_kop1').value = data.kop1 || '';
       if (document.getElementById('sig_kop2')) document.getElementById('sig_kop2').value = data.kop2 || '';
       if (document.getElementById('sig_alamat')) document.getElementById('sig_alamat').value = data.alamat || '';
