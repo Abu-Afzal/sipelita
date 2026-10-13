@@ -176,8 +176,8 @@ async function initSession() {
       await fetchKepalaMadrasah();
       
       // 2. Muat data identitas sekolah & SIG
-      await fetchIdentitasSekolah();
-      await fetchSekolahAktif(); 
+      await fetchSekolahAktif();
+      await fetchIdentitasSekolah(); 
       
       // 3. ✅ PENTING: Muat data dari database KE DALAM FORM PENGATURAN
       await muatFormPengaturan();
