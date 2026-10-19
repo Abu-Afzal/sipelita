@@ -368,11 +368,35 @@
     </div>
   </div>
 
-    <!-- Custom JavaScript -->
-  <script src="../js/sipenav2.js?v=270831"></script>
-  <script src="../js/sipenav2-penilaian.js?v=270828"></script>
-  <script src="../js/sipenav2-rekapnilai.js?v=270828"></script>
-  <script src="../js/sipenav2-analisis.js?v=270828"></script>
+    <!-- ========================================== -->
+  <!-- MODAL EDIT NILAI (TAMBAHAN BARU)           -->
+  <!-- ========================================== -->
+  <div class="modal" id="modalEditNilai">
+    <div class="modal-box" style="max-width: 800px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <span id="editNilaiTitle" style="font-size: 1.1rem; font-weight: 700;">Edit Nilai</span>
+        <button onclick="closeModal('modalEditNilai')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+      </div>
+      
+      <div id="editNilaiBody" style="flex: 1; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem;">
+        <!-- Data siswa dan input nilai akan dimuat di sini oleh JavaScript -->
+        <div style="text-align:center; padding:2rem;"><div class="spinner"></div> Memuat data...</div>
+      </div>
+      
+      <div style="margin-top: 0; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" onclick="closeModal('modalEditNilai')">Batal</button>
+        <button class="btn btn-primary" id="btnSimpanEditNilai" onclick="window.simpanEditNilai()">
+          <i class="fas fa-save"></i> Simpan Perubahan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom JavaScript -->
+  <script src="../js/sipenav2.js?v=270830"></script>
+  <script src="../js/sipenav2-penilaian.js?v=270830"></script>
+  <script src="../js/sipenav2-rekapnilai.js?v=270831"></script>
+  <script src="../js/sipenav2-analisis.js?v=270830"></script>
   <script src="../js/sipenav2-analisisbutir.js?v=270836"></script>
   <script src="../js/sipenav2-banksoal.js?v=270828"></script>
   <script src="../js/sipenav2-jurnal.js?v=270843"></script>

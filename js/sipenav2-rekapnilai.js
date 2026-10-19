@@ -157,10 +157,18 @@ async function loadRekapNilai() {
     }
 
     // 3. Render tabel
-    let headerCols = '<th style="position: sticky; left: 0; background: white; font-weight: 700;">No</th><th style="position: sticky; left: 50px; background: white; font-weight: 700; min-width: 200px;">Nama Siswa</th>';
-    penilaianList.forEach(p => {
-      headerCols += `<th style="text-align: center; min-width: 90px;">${p.nama}</th>`;
-    });
+let headerCols = '<th style="position: sticky; left: 0; background: white; font-weight: 700; z-index: 10;">No</th><th style="position: sticky; left: 50px; background: white; font-weight: 700; min-width: 200px; z-index: 10;">Nama Siswa</th>';
+penilaianList.forEach(p => {
+  headerCols += `
+    <th style="text-align: center; min-width: 120px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <span style="font-weight:700;">${p.nama}</span>
+        <button class="btn btn-sm btn-warning" onclick="window.openEditNilaiModal('${p.id}', '${p.nama.replace(/'/g, "\\'")}', '${kelasId}', '${kategori}')" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px;">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+      </div>
+    </th>`;
+});
     
     let hasilCol = '';
     if (kategori === 'sikap') {
@@ -392,3 +400,163 @@ function cetakRekapNilai() {
   `);
   printWindow.document.close();
 }
+
+// ══════════════════════════════════════════════
+// MODAL EDIT NILAI (TAMBAHAN)
+// ══════════════════════════════════════════════
+let currentEditPenilaianId = null;
+let currentEditKelasId = null;
+let currentEditKategori = null;
+let currentEditSiswaList = [];
+
+window.openEditNilaiModal = async (penilaianId, penilaianNama, kelasId, kategori) => {
+  currentEditPenilaianId = penilaianId;
+  currentEditKelasId = kelasId;
+  currentEditKategori = kategori;
+  
+  document.getElementById('editNilaiTitle').textContent = `Edit Nilai: ${penilaianNama}`;
+  document.getElementById('editNilaiBody').innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner"></div> Memuat data siswa...</div>';
+  
+  // Buka modal - cek apakah fungsi openModal tersedia
+  if (typeof openModal === 'function') {
+    openModal('modalEditNilai');
+  } else {
+    document.getElementById('modalEditNilai').classList.add('active');
+  }
+  
+  try {
+    // 1. Ambil data siswa di kelas ini
+    const siswaSnap = await db.collection('siswa').where('kelas_id', '==', kelasId).get();
+    currentEditSiswaList = [];
+    siswaSnap.forEach(doc => currentEditSiswaList.push({ id: doc.id, ...doc.data() }));
+    currentEditSiswaList.sort((a, b) => a.student_name.localeCompare(b.student_name));
+    
+    // 2. Ambil data penilaian saat ini
+    const nilaiDoc = await db.collection('penilaian').doc(penilaianId).get();
+    
+    // ✅ PERBAIKAN: Tambahkan fallback yang lebih aman
+    let nilaiData = {};
+    if (nilaiDoc.exists) {
+      nilaiData = nilaiDoc.data();
+    }
+    
+    // ✅ Pastikan field 'nilai' dan 'deskripsi' selalu berupa object
+    const nilaiMap = nilaiData.nilai || {};
+    const deskripsiMap = nilaiData.deskripsi || {};
+    
+    console.log('✅ Data penilaian dimuat:', {
+      docId: penilaianId,
+      hasNilai: Object.keys(nilaiMap).length,
+      hasDeskripsi: Object.keys(deskripsiMap).length,
+      totalSiswa: currentEditSiswaList.length
+    });
+    
+    // 3. Render tabel input
+    let html = '<table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">';
+    html += '<thead style="background: #f8fafc; position: sticky; top: 0;"><tr>';
+    html += '<th style="padding:8px; text-align:left; border-bottom: 2px solid #e2e8f0;">No</th>';
+    html += '<th style="padding:8px; text-align:left; border-bottom: 2px solid #e2e8f0;">Nama Siswa</th>';
+    html += '<th style="padding:8px; text-align:center; border-bottom: 2px solid #e2e8f0; width: 130px;">Nilai / Predikat</th>';
+    html += '<th style="padding:8px; text-align:left; border-bottom: 2px solid #e2e8f0;">Deskripsi / Catatan</th>';
+    html += '</tr></thead><tbody>';
+    
+    currentEditSiswaList.forEach((s, i) => {
+      // ✅ PERBAIKAN: Akses nilai dengan aman
+      const currentNilai = (nilaiMap[s.id] !== undefined && nilaiMap[s.id] !== null) ? nilaiMap[s.id] : '';
+      const currentDesk = deskripsiMap[s.id] || '';
+      
+      let inputField = '';
+      if (kategori === 'sikap') {
+        inputField = `
+          <select id="edit_nilai_${s.id}" style="padding:6px; border-radius:6px; border:1px solid #cbd5e1; width:100%; font-size:0.85rem;">
+            <option value="">- Pilih -</option>
+            <option value="SB" ${currentNilai === 'SB' ? 'selected' : ''}>SB (Sangat Baik)</option>
+            <option value="B" ${currentNilai === 'B' ? 'selected' : ''}>B (Baik)</option>
+            <option value="C" ${currentNilai === 'C' ? 'selected' : ''}>C (Cukup)</option>
+            <option value="K" ${currentNilai === 'K' ? 'selected' : ''}>K (Kurang)</option>
+          </select>`;
+      } else {
+        inputField = `<input type="number" id="edit_nilai_${s.id}" value="${currentNilai}" min="0" max="100" placeholder="0-100" style="padding:6px; border-radius:6px; border:1px solid #cbd5e1; width:80px; text-align:center; font-size:0.85rem;">`;
+      }
+      
+      html += `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding:8px; text-align:center;">${i + 1}</td>
+          <td style="padding:8px; font-weight:600;">${s.student_name}</td>
+          <td style="padding:8px; text-align:center;">${inputField}</td>
+          <td style="padding:8px;"><input type="text" id="edit_desk_${s.id}" value="${currentDesk}" placeholder="Catatan..." style="padding:6px; border-radius:6px; border:1px solid #cbd5e1; width:100%; font-size:0.85rem;"></td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('editNilaiBody').innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error load edit nilai:', error);
+    document.getElementById('editNilaiBody').innerHTML = `<div style="text-align:center; color:#ef4444; padding:2rem;">
+      <i class="fas fa-exclamation-triangle" style="font-size:2rem; margin-bottom:0.5rem;"></i><br>
+      <b>Gagal memuat data</b><br>
+      <small style="color:#64748b;">${error.message}</small>
+    </div>`;
+  }
+};
+
+window.simpanEditNilai = async () => {
+  if (!currentEditPenilaianId) return;
+  
+  const btn = document.getElementById('btnSimpanEditNilai');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+  
+  try {
+    const updateData = {
+      nilai: {},
+      deskripsi: {},
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    let adaYangDiisi = false;
+    
+    currentEditSiswaList.forEach(s => {
+      const nilaiInput = document.getElementById(`edit_nilai_${s.id}`);
+      const deskInput = document.getElementById(`edit_desk_${s.id}`);
+      
+      if (nilaiInput) {
+        let val = nilaiInput.value.trim();
+        if (val !== '') {
+          updateData.nilai[s.id] = currentEditKategori === 'sikap' ? val : Number(val);
+          adaYangDiisi = true;
+        }
+      }
+      if (deskInput) {
+        const desk = deskInput.value.trim();
+        if (desk !== '') {
+          updateData.deskripsi[s.id] = desk;
+        }
+      }
+    });
+    
+    if (!adaYangDiisi && Object.keys(updateData.deskripsi).length === 0) {
+      showToast('⚠️ Tidak ada perubahan nilai atau deskripsi yang diisi!', 'warning');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+      return;
+    }
+    
+    await db.collection('penilaian').doc(currentEditPenilaianId).update(updateData);
+    
+    showToast('✅ Nilai berhasil diperbarui!', 'success');
+    closeModal('modalEditNilai');
+    
+    // Refresh tampilan rekap nilai agar data terbaru muncul
+    loadRekapNilai();
+    
+  } catch (error) {
+    console.error('Error simpan edit nilai:', error);
+    showToast('❌ Gagal menyimpan: ' + error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+  }
+};
